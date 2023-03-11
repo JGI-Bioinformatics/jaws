@@ -4,6 +4,7 @@ import logging
 import os
 import pika
 from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models, config
@@ -24,12 +25,20 @@ class TaskLog:
 
     def _select_rows(self):
         try:
-            rows = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
-                .order_by(models.Task_Log.id)
-                .all()
+            stmt = (
+                select(
+                    models.TaskLog.execution_dir,
+                    models.TaskLog.status,
+                    models.TaskLog.timestamp,
+                )
+                .where(
+                    models.TaskLog.any(
+                        models.TaskLog.cromwell_run_id == self.cromwell_run_id
+                    )
+                )
+                .order_by(models.TaskLog.id)
             )
+            rows = self.session.execute(stmt).all()
         except NoResultFound:
             # it's possible for a newly created run to not have any task-log messages yet
             return []
@@ -37,6 +46,29 @@ class TaskLog:
             self.logger.error(f"Unable to select task_logs: {error}")
             raise TaskDbError(error)
         return rows
+
+    def table(self):
+        """
+        Reformat task log into a table.
+        """
+        execution_dirs = {}
+        for execution_dir, status, timestamp in self.data:
+            if not execution_dir in execution_dirs:
+                execution_dirs[execution_dir] = ["?", "?", "?", "?"]
+                # the "?" should be replaced unless a log message was lost or
+                # the task is unfinished
+            if status == "queued":
+                execution_dirs[execution_dir][0] = timestamp
+            elif status == "running":
+                execution_dirs[execution_dir][1] = timestamp
+            else:
+                execution_dirs[execution_dir][2] = timestamp
+                execution_dirs[execution_dir][3] = status
+        table = []
+        for execution_dir in sort(execution_dirs):
+            row = (execution_dir, *execution_dirs[execution_dir])
+            table.append(row)
+        return table
 
 
 def receive_messages(config, session):
