@@ -26,59 +26,6 @@ def server_status(params, session):
     return success(status)
 
 
-def run_outputs(params, session):
-    """Retrieve the outputs-json of a run.
-
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: The Cromwell outputs for the specified run.
-    :rtype: dict
-    """
-    logger.info(f"User {params['user_id']}: Outputs Run {params['run_id']}")
-    relpath = False if "relpath" in params and params["relpath"] is False else True
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.outputs(relpath)
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
-def run_outfiles(params, session):
-    """Retrieve list of output files of a run.
-
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: The output files for a run
-    :rtype: dict
-    """
-    logger.info(f"User {params['user_id']}: Outfiles Run {params['run_id']}")
-    relpath = False if "relpath" in params and params["relpath"] is False else True
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.outfiles(complete=False, relpath=relpath)
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
-def run_workflow_root(params, session):
-    """Retrieve the root dir of the workflow
-
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: The output files for a run
-    :rtype: dict
-    """
-    logger.info(f"User {params['user_id']}: workflowRoot Run {params['run_id']}")
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.workflow_root()
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
 def run_manifest(params, session):
     """Retrieve list of output files of a Run.
 
@@ -114,50 +61,6 @@ def cancel_run(params, session):
     return success(result)
 
 
-def run_errors(params, session):
-    """Retrieve error report which is generated from Cromwell metadata.
-
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: errors report
-    :rtype: dict
-    """
-    logger.info(f"User {params['user_id']}: Run {params['run_id']} errors report")
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.errors()
-    except RunNotFoundError:
-        return success(
-            "The Run hasn't yet been submitted to Cromwell so there is no errors report"
-        )
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
-def run_running_tasks(params, session):
-    """Retrieve running-tasks report which is generated from Cromwell metadata.
-
-    :param cromwell_run_id: Cromwell run ID
-    :type params: dict
-    :return: running tasks report
-    :rtype: dict
-    """
-    logger.info(
-        f"User {params['user_id']}: Run {params['run_id']} running-tasks report"
-    )
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.running_tasks()
-    except RunNotFoundError:
-        return success(
-            "The Run hasn't yet been submitted to Cromwell so there is no running-tasks report"
-        )
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
 def submit_run(params, session):
     """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
     logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
@@ -169,24 +72,12 @@ def submit_run(params, session):
         return success(run.data.status)
 
 
-def run_task_log(params, session):
+def task_log(params, session):
     """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
         result = run.task_log()
-    except Exception as error:
-        return failure(error)
-    else:
-        return success(result)
-
-
-def run_task_summary(params, session):
-    """Retrieve task summary from Cromwell metadata"""
-    logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.task_summary()
     except Exception as error:
         return failure(error)
     else:
@@ -264,18 +155,6 @@ operations = {
             "input_site_id",
         ],
     },
-    "run_outputs": {
-        "function": run_outputs,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
-    "run_outfiles": {
-        "function": run_outfiles,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
-    "run_workflow_root": {
-        "function": run_workflow_root,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
     "run_manifest": {
         "function": run_manifest,
         "required_params": ["run_id"],
@@ -284,21 +163,9 @@ operations = {
         "function": cancel_run,
         "required_params": ["user_id", "run_id"],
     },
-    "run_task_log": {
+    "task_log": {
         "function": run_task_log,
         "required_params": ["user_id", "run_id"],
-    },
-    "run_task_summary": {
-        "function": run_task_summary,
-        "required_params": ["user_id", "run_id"],
-    },
-    "run_errors": {
-        "function": run_errors,
-        "required_params": ["user_id", "cromwell_run_id"],
-    },
-    "run_running_tasks": {
-        "function": run_running_tasks,
-        "required_params": ["user_id", "cromwell_run_id"],
     },
     "submit_transfer": {
         "function": submit_transfer,
