@@ -183,9 +183,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(
-                f"Unable to update Run {self.data.id}: {error}"
-            )
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def status(self) -> str:
         """Return the current state of the run."""
@@ -226,22 +224,22 @@ class Run:
 
     def did_run_start(self):
         """
-        Check if any task has started running.
-        This currently relies on the Cromwell metadata.
+        Check if any task has started running by checking the task log.
         """
-        return self.metadata().started_running()
-
-    def task_summary(self):
-        if self.data.cromwell_run_id:
-            return self.metadata().task_summary()
-        else:
-            return []
+        if not self.data.cromwell_run_id:
+            return False
+        task_log = Task_Log(self.config, self.session, self.data.cromwell_run_id).data
+        for row in task_log:
+            (cromwell_run_id, execution_dir, status, timestamp) = row
+            if status != "queued":
+                return True
+        return False
 
     def task_log(self):
-        if self.data.cromwell_run_id:
-            return self.metadata().task_log()
-        else:
+        if not self.data.cromwell_run_id:
             return []
+        task_log = Task_Log(self.config, self.session, self.data.cromwell_run_id)
+        return task_log.table()
 
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
@@ -302,28 +300,6 @@ class Run:
                 f"Change Run {self.data.id} status to cancelled failed: {error}"
             )
 
-    def outputs(self, relpath=True) -> dict:
-        """
-        Get outputs from Cromwell and return it, if available.
-        If the run hasn't been submitted to Cromwell yet, the result shall be None.
-        """
-        if self.data.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.outputs(relpath)
-        else:
-            return {}
-
-    def outfiles(self, complete=False, relpath=True) -> dict:
-        """
-        Get output files from Cromwell and return it, if available.
-        If the run hasn't been submitted to Cromwell yet, the result shall be None.
-        """
-        if self.data.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.outfiles(complete=complete, relpath=relpath)
-        else:
-            return []
-
     def workflow_root(self) -> str:
         """
         Get workflowRoot from Cromwell and return it, if available.
@@ -353,22 +329,6 @@ class Run:
                 "manifest": metadata.outfiles(complete=complete, relpath=True),
             }
             return result
-        else:
-            return {}
-
-    def errors(self) -> dict:
-        """Get errors report from Cromwell service"""
-        if self.data.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.errors()
-        else:
-            return {}
-
-    def running_tasks(self) -> dict:
-        """Get running tasks report from Cromwell service"""
-        if self.data.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            return metadata.running()
         else:
             return {}
 
