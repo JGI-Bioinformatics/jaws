@@ -27,16 +27,16 @@ class TaskLog:
         try:
             stmt = (
                 select(
-                    models.TaskLog.execution_dir,
-                    models.TaskLog.status,
-                    models.TaskLog.timestamp,
+                    models.Task_Log.execution_dir,
+                    models.Task_Log.status,
+                    models.Task_Log.timestamp,
                 )
                 .where(
-                    models.TaskLog.any(
-                        models.TaskLog.cromwell_run_id == self.cromwell_run_id
+                    models.Task_Log.any(
+                        models.Task_Log.cromwell_run_id == self.cromwell_run_id
                     )
                 )
-                .order_by(models.TaskLog.id)
+                .order_by(models.Task_Log.id)
             )
             rows = self.session.execute(stmt).all()
         except NoResultFound:
