@@ -324,12 +324,16 @@ class Run:
         Get list of all of a Run's output files.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
-        complete = True if "complete" in kwargs and kwargs["complete"] is True else False
+        complete = (
+            True if "complete" in kwargs and kwargs["complete"] is True else False
+        )
         relpath = True if "relpath" in kwargs and kwargs["relpath"] is True else False
         if self.data.cromwell_run_id:
             result = {
                 "workflow_root": self.workflow_root(),
-                "manifest": cromwell.get_outfiles(self.data.cromwell_run_id, complete=complete, relpath=relpath),
+                "manifest": cromwell.get_outfiles(
+                    self.data.cromwell_run_id, complete=complete, relpath=relpath
+                ),
             }
             return result
         else:
