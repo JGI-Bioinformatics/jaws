@@ -1095,6 +1095,29 @@ class Cromwell:
         self.workflows_url = f"{url}/api/workflows/v1"
         self.engine_url = f"{url}/engine/v1/status"
 
+    def get(self, workflow_id: str, output_type: str):
+        """
+        Get the specified Cromwell output for a Run.
+        :param workflow_id: unique ID of the run
+        :ptype workflow_id: str
+        :param output_type: Report name (REST endpoint)
+        :ptype output_type: str
+        :return: JSON report from Cromwell
+        :rtype: dict
+        """
+        url = f"{self.workflows_url}/{workflow_id}/{output_type}"
+        try:
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code == 404:
+            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
+        elif response.status_code >= 400:
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell Run report {output_type}: code {response.status_code}"
+            )
+        return response.json()
+
     def get_metadata(self, workflow_id: str, data=None):
         """Get Metadata object for a workflow-run.
 
@@ -1105,18 +1128,7 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
-        try:
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
-        except requests.exceptions.ConnectionError as error:
-            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        if response.status_code == 404:
-            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
-        elif response.status_code >= 400:
-            raise CromwellServiceError(
-                f"Error retrieving Cromwell metadata: code {response.status_code}"
-            )
-        data = response.json()
+        data = self.get(workflow_id, "metadata?expandSubWorkflows=1")
         return Metadata(data)
 
     def status(self):
@@ -1226,19 +1238,10 @@ class Cromwell:
         :return: Status of workflow
         :rtype: str
         """
-        url = f"{self.workflows_url}/{workflow_id}/status"
-        try:
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
-        except requests.exceptions.ConnectionError as error:
-            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        if response.status_code >= 400:
-            raise CromwellServiceError(
-                f"Error retrieving Cromwell status: code {response.status_code}"
-            )
-        result = response.json()
+        result = self.get(workflow_id, "status")
         return result["status"]
 
-    def get_logs(self, workflow_id: str, data=None):
+    def get_logs(self, workflow_id: str):
         """
         Get paths to stdout/stderr files associated with a run.
 
@@ -1247,20 +1250,9 @@ class Cromwell:
         :return: data structure which specifies logs for every task.
         :rtype: dict
         """
-        url = f"{self.workflows_url}/{workflow_id}/logs"
-        try:
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
-        except requests.exceptions.ConnectionError as error:
-            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        if response.status_code == 404:
-            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
-        elif response.status_code >= 400:
-            raise CromwellServiceError(
-                f"Error retrieving Cromwell metadata: code {response.status_code}"
-            )
-        return response.json()
+        return self.get(workflow_id, "logs")
 
-    def get_workflow_root(self, workflow_id: str, data=None):
+    def get_workflow_root(self, workflow_id: str):
         """
         Get the root execution dir for a run without checking metadata.
 
@@ -1278,6 +1270,9 @@ class Cromwell:
             if m:
                 return m.group(0)
         return None
+
+    def get_outputs(self, workflow_id: str):
+        return self.get(workflow_id, "outputs")
 
 
 def parse_cromwell_task_dir(task_dir):

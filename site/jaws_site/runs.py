@@ -319,16 +319,17 @@ class Run:
         else:
             return None
 
-    def output_manifest(self, complete=False) -> list:
+    def output_manifest(self, **kwargs) -> list:
         """
         Get list of all of a Run's output files.
         If the run hasn't been submitted to Cromwell yet, the result shall be None.
         """
+        complete = True if "complete" in kwargs and kwargs["complete"] is True else False
+        relpath = True if "relpath" in kwargs and kwargs["relpath"] is True else False
         if self.data.cromwell_run_id:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             result = {
-                "workflow_root": metadata.workflow_root(),
-                "manifest": metadata.outfiles(complete=complete, relpath=True),
+                "workflow_root": self.workflow_root(),
+                "manifest": cromwell.get_outfiles(self.data.cromwell_run_id, complete=complete, relpath=relpath),
             }
             return result
         else:
