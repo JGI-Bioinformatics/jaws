@@ -342,7 +342,7 @@ package:
   allow_failure: true
 
 mr-deployment-cori-staging:
-  stage: deploy-client
+  stage: deploy-jaws
   tags:
     - cori20
   variables:
