@@ -586,31 +586,6 @@ class Task:
                 all_errors.append(sub_errors)
         return all_errors
 
-    def running(self):
-        """
-        Return report for this task/subworkflow for running tasks only.
-        The contents of the stderr, stderr.submit files are also added for convenience.
-        :return: Running tasks report
-        :rtype: dict
-        """
-        all_running = []
-        for shard_index in self.calls.keys():
-            for attempt in self.calls[shard_index].keys():
-                call = self.calls[shard_index][attempt]
-                call_running = call.running()
-                if call_running is not None:
-                    all_running.append(call_running)
-        for shard_index in self.subworkflows.keys():
-            for attempt in self.subworkflows[shard_index].keys():
-                sub_meta = self.subworkflows[shard_index][attempt]
-                sub_running = {
-                    "shardIndex": shard_index,
-                    "attempt": attempt,
-                    "subWorkflowMetadata": sub_meta.running(),
-                }
-                all_running.append(sub_running)
-        return all_running
-
     def summary(self, **kwargs):
         """
         Generally, there is only one attempt.  The only exception is when the resubmit with more memory
@@ -855,20 +830,6 @@ class Metadata:
                 raise IOError("Run doesn't have workflow_root")
             outfile = f"{workflow_root}/errors.json"
         _write_file(outfile, json.dumps(self.errors(), indent=4))
-
-    def running(self):
-        """
-        Return expanded metadata report for "Running" tasks only.
-        """
-        filtered_metadata = {}
-        calls = {}
-        for task_name, task in self.tasks.items():
-            task_running = task.running()
-            if len(task_running):
-                calls[task_name] = task_running
-        if len(calls):
-            filtered_metadata["calls"] = calls
-        return filtered_metadata
 
     def task_summary(self):
         """
