@@ -15,7 +15,7 @@ include:
 variables:
   GIT_STRATEGY: clone
 
-  JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER"
+  JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER DORI"
   JAWS_SITE_VERSION: "1.0.13b"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
@@ -322,6 +322,20 @@ deploy-jaws-perlmutter-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+
+deploy-jaws-dori-dev:
+  stage: deploy-jaws
+  tags:
+    - dori
+  variables:
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "dori"
+  environment:
+    name: "dori/dev"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 package:
   tags:
