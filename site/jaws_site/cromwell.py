@@ -30,6 +30,7 @@ import os
 import glob
 import json
 import io
+import re
 from datetime import datetime
 from dateutil import parser
 from collections import deque
@@ -1236,6 +1237,47 @@ class Cromwell:
             )
         result = response.json()
         return result["status"]
+
+    def get_logs(self, workflow_id: str, data=None):
+        """
+        Get paths to stdout/stderr files associated with a run.
+
+        :param workflow_id: primary key used by Cromwell
+        :type workflow_id: str
+        :return: data structure which specifies logs for every task.
+        :rtype: dict
+        """
+        url = f"{self.workflows_url}/{workflow_id}/logs"
+        try:
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code == 404:
+            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
+        elif response.status_code >= 400:
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell metadata: code {response.status_code}"
+            )
+        return response.json()
+
+    def get_workflow_root(self, workflow_id: str, data=None):
+        """
+        Get the root execution dir for a run without checking metadata.
+
+        :param workflow_id: primary key used by Cromwell
+        :type workflow_id: str
+        :return: root dir for run
+        :rtype: str
+        """
+        logs = self.get_logs(workflow_id)
+        if "calls" not in logs:
+            return None
+        for task in logs["calls"]:
+            stderr_file = logs["calls"][task][0]["stderr"]
+            m = re.match(f"^/.*/{workflow_id}", stderr_file)
+            if m:
+                return m.group(0)
+        return None
 
 
 def parse_cromwell_task_dir(task_dir):

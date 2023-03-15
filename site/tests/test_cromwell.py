@@ -57,6 +57,9 @@ example_cromwell_run_id_11 = "e7855e5e-f0f6-46ad-801b-2f6187f1b05f"
 # Run with Map outfiles
 example_cromwell_run_id_12 = "3f039d2d-d1db-4c98-b927-305b49ff1651"
 
+# logs
+example_cromwell_run_id_13 = "d4b07658-a6b1-47c1-9e35-820e8247d42c"
+
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
@@ -897,3 +900,24 @@ def test__get_file_path(config_file):
     file_id = "stderr"
     ret = call._get_file_path(file_id, relpath=True)
     assert "not_none" in ret
+
+
+def test_get_logs(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_13}/logs",
+        json=__load_example_output_from_file(example_cromwell_run_id_13, "logs"),
+    )
+    logs = crom.get_logs(example_cromwell_run_id_13)
+    assert "calls" in logs
+
+
+def test_get_workflow_root(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_13}/logs",
+        json=__load_example_output_from_file(example_cromwell_run_id_13, "logs"),
+    )
+    workflow_root = crom.get_workflow_root(example_cromwell_run_id_13)
+    assert (
+        workflow_root
+        == "/global/cscratch1/sd/jaws/cori-prod/cromwell-executions/fq_count/d4b07658-a6b1-47c1-9e35-820e8247d42c"
+    )

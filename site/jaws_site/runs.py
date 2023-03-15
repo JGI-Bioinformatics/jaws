@@ -178,13 +178,6 @@ class Run:
                 reports_rpc_client=reports_rpc_client,
             )
 
-    def _update(self):
-        try:
-            self.session.commit()
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
-
     def status(self) -> str:
         """Return the current state of the run."""
         return self.data.status
@@ -303,16 +296,25 @@ class Run:
     def workflow_root(self) -> str:
         """
         Get workflowRoot from Cromwell and return it, if available.
-        If the run hasn't been submitted to Cromwell yet, the result shall be None.
+        If the run hasn't been submitted to Cromwell or isn't available yet, the result shall be None.
         """
         if self.data.workflow_root:
             return self.data.workflow_root
         elif self.data.cromwell_run_id:
-            metadata = self.metadata()
-            self.data.workflow_root = metadata.workflow_root(
-                executions_dir=self.config["cromwell_executions_dir"]
-            )
-            self._update()
+            url = config.conf.get("CROMWELL", "url")
+            try:
+                workflow_root = Cromwell(url).get_workflow_root(
+                    self.data.cromwell_run_id
+                )
+            except Exception as error:
+                return None
+            self.data.workflow_root = workflow_root
+            try:
+                self.session.commit()
+            except SQLAlchemyError as error:
+                self.session.rollback()
+                logger.exception(f"Unable to update Run {self.data.id}: {error}")
+                self.data.workflow_root = None
             return self.data.workflow_root
         else:
             return None
@@ -549,10 +551,10 @@ class Run:
         # Additionally, any state can transition directly to cancelled or failed.
         logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
+            # save the workflow_root if not set
+            _ = self.workflow_root()
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
-                # save the workflow_root dir; it'll be committed to db with the run status update
-                self.data.workflow_root = self.metadata.workflow_root()
                 self.update_run_status("queued")
             elif self.data.status == "queued":
                 # although Cromwell may consider a Run to be "Running", since it does not distinguish between
@@ -583,7 +585,11 @@ class Run:
         self.data.updated = timestamp
         if status_to in ("succeeded", "failed", "cancelled"):
             self.data.result = status_to
-        self._update()
+        try:
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
         self._insert_run_log(status_from, status_to, timestamp, reason)
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
@@ -612,10 +618,15 @@ class Run:
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
         logger.info(f"Publish report for run {self.data.id}")
-        # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
-        # Return if Cromwell service unavailable (run_daemon will try again later).
+        # set workflow_root if not yet
         workflow_root = self.workflow_root()
-        logger.debug(f"Run {self.data.id} workflow_root={workflow_root}")
+
+        # "test" is a special user account -- mark as done and skip reporting
+        if self.data.user_id == "test":
+            self.update_run_status("finished")
+            return
+
+        # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
         try:
             metadata = self.metadata()
             metadata.write_summary_files()
