@@ -9,6 +9,7 @@ export JAWS_SCRATCH_BASEDIR="/global/cscratch1/sd/jaws"
 export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
 export JAWS_MAX_RAM_GB=1450
 export JAWS_MAX_CPU=72
+export JAWS_PERFORMANCE_METRICS_DIR="/global/cscratch1/sd/jaws/cori-prod/monitoring-runs"
 export JAWS_SUPERVISOR_PORT_PROD=64103
 export JAWS_AUTH_PORT_PROD=3003
 export JAWS_REST_PORT_PROD=5003
