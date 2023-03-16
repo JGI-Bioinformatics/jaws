@@ -57,9 +57,6 @@ example_cromwell_run_id_11 = "e7855e5e-f0f6-46ad-801b-2f6187f1b05f"
 # Run with Map outfiles
 example_cromwell_run_id_12 = "3f039d2d-d1db-4c98-b927-305b49ff1651"
 
-# logs
-example_cromwell_run_id_13 = "d4b07658-a6b1-47c1-9e35-820e8247d42c"
-
 
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
