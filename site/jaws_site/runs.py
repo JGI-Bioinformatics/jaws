@@ -34,6 +34,8 @@ from jaws_site.cromwell import (
     CromwellRunNotFoundError,
     CromwellServiceError,
 )
+from jaws_site.tasks import TaskLog
+
 
 logger = logging.getLogger(__package__)
 
@@ -63,8 +65,9 @@ class Run:
             "submitted": self.check_run_cromwell_status,
             "queued": self.check_run_cromwell_status,
             "running": self.check_run_cromwell_status,
-            "succeeded": self.publish_report,
-            "failed": self.publish_report,
+            "succeeded": self.write_supplement,
+            "failed": self.write_supplement,
+            "complete": self.publish_report,
             "cancel": self.cancel,
         }
         self.central_rpc_client = (
@@ -189,6 +192,7 @@ class Run:
             "user_id": self.data.user_id,
             "cromwell_run_id": self.data.cromwell_run_id,
             "workflow_root": self.data.workflow_root,
+            "workflow_name": self.data.workflow_name,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
             "updated": self.data.updated.strftime("%Y-%m-%d %H:%M:%S"),
             "status": self.data.status,
@@ -199,20 +203,11 @@ class Run:
 
     def metadata(self):
         """
-        Lazy loading of Cromwell metadata.
+        Lazy loading of Cromwell metadata.  Metadata is cached because it may be
+        expensive to generate for Runs with many tasks.
         """
         if not self._metadata and self.data.cromwell_run_id:
-            url = config.conf.get("CROMWELL", "url")
-            self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
-        return self._metadata
-
-    def get_metadata(self):
-        """
-        Get latest metadata from Cromwell.
-        """
-        if self.data.cromwell_run_id:
-            url = config.conf.get("CROMWELL", "url")
-            self._metadata = Cromwell(url).get_metadata(self.data.cromwell_run_id)
+            self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
         return self._metadata
 
     def did_run_start(self):
@@ -221,7 +216,7 @@ class Run:
         """
         if not self.data.cromwell_run_id:
             return False
-        task_log = Task_Log(self.config, self.session, self.data.cromwell_run_id).data
+        task_log = TaskLog(self.config, self.session, self.data.cromwell_run_id).data
         for row in task_log:
             (cromwell_run_id, execution_dir, status, timestamp) = row
             if status != "queued":
@@ -231,7 +226,7 @@ class Run:
     def task_log(self):
         if not self.data.cromwell_run_id:
             return []
-        task_log = Task_Log(self.config, self.session, self.data.cromwell_run_id)
+        task_log = TaskLog(self.config, self.session, self.data.cromwell_run_id)
         return task_log.table()
 
     def check_status(self) -> None:
@@ -293,51 +288,18 @@ class Run:
                 f"Change Run {self.data.id} status to cancelled failed: {error}"
             )
 
-    def workflow_root(self) -> str:
+    def output_manifest(self, **kwargs) -> dict:
         """
-        Get workflowRoot from Cromwell and return it, if available.
-        If the run hasn't been submitted to Cromwell or isn't available yet, the result shall be None.
+        Return a document identifying the output files to transfer.
+        If the document hasn't been generated yet, raise an exception.
         """
-        if self.data.workflow_root:
-            return self.data.workflow_root
-        elif self.data.cromwell_run_id:
-            url = config.conf.get("CROMWELL", "url")
-            try:
-                workflow_root = Cromwell(url).get_workflow_root(
-                    self.data.cromwell_run_id
-                )
-            except Exception as error:
-                return None
-            self.data.workflow_root = workflow_root
-            try:
-                self.session.commit()
-            except SQLAlchemyError as error:
-                self.session.rollback()
-                logger.exception(f"Unable to update Run {self.data.id}: {error}")
-                self.data.workflow_root = None
-            return self.data.workflow_root
-        else:
-            return None
-
-    def output_manifest(self, **kwargs) -> list:
-        """
-        Get list of all of a Run's output files.
-        If the run hasn't been submitted to Cromwell yet, the result shall be None.
-        """
-        complete = (
-            True if "complete" in kwargs and kwargs["complete"] is True else False
-        )
-        relpath = True if "relpath" in kwargs and kwargs["relpath"] is True else False
-        if self.data.cromwell_run_id:
-            result = {
-                "workflow_root": self.workflow_root(),
-                "manifest": cromwell.get_outfiles(
-                    self.data.cromwell_run_id, complete=complete, relpath=relpath
-                ),
-            }
-            return result
-        else:
-            return {}
+        if self.data.status not in ('complete', 'finished'):
+            raise ValueError(f"The output_manifest does not exist for Run {self.data.id}")
+        # read previously generate manifest from file
+        manifest_file = f"{self.data.workflow_root}/output_manifest.json"
+        with open(manifest_file, 'r') as fh:
+            manifest = json.load(fh)
+        return manifest
 
     @staticmethod
     def s3_parse_path(full_path):
@@ -538,26 +500,71 @@ class Run:
             self.data.cromwell_run_id = cromwell_run_id
             self.update_run_status("submitted", f"cromwell_run_id={cromwell_run_id}")
 
+    def set_run_info(self) -> str:
+        """
+        Get workflow name and root dir from Cromwell and return it, if available.
+        If the run hasn't been submitted to Cromwell or isn't available yet, the result shall be None.
+        """
+        if self.data.workflow_root:
+            return self.data.workflow_root
+        elif self.data.cromwell_run_id:
+            url = config.conf.get("CROMWELL", "url")
+            try:
+                workflow_root = Cromwell(url).get_workflow_root(
+                    self.data.cromwell_run_id
+                )
+            except Exception as error:
+                return None
+            self.data.workflow_root = workflow_root
+            try:
+                self.session.commit()
+            except SQLAlchemyError as error:
+                self.session.rollback()
+                logger.exception(f"Unable to update Run {self.data.id}: {error}")
+                self.data.workflow_root = None
+            return self.data.workflow_root
+        else:
+            return None
+# TODO
     def check_run_cromwell_status(self) -> None:
         """
         Check Cromwell for the status of the Run.
         """
         logger.debug(f"Run {self.data.id}: Check Cromwell status")
-        try:
-            cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
-        except CromwellError as error:
-            logger.error(
-                f"Unable to check Cromwell status of Run {self.data.id}: {error}"
-            )
-            return
+
+        # The Run status can be gleamed from either the Cromwell "status" or "metadata" endpoint.
+        # We shall use "metadata" until we have set the "workflow_root" and "workflow_name";
+        # after that, we'll use the simpler "status".
+        cromwell_status = None
+        if self.data.workflow_root is None:
+            # get directly from Cromwell rather than using cached metadata in this object
+            try:
+                metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            except CromwellError as error:
+                logger.error(
+                    f"Unable to retrieve Cromwell metadata of Run {self.data.id}: {error}"
+                )
+                return
+            # the "executions_dir" is only used for Cromwell on AWS, since it's metadata doesn't include "workflowRoot"
+            workflow_root = metadata.workflow_root(executions_dir=self.config["cromwell_executions_dir"])
+            if not workflow_root:
+                return
+            self.data.workflow_root = workflow_root
+            self.data.workflow_name = metadata.get("workflowName", "unknown")
+        else:
+            try:
+                cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
+            except CromwellError as error:
+                logger.error(
+                    f"Unable to check Cromwell status of Run {self.data.id}: {error}"
+                )
+                return
 
         # check if state has changed; allowed states and transitions for a successful run are:
         # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
         # Additionally, any state can transition directly to cancelled or failed.
         logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
-            # save the workflow_root if not set
-            _ = self.workflow_root()
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
                 self.update_run_status("queued")
@@ -596,6 +603,7 @@ class Run:
             self.session.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
         self._insert_run_log(status_from, status_to, timestamp, reason)
+        # TODO UPDATE STATUS AND RUN LOG SHOULD BE IN SAME TRANSACTION
 
     def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
         """
@@ -617,21 +625,20 @@ class Run:
                 f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
             )
 
-    def publish_report(self):
+    def write_supplement(self):
         """
-        Save final run metadata and send report document to reports service via RPC.
-        We currently record resource metrics for successful and failed, but not cancelled Runs.
+        After Cromwell completes, several supplementary files are written to the Run's
+        workflow_root folder.
         """
-        logger.info(f"Publish report for run {self.data.id}")
-        # set workflow_root if not yet
-        workflow_root = self.workflow_root()
-
-        # "test" is a special user account -- mark as done and skip reporting
+        # "test" is a special user account use to run end-to-end tests which do not require the
+        # supplementary files, so skip.
         if self.data.user_id == "test":
+            self.update_run_status("complete")
+            sleep(1)
             self.update_run_status("finished")
             return
 
-        # Get Run metadata and write additional info files to workflow_root dir (metadata, errors, etc.).
+        # write metadata
         try:
             metadata = self.metadata()
             metadata.write_summary_files()
@@ -656,14 +663,61 @@ class Run:
         del report["compute_site_id"]
 
         report["tasks"] = []
+        metadata_file = f"{self.data.workflow_root}/metadata.json"
+        with open(metadata_file, 'w') as fh:
+            json.dump(metadata)
+
+        # write errors report
+        errors_report = metadata.errors()
+        errors_file = f"{self.data.workflow_root}/errors.json"
+        with open(errors_file, 'w') as fh:
+            json.dump(errors_report)
+
+        # write outputs
+        outputs = metadata.outputs(executions_dir=self.config.cromwell_executions_dir)
+        outputs_file = f"{self.data.workflow_root}/outputs.json"
+        with open(outputs_file, 'w') as fh:
+            json.dump(output_outputs, fh)
+
+        # write output manifest (i.e. outfileslist)
+        output_manifest = {
+            "workflow_root": self.data.workflow_root,
+            "manifest": metadata.outfiles(complete=complete, relpath=relpath),  # TODO
+        }
+        manifest_file = f"{self.data.workflow_root}/output_manifest.json"
+        with open(manifest_file, 'w') as fh:
+            json.dump(output_manifest, fh)
+
+        # write task summary
+        task_summary = self.summary()
+        task_summary["site_id"] = task_summary["compute_site_id"].upper()
+        del task_summary["compute_site_id"]
+        task_summary["tasks"] = []
+>>>>>>> 2a48b5ca (move writing supplmentary files from cromwell to runs)
         for task in metadata.task_summary(last_attempts=True):
             # rename job_id key to cromwell_job_id
             task["cromwell_job_id"] = task["job_id"]
-            report["tasks"].append(task)
+            task_summary["tasks"].append(task)
+        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        with open(summary_file, 'w') as fh:
+            json.dump(task_summary, fh)
+
+
+    def publish_report(self):
+        """
+        Save final run metadata and send report document to reports service via RPC.
+        We currently record resource metrics for successful and failed, but not cancelled Runs.
+        """
+        logger.info(f"Publish report for run {self.data.id}")
+
+        # read previously generate summary from file
+        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        with open(summary_file, 'r') as fh:
+            summary = json.load(fh)
 
         # publish and if successful, mark as done, else skip until next time
         try:
-            response = self.reports_rpc_client.request(report)
+            response = self.reports_rpc_client.request(summary)
         except Exception as error:
             logger.exception(f"RPC save_run_report error: {error}")
             return
@@ -671,8 +725,9 @@ class Run:
             logger.warning(
                 f"RPC save_run_report failed: {response['error']['message']}"
             )
-            return
-        self.update_run_status("finished")
+            # do not change state; try again next time
+        else:
+            self.update_run_status("finished")
 
 
 def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:

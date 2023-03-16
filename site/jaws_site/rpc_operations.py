@@ -26,8 +26,8 @@ def server_status(params, session):
     return success(status)
 
 
-def run_outfiles(params, session):
-    """Retrieve list of output files of a Run.
+def output_manifest(params, session):
+    """Retrieve a Run's output manifest (files to return to user).
 
     :param run_id: JAWS Run ID
     :type params: dict
@@ -38,7 +38,7 @@ def run_outfiles(params, session):
     complete = True if "complete" in params and params["complete"] is True else False
     try:
         run = Run.from_id(session, params["run_id"])
-        result = run.outfiles(complete=complete)
+        result = run.output_manifest(complete=complete)
     except Exception as error:
         return failure(error)
     return success(result)
@@ -155,8 +155,8 @@ operations = {
             "input_site_id",
         ],
     },
-    "run_outfiles": {
-        "function": run_outfiles,
+    "output_manifest": {
+        "function": output_manifest,
         "required_params": ["run_id"],
     },
     "cancel_run": {

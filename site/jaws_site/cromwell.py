@@ -443,84 +443,6 @@ class Call:
                     result[log_file_name] = log_file_contents
         return result
 
-    def running(self):
-        """
-        Call report, if "Running" (else None).
-        :return: running report
-        :rtype: dict
-        """
-        if self.execution_status != "Running":
-            return None
-        result = {
-            "attempt": self.attempt,
-            "shardIndex": self.shard_index,
-        }
-        if "failures" in self.data:
-            result["failures"] = self.data["failures"]
-        if "jobId" in self.data:
-            result["jobId"] = self.data["jobId"]
-        if "returnCode" in self.data:
-            result["returnCode"] = self.data["returnCode"]
-        if "runtimeAttributes" in self.data:
-            result["runtimeAttributes"] = self.data["runtimeAttributes"]
-        if "stderr" in self.data:
-            # include *contents* of stderr files, instead of file paths
-            stderr_file = self.data["stderr"]
-            try:
-                stderr_contents = _read_file(stderr_file)
-            except Exception:  # noqa
-                # stderr file doesn't always exist (e.g. fails in submit step)
-                result["stderrContents"] = f"File not found: {stderr_file}"
-            else:
-                result["stderrContents"] = stderr_contents
-            stderr_submit_file = f"{stderr_file}.submit"
-            try:
-                stderr_submit_contents = _read_file(stderr_submit_file)
-            except Exception:  # noqa
-                # stderrSubmit file doesn't always exist (not used on AWS)
-                result["stderrSubmitContents"] = None
-            else:
-                result["stderrSubmitContents"] = stderr_submit_contents
-        if "stdout" in self.data:
-            # include *contents* of stdout file, instead of file path
-            stdout_file = self.data["stdout"]
-            try:
-                stdoutContents = _read_file(stdout_file)
-            except Exception:  # noqa
-                result["stdoutContents"] = f"File not found: {stdout_file}"
-            else:
-                result["stdoutContents"] = stdoutContents
-            stdout_submit_file = f"{stdout_file}.submit"
-            try:
-                stdout_submit_contents = _read_file(stdout_submit_file)
-            except Exception:  # noqa
-                # stdoutSubmit file doesn't always exist (not used on AWS)
-                result["stdoutSubmitContents"] = None
-            else:
-                result["stdoutSubmitContents"] = stdout_submit_contents
-        if "callRoot" in self.data:
-            stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
-            try:
-                stderrSubmitContents = _read_file(stderr_submit_file)
-            except Exception:  # noqa
-                # submit stderr file doesn't always exist (e.g. never for AWS)
-                result["stderrSubmitContents"] = None
-            else:
-                result["stderrSubmitContents"] = stderrSubmitContents
-        if "callRoot" in self.data:
-            # check for existence of any task-specific *.log files.
-            # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
-            log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
-            for log_file_path in log_files:
-                log_file_name = os.path.basename(log_file_path)
-                try:
-                    log_file_contents = _read_file(log_file_path)
-                except Exception:  # noqa
-                    result[log_file_name] = None
-                else:
-                    result[log_file_name] = log_file_contents
-        return result
-
 
 class TaskError(Exception):
     pass
@@ -715,19 +637,6 @@ class Metadata:
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
                 self.tasks[task_name] = Task(task_name, task_data)
 
-    def write_metadata_file(self, outfile=None):
-        """
-        Save metadata.json file.  By default, save in workflow root dir.
-        :param outfile: Output location if not default, workflow_root
-        :ptype outfile: str
-        """
-        if outfile is None:
-            workflow_root = self.workflow_root()
-            if not workflow_root:
-                raise IOError("Run doesn't have workflow_root")
-            outfile = f"{workflow_root}/metadata.json"
-        _write_file(outfile, json.dumps(self.data, indent=4))
-
     def get(self, param, default=None):
         """
         Get a section of the document.
@@ -751,41 +660,22 @@ class Metadata:
             return workflow_root
 
         # AWS runs don't have workflowRoot defined, so construct path
+        if "executions_dir" not in kwargs:
+            raise ValueError(
+                "'workflowRoot' is not defined in metadata; 'executions_dir' parameter is required."
+            )
+        executions_dir = kwargs["executions_dir"]
         workflow_name = self.get("workflowName", None)
+        if workflow_name is None:
+            raise ValueError(
+                "workflowName' is not defined in metadata; cannot generate workflow_root"
+            )
         workflow_id = self.get("id", None)
-        if "executions_dir" in kwargs:
-            executions_dir = kwargs["executions_dir"]
-            workflow_root = f"{executions_dir}/{workflow_name}/{workflow_id}"
-            return workflow_root
-
-        # for AWS, if executions dir was not provided, try to infer from an outfile
-        outputs = self.get("outputs", {})
-        an_outfile = None
-        for key, value in outputs.items():
-            if value is None:
-                # skip if null (i.e. optional output was not produced)
-                pass
-            elif type(value) is list:
-                # a sharded task may produce a list of outputs, one per shard
-                for item in value:
-                    if (
-                        type(item) is str
-                        and item is not None
-                        and self.workflow_id in item
-                    ):
-                        an_outfile = item
-                        break
-            elif value is not None and type(value) is str and self.workflow_id in value:
-                # a typical task produces outputs which may be a file path
-                an_outfile = value
-                break
-        if an_outfile is not None:
-            (root, partial_path) = an_outfile.split(self.workflow_id)
-            workflow_root = os.path.join(root, self.workflow_id)
-            return workflow_root
-
-        # for AWS, if the run doesn't have an outfile, return path relative to cromwell-execution dir
-        workflow_root = f"{workflow_name}/{workflow_id}"
+        if workflow_id is None:
+            raise ValueError(
+                "id' is not defined in metadata; cannot generate workflow_root"
+            )
+        workflow_root = f"{executions_dir}/{workflow_name}/{workflow_id}"
         return workflow_root
 
     def filtered_failures(self):
@@ -818,19 +708,6 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
-    def write_errors_file(self, outfile=None):
-        """
-        Write errors.json report to file.  By default, save as 'errors.json' in run's workflow_root dir.
-        :param outfile: Output location if not workflow_root/errors.json
-        :ptype outfile: str
-        """
-        if outfile is None:
-            workflow_root = self.workflow_root()
-            if not workflow_root:
-                raise IOError("Run doesn't have workflow_root")
-            outfile = f"{workflow_root}/errors.json"
-        _write_file(outfile, json.dumps(self.errors(), indent=4))
-
     def task_summary(self):
         """
         Return list of all tasks, including any subworkflows.
@@ -843,50 +720,27 @@ class Metadata:
                 summary.append(item)
         return sort_table_dict(summary, "queue_start")
 
-    def task_log(self):
-        """
-        Return select task summary fields in table format.
-        :return: Table of tasks
-        :rtype: list
-        """
-        table = []
-        for info in self.task_summary():
-            name = info["name"]
-            row = [
-                name,
-                info["cached"],
-                info["execution_status"],
-                info["queue_start"],
-                info["run_start"],
-                info["run_end"],
-                info["queue_duration"],
-                info["run_duration"],
-            ]
-            table.append(row)
-        return sort_table(table, 3)
-
-    def write_task_log_file(self, outfile=None):
-        """
-        Write task_log.json report to file.  By default, save as 'task_log.json' in run's workflow_root dir.
-        :param outfile: Output location if not workflow_root/task_log.json
-        :ptype outfile: str
-        """
-        if outfile is None:
-            workflow_root = self.workflow_root()
-            if not workflow_root:
-                raise IOError("Run doesn't have workflow_root")
-            outfile = f"{workflow_root}/task_log.json"
-        _write_file(outfile, json.dumps(self.task_log(), indent=4))
-
-    def started_running(self):
-        """
-        :return: True if any task actually started running; false otherwise.
-        :rtype: bool
-        """
-        for info in self.task_summary():
-            if info["run_start"] is not None:
-                return True
-        return False
+    #    def task_log(self):
+    #        """
+    #        Return select task summary fields in table format.
+    #        :return: Table of tasks
+    #        :rtype: list
+    #        """
+    #        table = []
+    #        for info in self.task_summary():
+    #            name = info["name"]
+    #            row = [
+    #                name,
+    #                info["cached"],
+    #                info["execution_status"],
+    #                info["queue_start"],
+    #                info["run_start"],
+    #                info["run_end"],
+    #                info["queue_duration"],
+    #                info["run_duration"],
+    #            ]
+    #            table.append(row)
+    #        return sort_table(table, 3)
 
     def job_summary(self, **kwargs) -> dict:
         """
@@ -900,12 +754,13 @@ class Metadata:
                 job_ids[job_id] = task.get("name", "unknown")
         return job_ids
 
-    def outputs(self, relpath=True):
+    def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
+        relpath = True if "relpath" in kwargs and kwargs["relpath"] else False
         outputs = self.get("outputs", {})
         if not relpath:
             return outputs
-        workflowRoot = self.workflow_root()
+        workflowRoot = self.workflow_root(**kwargs)
         if not workflowRoot:
             return outputs
         relpath_outputs = {}
@@ -934,31 +789,20 @@ class Metadata:
                 }
         return relpath_outputs
 
-    def write_outputs_file(self, outfile=None):
-        """
-        Write outputs.json report to file.  By default, save as 'outputs.json' in run's workflow_root dir.
-        :param outfile: Output location if not workflow_root/outputs.json
-        :ptype outfile: str
-        """
-        if outfile is None:
-            workflow_root = self.workflow_root()
-            if not workflow_root:
-                raise IOError("Run doesn't have workflow_root")
-            outfile = f"{workflow_root}/outputs.json"
-        _write_file(outfile, json.dumps(self.outputs(), indent=4))
-
-    def outfiles(self, complete=False, relpath=True):
+    def outfiles(self, **kwargs):
         """
         Return list of all output files of a run.
         By default, only include files tagged as outputs for the Run.
-        :param complete: All files, not just workflow outputs.
-        :ptype complete: bool
-        :param relpath: Convert abs paths to rel paths.
-        :ptype relpath: bool
+        :param kwargs["complete"]: All files, not just workflow outputs.
+        :ptype kwargs["complete"]: bool
+        :param kwargs["relpath"]: Convert abs paths to rel paths.
+        :ptype kwargs["relpath"]: bool
         :return: List of files
         :rtype: list
         """
-        workflow_root = self.workflow_root()
+        complete = True if "complete" in kwargs and kwargs["complete"] else False
+        relpath = True if "relpath" in kwargs and kwargs["relpath"] else False
+        workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
         if workflow_root is None:
             return []
@@ -1008,35 +852,6 @@ class Metadata:
             return rel_paths
         else:
             return full_paths
-
-    def write_outfiles_file(self, outfile=None):
-        """
-        Write outfiles.json report to file.  By default, save as 'outfiles.json' in run's workflow_root dir.
-        :param outfile: Output location if not workflow_root/outfiles.json
-        :ptype outfile: str
-        """
-        if outfile is None:
-            workflow_root = self.workflow_root()
-            if not workflow_root:
-                raise IOError("Run doesn't have workflow_root")
-            outfile = f"{workflow_root}/outfiles.json"
-        _write_file(outfile, json.dumps(self.outfiles(), indent=4))
-
-    def write_summary_files(self, outdir=None):
-        """
-        Write metadata, errors, task log, and outputs files.
-        By default, save in run's workflow_root dir.
-        :param outdir: Output location if not workflow_root.
-        :ptype outdir: str
-        """
-        if outdir is None:
-            outdir = self.workflow_root()
-            if not outdir:
-                raise IOError("Run doesn't have workflow_root")
-        self.write_metadata_file(f"{outdir}/metadata.json")
-        self.write_errors_file(f"{outdir}/errors.json")
-        self.write_task_log_file(f"{outdir}/task_log.json")
-        self.write_outputs_file(f"{outdir}/outputs.json")
 
 
 class Cromwell:
@@ -1201,39 +1016,6 @@ class Cromwell:
         """
         result = self.get(workflow_id, "status")
         return result["status"]
-
-    def get_logs(self, workflow_id: str):
-        """
-        Get paths to stdout/stderr files associated with a run.
-
-        :param workflow_id: primary key used by Cromwell
-        :type workflow_id: str
-        :return: data structure which specifies logs for every task.
-        :rtype: dict
-        """
-        return self.get(workflow_id, "logs")
-
-    def get_workflow_root(self, workflow_id: str):
-        """
-        Get the root execution dir for a run without checking metadata.
-
-        :param workflow_id: primary key used by Cromwell
-        :type workflow_id: str
-        :return: root dir for run
-        :rtype: str
-        """
-        logs = self.get_logs(workflow_id)
-        if "calls" not in logs:
-            return None
-        for task in logs["calls"]:
-            stderr_file = logs["calls"][task][0]["stderr"]
-            m = re.match(f"^/.*/{workflow_id}", stderr_file)
-            if m:
-                return m.group(0)
-        return None
-
-    def get_outputs(self, workflow_id: str):
-        return self.get(workflow_id, "outputs")
 
 
 def parse_cromwell_task_dir(task_dir):

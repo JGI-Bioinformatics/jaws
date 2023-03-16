@@ -74,7 +74,7 @@ def test_run_all_functions(mock_run_from_id):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
 
-    ret = jaws_site.rpc_operations.run_outfiles(p, mock_session)
+    ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
     assert ret == {"jsonrpc": "2.0", "result": {"test": "success"}}
 
     ret = jaws_site.rpc_operations.cancel_run(p, mock_session)
@@ -88,7 +88,7 @@ def test_run_all_functions_exception(mock_run_from_id_exception):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
 
-    ret = jaws_site.rpc_operations.run_outfiles(p, mock_session)
+    ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
     ret = jaws_site.rpc_operations.cancel_run(p, mock_session)
@@ -102,7 +102,7 @@ def test_run_all_functions_runnotfound(mock_run_from_id_runnotfound):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
 
-    ret = jaws_site.rpc_operations.run_outfiles(p, mock_session)
+    ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
     assert "error" in ret
 
 
