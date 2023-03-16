@@ -45,6 +45,7 @@ class Run(Base):
         onupdate=datetime.utcnow,
     )
     workflow_root = Column(String(1024), nullable=True)
+    workflow_name = Column(String(64), nullable=True)
 
 
 class Run_Log(Base):

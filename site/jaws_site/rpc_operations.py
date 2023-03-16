@@ -26,7 +26,7 @@ def server_status(params, session):
     return success(status)
 
 
-def run_manifest(params, session):
+def run_outfiles(params, session):
     """Retrieve list of output files of a Run.
 
     :param run_id: JAWS Run ID
@@ -34,11 +34,11 @@ def run_manifest(params, session):
     :return: The workflow_root and list of output files
     :rtype: list
     """
-    logger.info(f"Output manifest for Run {params['run_id']}")
+    logger.info(f"Outfiles for Run {params['run_id']}")
     complete = True if "complete" in params and params["complete"] is True else False
     try:
         run = Run.from_id(session, params["run_id"])
-        result = run.output_manifest(complete=complete)
+        result = run.outfiles(complete=complete)
     except Exception as error:
         return failure(error)
     return success(result)
@@ -155,8 +155,8 @@ operations = {
             "input_site_id",
         ],
     },
-    "run_manifest": {
-        "function": run_manifest,
+    "run_outfiles": {
+        "function": run_outfiles,
         "required_params": ["run_id"],
     },
     "cancel_run": {
@@ -164,7 +164,7 @@ operations = {
         "required_params": ["user_id", "run_id"],
     },
     "task_log": {
-        "function": run_task_log,
+        "function": task_log,
         "required_params": ["user_id", "run_id"],
     },
     "submit_transfer": {
