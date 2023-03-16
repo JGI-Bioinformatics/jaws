@@ -11,11 +11,13 @@ if [[ $JAWS_SCRATCH_BASEDIR =~ ^s3:\/\/ ]]; then
 else
     # EACH SERVER DEPLOYMENT HAS A SEPARATE NFS SUBDIR
     export JAWS_SCRATCH_DIR="$JAWS_SCRATCH_BASEDIR/${site_name}-${JAWS_DEPLOYMENT_NAME}"
+	
 fi
 
 # Folders for Run inputs and downloads from other jaws-sites
 export JAWS_INPUTS_DIR="$JAWS_SCRATCH_DIR/inputs"
 export JAWS_DOWNLOADS_DIR="$JAWS_SCRATCH_DIR/downloads"
+export JAWS_PERFORMANCE_METRICS_DIR = "${JAWS_SCRATCH_DIR}/monitoring-runs"
 
 # Cromwell-related dirs
 export JAWS_CROMWELL_EXECUTIONS_DIR="$JAWS_SCRATCH_DIR/cromwell-executions"
