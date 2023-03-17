@@ -718,7 +718,6 @@ class Run:
         task_summary["site_id"] = task_summary["compute_site_id"].upper()
         del task_summary["compute_site_id"]
         task_summary["tasks"] = []
->>>>>>> 2a48b5ca (move writing supplmentary files from cromwell to runs)
         for task in metadata.task_summary(last_attempts=True):
             # rename job_id key to cromwell_job_id
             task["cromwell_job_id"] = task["job_id"]
