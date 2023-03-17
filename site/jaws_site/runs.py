@@ -8,6 +8,7 @@
 # - running : At least one task of the Run has started running.
 # - failed : The Run was failed by Cromwell.
 # - succeeded : The Run has completed successfully by Cromwell.
+# - complete : Supplementary files have been added to the Run's workflow root dir
 # - finished** : The Run metrics report has been published to ElasticSearch (if wasn't cancelled).
 # - cancel : Mark a Run to be cancelled (via RPC from Central); will be cancelled by run-daemon later.
 # - cancelled** : The Run has been successfully cancelled.
@@ -24,6 +25,7 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import sessionmaker
+from time import sleep
 import boto3
 import botocore
 from random import shuffle
@@ -62,9 +64,9 @@ class Run:
         self.data = data
         self.operations = {
             "ready": self.submit_run,
-            "submitted": self.check_run_cromwell_status,
-            "queued": self.check_run_cromwell_status,
-            "running": self.check_run_cromwell_status,
+            "submitted": self.check_cromwell_run_status,
+            "queued": self.check_cromwell_run_status,
+            "running": self.check_cromwell_run_status,
             "succeeded": self.write_supplement,
             "failed": self.write_supplement,
             "complete": self.publish_report,
@@ -260,7 +262,6 @@ class Run:
             "submitted",
             "queued",
             "running",
-            "cancel",
         ]:
             try:
                 cromwell.abort(self.data.cromwell_run_id)
@@ -293,13 +294,12 @@ class Run:
         Return a document identifying the output files to transfer.
         If the document hasn't been generated yet, raise an exception.
         """
-        if self.data.status not in ('complete', 'finished'):
-            raise ValueError(f"The output_manifest does not exist for Run {self.data.id}")
-        # read previously generate manifest from file
-        manifest_file = f"{self.data.workflow_root}/output_manifest.json"
-        with open(manifest_file, 'r') as fh:
-            manifest = json.load(fh)
-        return manifest
+        if self.data.status not in ("complete", "finished"):
+            raise ValueError(
+                f"The output_manifest does not exist for Run {self.data.id}"
+            )
+        # read previously generated manifest from file
+        return self._read_json_file(f"{self.data.workflow_root}/output_manifest.json")
 
     @staticmethod
     def s3_parse_path(full_path):
@@ -368,6 +368,44 @@ class Run:
         else:
             return self._read_file_nfs(path, binary)
 
+    def _read_json_file(self, path) -> dict:
+        """
+        Read JSON file and return decoded contents as variable.
+        """
+        return json.loads(self._read_file(path))
+
+    # TODO SWITCH FROM KWARGS TO CONFIG
+    def _write_file_s3(self, path: str, content: str, **kwargs):
+        s3_bucket, src_path = s3_parse_uri(path)
+        aws_session = boto3.Session(
+            aws_access_key_id=kwargs["aws_access_key_id"],
+            aws_secret_access_key=kwargs["aws_secret_access_key"],
+            region_name=kwargs["aws_region_name"],
+        )
+        s3_resource = aws_session.resource("s3")
+        bucket_obj = s3_resource.Bucket(s3_bucket)
+        bucket_obj.put(Body=content)
+
+    @staticmethod
+    def _write_file_nfs(path: str, content: str):
+        with open(path, "w") as fh:
+            fh.write(content)
+
+    # TODO SWITCH FROM KWARGS TO CONF
+    def _write_file(self, path: str, contents: str, **kwargs):
+        """
+        Write contents to NFS or S3 file.
+        :param path: Path to file (may be s3 item)
+        :ptype path: str
+        :param contents: Contents to write
+        :ptype contents: str
+        """
+        if path.startswith("s3://"):
+            return _write_file_s3(path, contents, **kwargs)
+        else:
+            return _write_file_nfs(path, contents)
+
+    # TODO
     def read_inputs(self):
         """
         Read inputs json from file or S3 bucket and return contents.
@@ -496,69 +534,56 @@ class Run:
         except CromwellError as error:
             logger.error(f"Run {self.data.id} submission failed: {error}")
             self.update_run_status("submission failed", f"{error}")
+            return
         else:
             self.data.cromwell_run_id = cromwell_run_id
-            self.update_run_status("submitted", f"cromwell_run_id={cromwell_run_id}")
 
-    def set_run_info(self) -> str:
-        """
-        Get workflow name and root dir from Cromwell and return it, if available.
-        If the run hasn't been submitted to Cromwell or isn't available yet, the result shall be None.
-        """
-        if self.data.workflow_root:
-            return self.data.workflow_root
-        elif self.data.cromwell_run_id:
-            url = config.conf.get("CROMWELL", "url")
-            try:
-                workflow_root = Cromwell(url).get_workflow_root(
-                    self.data.cromwell_run_id
-                )
-            except Exception as error:
-                return None
-            self.data.workflow_root = workflow_root
-            try:
-                self.session.commit()
-            except SQLAlchemyError as error:
-                self.session.rollback()
-                logger.exception(f"Unable to update Run {self.data.id}: {error}")
-                self.data.workflow_root = None
-            return self.data.workflow_root
+        # We need the workflow_name and workflow_root from the Cromwell metadata.
+        # Give Cromwell a moment to init the new Run before requesting metadata.
+        sleep(1)
+        try:
+            metadata = cromwell.metadata(cromwell_run_id)
+        except CromwellError as error:
+            logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
+            return
         else:
-            return None
-# TODO
-    def check_run_cromwell_status(self) -> None:
+            self.data.workflow_name = metadata.get("workflowName")
+            self.data.workflow_root = metadata.get("workflowRoot")
+            if self.data.workflow_root is None:
+                self.data.workflow_root = os.path.join(
+                    self.config.get("CROMWELL", "executions_dir"),
+                    self.data.workflow_name,
+                    self.data.cromwell_run_id,
+                )
+
+        # save and return to central
+        # TODO
+        info = {
+            "cromwell_run_id": self.data.cromwell_run_id,
+            "workflow_name": self.data.workflow_name,
+            "workflow_root": self.data.workflow_root,
+        }
+        try:
+            self.update_run_status("submitted", json.dumps(info))
+        except Exception as error:
+            logger.error(
+                f"Run {self.data.id} failed to update with cromwell_run_id: {error}"
+            )
+        # /TODO
+
+    def check_cromwell_run_status(self) -> None:
         """
         Check Cromwell for the status of the Run.
         """
-        logger.debug(f"Run {self.data.id}: Check Cromwell status")
+        logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
 
-        # The Run status can be gleamed from either the Cromwell "status" or "metadata" endpoint.
-        # We shall use "metadata" until we have set the "workflow_root" and "workflow_name";
-        # after that, we'll use the simpler "status".
-        cromwell_status = None
-        if self.data.workflow_root is None:
-            # get directly from Cromwell rather than using cached metadata in this object
-            try:
-                metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            except CromwellError as error:
-                logger.error(
-                    f"Unable to retrieve Cromwell metadata of Run {self.data.id}: {error}"
-                )
-                return
-            # the "executions_dir" is only used for Cromwell on AWS, since it's metadata doesn't include "workflowRoot"
-            workflow_root = metadata.workflow_root(executions_dir=self.config["cromwell_executions_dir"])
-            if not workflow_root:
-                return
-            self.data.workflow_root = workflow_root
-            self.data.workflow_name = metadata.get("workflowName", "unknown")
-        else:
-            try:
-                cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
-            except CromwellError as error:
-                logger.error(
-                    f"Unable to check Cromwell status of Run {self.data.id}: {error}"
-                )
-                return
+        try:
+            cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
+        except CromwellError as error:
+            logger.error(
+                f"Unable to check Cromwell status of Run {self.data.id}: {error}"
+            )
+            return
 
         # check if state has changed; allowed states and transitions for a successful run are:
         # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
@@ -664,20 +689,20 @@ class Run:
 
         report["tasks"] = []
         metadata_file = f"{self.data.workflow_root}/metadata.json"
-        with open(metadata_file, 'w') as fh:
+        with open(metadata_file, "w") as fh:
             json.dump(metadata)
 
         # write errors report
         errors_report = metadata.errors()
         errors_file = f"{self.data.workflow_root}/errors.json"
-        with open(errors_file, 'w') as fh:
+        with open(errors_file, "w") as fh:
             json.dump(errors_report)
 
         # write outputs
         outputs = metadata.outputs(executions_dir=self.config.cromwell_executions_dir)
         outputs_file = f"{self.data.workflow_root}/outputs.json"
-        with open(outputs_file, 'w') as fh:
-            json.dump(output_outputs, fh)
+        with open(outputs_file, "w") as fh:
+            json.dump(outputs, fh)
 
         # write output manifest (i.e. outfileslist)
         output_manifest = {
@@ -685,7 +710,7 @@ class Run:
             "manifest": metadata.outfiles(complete=complete, relpath=relpath),  # TODO
         }
         manifest_file = f"{self.data.workflow_root}/output_manifest.json"
-        with open(manifest_file, 'w') as fh:
+        with open(manifest_file, "w") as fh:
             json.dump(output_manifest, fh)
 
         # write task summary
@@ -699,9 +724,8 @@ class Run:
             task["cromwell_job_id"] = task["job_id"]
             task_summary["tasks"].append(task)
         summary_file = f"{self.data.workflow_root}/task_summary.json"
-        with open(summary_file, 'w') as fh:
+        with open(summary_file, "w") as fh:
             json.dump(task_summary, fh)
-
 
     def publish_report(self):
         """
@@ -711,9 +735,7 @@ class Run:
         logger.info(f"Publish report for run {self.data.id}")
 
         # read previously generate summary from file
-        summary_file = f"{self.data.workflow_root}/task_summary.json"
-        with open(summary_file, 'r') as fh:
-            summary = json.load(fh)
+        summary = self._read_json_file(f"{self.data.workflow_root}/task_summary.json")
 
         # publish and if successful, mark as done, else skip until next time
         try:
@@ -882,3 +904,18 @@ class RunLog:
             }
             logs.append(log)
         return logs
+
+
+def s3_parse_uri(full_uri):
+    """
+    Extract the bucket name and object key from full URI
+    :param full_uri: String containing bucket and obj key, starting with "s3://"
+    :ptype full_uri: str
+    :return: s3 bucket name, object key
+    :rtype: list
+    """
+    full_uri = full_uri.replace("s3://", "", 1)
+    folders = full_uri.split("/")
+    s3_bucket = folders.pop(0)
+    obj_key = "/".join(folders)
+    return s3_bucket, obj_key

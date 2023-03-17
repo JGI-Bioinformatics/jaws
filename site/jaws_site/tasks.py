@@ -1,16 +1,25 @@
-import io
 import json
 import logging
-import os
 import pika
 from datetime import datetime
+from dateutil import parser
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
-from jaws_site import models, config
+from jaws_site import models
+
+
+class TaskDbError(Exception):
+    pass
 
 
 class TaskLog:
+    """
+    Whenever a Run's task changes state (e.g. is submitted to cluster, starts running,
+    finishes), a message is sent via RabbitMQ.  This class receives those messages and
+    saves them in a persistent RDb and provides them upon request.
+    """
+
     def __init__(self, session, cromwell_run_id, logger=None) -> None:
         self.session = session
         self.cromwell_run_id = cromwell_run_id
@@ -31,11 +40,7 @@ class TaskLog:
                     models.Task_Log.status,
                     models.Task_Log.timestamp,
                 )
-                .where(
-                    models.Task_Log.any(
-                        models.Task_Log.cromwell_run_id == self.cromwell_run_id
-                    )
-                )
+                .where(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
                 .order_by(models.Task_Log.id)
             )
             rows = self.session.execute(stmt).all()
@@ -49,23 +54,41 @@ class TaskLog:
 
     def table(self):
         """
-        Reformat task log into a table.
+        Calculate queue/run durations and reformat into a table with columns:
+        - cromwell_run_id
+        - status
+        - queued timestamp
+        - running timestamp
+        - completed timestamp
+        - queue duration
+        - running duration
         """
         execution_dirs = {}
         for execution_dir, status, timestamp in self.data:
-            if not execution_dir in execution_dirs:
-                execution_dirs[execution_dir] = ["?", "?", "?", "?"]
-                # the "?" should be replaced unless a log message was lost or
-                # the task is unfinished
+            if execution_dir not in execution_dirs:
+                execution_dirs[execution_dir] = ["", "", "", ""]
             if status == "queued":
-                execution_dirs[execution_dir][0] = timestamp
-            elif status == "running":
                 execution_dirs[execution_dir][1] = timestamp
-            else:
+            elif status == "running":
                 execution_dirs[execution_dir][2] = timestamp
-                execution_dirs[execution_dir][3] = status
+            else:
+                execution_dirs[execution_dir][3] = timestamp
+                execution_dirs[execution_dir][0] = status
         table = []
-        for execution_dir in sort(execution_dirs):
+        for execution_dir in execution_dirs.sort():
+            # calculate queue and run durations
+            row = execution_dirs[execution_dir]
+            if row[1] is not None and row[2] is not None:
+                delta = parser.parse(row[2]) - parser.parse(row[1])
+                row.append(str(delta))
+            else:
+                row.append(None)
+            if row[2] is not None and row[3] is not None:
+                delta = parser.parse(row[3]) - parser.parse(row[2])
+                row.append(str(delta))
+            else:
+                row.append(None)
+            # add execution dir
             row = (execution_dir, *execution_dirs[execution_dir])
             table.append(row)
         return table
@@ -104,10 +127,13 @@ def receive_messages(config, session):
             )
             session.add(log_entry)
             session.commit()
+        except IntegrityError as error:
+            session.rollback()
+            logger.error(f"Invalid task-log message, {message}: {error}")
         except SQLAlchemyError as error:
             session.rollback()
             logger.exception(
-                f"Failed to insert task log for Task {execution-dir} ({status}): {error}"
+                f"Failed to insert task log for Task {execution_dir} ({status}): {error}"
             )
 
     def callback(ch, method, properties, body):
@@ -115,8 +141,8 @@ def receive_messages(config, session):
         logger.debug(f"Received: {message}")
         try:
             _insert_task_log(message)
-        except:
-            logger.error("Unable to save task log")
+        except Exception as error:
+            logger.error(f"Unable to save task log: {error}")
             raise
         else:
             ch.basic_ack(delivery_tag=method.delivery_tag)

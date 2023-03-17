@@ -720,28 +720,6 @@ class Metadata:
                 summary.append(item)
         return sort_table_dict(summary, "queue_start")
 
-    #    def task_log(self):
-    #        """
-    #        Return select task summary fields in table format.
-    #        :return: Table of tasks
-    #        :rtype: list
-    #        """
-    #        table = []
-    #        for info in self.task_summary():
-    #            name = info["name"]
-    #            row = [
-    #                name,
-    #                info["cached"],
-    #                info["execution_status"],
-    #                info["queue_start"],
-    #                info["run_start"],
-    #                info["run_end"],
-    #                info["queue_duration"],
-    #                info["run_duration"],
-    #            ]
-    #            table.append(row)
-    #        return sort_table(table, 3)
-
     def job_summary(self, **kwargs) -> dict:
         """
         :return: task name for each job id

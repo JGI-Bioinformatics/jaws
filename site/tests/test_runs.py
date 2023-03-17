@@ -15,10 +15,6 @@ from jaws_rpc.rpc_client_basic import RpcClientBasic
 import io
 
 
-def mock__update(self):
-    pass
-
-
 def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
     assert isinstance(status_from, str)
     assert isinstance(status_to, str)
@@ -144,7 +140,7 @@ def test_metadata(monkeypatch):
     assert metadata.data["runId"] == test_cromwell_run_id
 
 
-def test_outfiles(monkeypatch):
+def test_output_manifest(monkeypatch):
     class MockMetadata:
         def __init__(self):
             self.data = {}
@@ -169,14 +165,14 @@ def test_outfiles(monkeypatch):
     # an empty dict is expected if Cromwell has not been executed yet
     mock_data = MockRunModel(cromwell_run_id=None)
     run = Run(mock_session, mock_data)
-    output_manifest = run.outfiles(complete=False)
+    output_manifest = run.output_manifest(complete=False)
     assert type(output_manifest) == dict
     assert len(output_manifest.keys()) == 0
 
     # if cromwell has run, a dict with workflow_root and manifest is expected
     mock_data = MockRunModel(cromwell_run_id="TEST-CROMWELL-RUN-ID")
     run = Run(mock_session, mock_data)
-    output_manifest = run.outfiles(complete=False)
+    output_manifest = run.output_manifest(complete=False)
     assert type(output_manifest) == dict
     assert "workflow_root" in output_manifest
     assert "manifest" in output_manifest
@@ -287,7 +283,6 @@ def test_submit_run(monkeypatch, inputs_files):
 
     monkeypatch.setattr(jaws_site.cromwell.Cromwell, "submit", mock_cromwell_submit)
     monkeypatch.setattr(Run, "get_run_inputs", mock_get_run_inputs)
-    monkeypatch.setattr(Run, "_update", mock__update)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(jaws_site.runs, "max_active_runs_exceeded", mock_max_active_runs_exceeded)
 
@@ -318,9 +313,8 @@ def mock_path(tmp_path):
     return tmp_path_mock
 
 
-def test_check_run_cromwell_status(monkeypatch):
+def test_check_cromwell_run_status(monkeypatch):
 
-    monkeypatch.setattr(Run, "_update", mock__update)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
 
     def mock_get_status_running(self, run_id):
@@ -347,7 +341,7 @@ def test_check_run_cromwell_status(monkeypatch):
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
     monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_false)
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "queued"
 
     # test: queued -> queued
@@ -356,7 +350,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "queued"
 
     # test: queued -> running
@@ -366,7 +360,7 @@ def test_check_run_cromwell_status(monkeypatch):
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
     monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_true)
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "running"
 
     # test: queued -> succeeded
@@ -375,7 +369,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "succeeded"
 
     # test: queued -> failed
@@ -384,7 +378,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "failed"
 
     # test: running -> succeeded
@@ -393,7 +387,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "succeeded"
 
     # test: running -> failed
@@ -402,7 +396,7 @@ def test_check_run_cromwell_status(monkeypatch):
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "failed"
 
 
