@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- fixed performance_metrics path to match condor's path
 
 ## 1.0.13b Summary [03/01/2023]
 - AMS CI/CD 
