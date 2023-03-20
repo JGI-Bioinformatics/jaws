@@ -138,8 +138,9 @@ echo "Writing extra shims (if Perlmutter)"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
 echo "Starting services (if not Perlmutter)"
-# Start supervisord only if it is not deloyed to Perlmutter
+# Start supervisord only if it is not deployed to Perlmutter
 [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisord || true)
 [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
+[[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-pool-manager:*" || true)
 
 echo "END deploy-jaws"
