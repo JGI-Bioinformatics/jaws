@@ -377,9 +377,9 @@ class Run:
         :ptype contents: str
         """
         if path.startswith("s3://"):
-            return _write_file_s3(path, contents, **kwargs)
+            return self._write_file_s3(path, contents, **kwargs)
         else:
-            return _write_file_nfs(path, contents)
+            return self._write_file_nfs(path, contents)
 
     # TODO
     def read_inputs(self):
