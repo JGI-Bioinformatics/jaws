@@ -78,7 +78,6 @@ class Run:
         self.reports_rpc_client = (
             kwargs["reports_rpc_client"] if "reports_rpc_client" in kwargs else None
         )
-        self._metadata = None
 
         try:
             self.config = {
@@ -185,7 +184,8 @@ class Run:
 
     def status(self) -> str:
         """Return the current state of the run."""
-        return self.data.status
+        status = self.data.status
+        return status
 
     def summary(self) -> dict:
         """Produce summary of Run info"""
@@ -203,27 +203,15 @@ class Run:
         }
         return summary
 
-    def metadata(self):
-        """
-        Lazy loading of Cromwell metadata.  Metadata is cached because it may be
-        expensive to generate for Runs with many tasks.
-        """
-        if not self._metadata and self.data.cromwell_run_id:
-            self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-        return self._metadata
-
     def did_run_start(self):
         """
         Check if any task has started running by checking the task log.
         """
         if not self.data.cromwell_run_id:
             return False
-        task_log = TaskLog(self.config, self.session, self.data.cromwell_run_id).data
-        for row in task_log:
-            (cromwell_run_id, execution_dir, status, timestamp) = row
-            if status != "queued":
-                return True
-        return False
+        else:
+            task_log = TaskLog(self.config, self.session, self.data.cromwell_run_id)
+            return task_log.did_run_start()
 
     def task_log(self):
         if not self.data.cromwell_run_id:
@@ -288,18 +276,6 @@ class Run:
             raise RunDbError(
                 f"Change Run {self.data.id} status to cancelled failed: {error}"
             )
-
-    def output_manifest(self, **kwargs) -> dict:
-        """
-        Return a document identifying the output files to transfer.
-        If the document hasn't been generated yet, raise an exception.
-        """
-        if self.data.status not in ("complete", "finished"):
-            raise ValueError(
-                f"The output_manifest does not exist for Run {self.data.id}"
-            )
-        # read previously generated manifest from file
-        return self._read_json_file(f"{self.data.workflow_root}/output_manifest.json")
 
     @staticmethod
     def s3_parse_path(full_path):
@@ -542,7 +518,7 @@ class Run:
         # Give Cromwell a moment to init the new Run before requesting metadata.
         sleep(1)
         try:
-            metadata = cromwell.metadata(cromwell_run_id)
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
         except CromwellError as error:
             logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
             return
@@ -663,9 +639,9 @@ class Run:
             self.update_run_status("finished")
             return
 
-        # write metadata
+        # get Cromwell metadata
         try:
-            metadata = self.metadata()
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             metadata.write_summary_files()
         except Exception as error:
             logger.warn(
@@ -673,21 +649,11 @@ class Run:
                 + "It might be possible that the metadata row count exceeds the "
                 + f"configured limit: {error}"
             )
+            # TODO retry for x hrs before giving up and transitioning to finished
             self.update_run_status("finished")
             return
 
-        # "test" is a special user account -- mark as done without publishing report
-        if self.data.user_id == "test":
-            self.update_run_status("finished")
-            return
-
-        # generate report
-        report = self.summary()
-        report["workflow_name"] = metadata.get("workflowName", "unknown")
-        report["site_id"] = report["compute_site_id"].upper()
-        del report["compute_site_id"]
-
-        report["tasks"] = []
+        # write metadata
         metadata_file = f"{self.data.workflow_root}/metadata.json"
         with open(metadata_file, "w") as fh:
             json.dump(metadata)
@@ -704,17 +670,9 @@ class Run:
         with open(outputs_file, "w") as fh:
             json.dump(outputs, fh)
 
-        # write output manifest (i.e. outfileslist)
-        output_manifest = {
-            "workflow_root": self.data.workflow_root,
-            "manifest": metadata.outfiles(complete=complete, relpath=relpath),  # TODO
-        }
-        manifest_file = f"{self.data.workflow_root}/output_manifest.json"
-        with open(manifest_file, "w") as fh:
-            json.dump(output_manifest, fh)
-
         # write task summary
         task_summary = self.summary()
+        # convert to old name so as not to upset Elasticsearch
         task_summary["site_id"] = task_summary["compute_site_id"].upper()
         del task_summary["compute_site_id"]
         task_summary["tasks"] = []

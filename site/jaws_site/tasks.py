@@ -93,6 +93,16 @@ class TaskLog:
             table.append(row)
         return table
 
+    def did_run_start(self):
+        """
+        Check if any task has started running by checking the task log.
+        """
+        rows = self._select_rows()
+        for row in rows:
+            (cromwell_run_id, execution_dir, status, timestamp) = row
+            if status != "queued":
+                return True
+        return False
 
 def receive_messages(config, session):
     """
