@@ -30,7 +30,6 @@ import os
 import glob
 import json
 import io
-import re
 from datetime import datetime
 from dateutil import parser
 from collections import deque

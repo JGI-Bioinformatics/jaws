@@ -1,7 +1,6 @@
 import pytest
 import json
 import os
-import glob
 from deepdiff import DeepDiff
 from jaws_site import cromwell
 from jaws_site.cromwell import (
