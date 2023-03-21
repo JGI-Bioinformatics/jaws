@@ -97,7 +97,6 @@ else
     # Stop services only if it's not on Perlmutter
     # On Perlmutter, all services will be stopped by `scancel`
     [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
-    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manager:*" || true)
 fi
 
 echo "Generating virtual environment"
@@ -141,6 +140,5 @@ echo "Starting services (if not Perlmutter)"
 # Start supervisord only if it is not deployed to Perlmutter
 [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisord || true)
 [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
-[[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-pool-manager:*" || true)
 
 echo "END deploy-jaws"
