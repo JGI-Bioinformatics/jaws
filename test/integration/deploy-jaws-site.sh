@@ -129,11 +129,13 @@ envsubst < "./test/integration/templates/supervisord.sh" > "$JAWS_BIN_DIR/superv
 envsubst < "./test/integration/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
 chmod 700 $JAWS_BIN_DIR/*
 
-echo "Setup file ACL rules"
-FACL_SCRIPT="$JAWS_SCRATCH_DIR/setup_facl.sh"
-envsubst < "./test/integration/templates/setup_facl.sh" > "$FACL_SCRIPT"
-chmod 700 "$FACL_SCRIPT"
-"$FACL_SCRIPT"
+if [[ "$JAWS_SETFACL" -eq 1 ]]; then 
+    echo "Setup file ACL rules"
+    FACL_SCRIPT="$JAWS_SCRATCH_DIR/setup_facl.sh"
+    envsubst < "./test/integration/templates/setup_facl.sh" > "$FACL_SCRIPT"
+    chmod 700 "$FACL_SCRIPT"
+    "$FACL_SCRIPT"
+fi
 
 echo "Writing extra shims (if Perlmutter)"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
