@@ -9,7 +9,7 @@ from jaws_site.runs import (
     RunNotFoundError,
     RunFileNotFoundError,
 )
-from tests.conftest import MockSession, MockRunModel, this_date, initRunModel
+from tests.conftest import MockSession, MockRunModel, initRunModel
 from jaws_site.cromwell import Cromwell, CromwellError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 import io
@@ -369,35 +369,6 @@ def test_run_log(monkeypatch):
     obs_results = run_log.logs()
 
     assert bool(DeepDiff(obs_results, exp_results, ignore_order=True)) is False
-
-
-#@pytest.mark.skip(reason="getting rid of singleton config.conf")
-#def test_summary():
-#    mock_session = MockSession()
-#    mock_data = MockRunModel(
-#        id=123,
-#        user_id="jdoe",
-#        email="johndoe@lbl.gov",
-#        submitted=this_date,
-#        updated=this_date,
-#        status="download complete",
-#        result="succeeded",
-#    )
-#    run = Run(mock_session, mock_data)
-#    exp_results = {
-#        "run_id": 123,
-#        "user_id": "jdoe",
-#        "email": "johndoe@lbl.gov",
-#        "submitted": this_date.strftime("%Y-%m-%d %H:%M:%S"),
-#        "updated": this_date.strftime("%Y-%m-%d %H:%M:%S"),
-#        "status": "download complete",
-#        "result": "succeeded",
-#        "compute_site_id": "EAGLE",
-#        "status_detail": "",
-#    }
-#    run = Run(mock_session, mock_data)
-#    obs_results = run.summary()
-#    assert bool(DeepDiff(obs_results, exp_results, ignore_order=True)) is False
 
 
 def test_from_params(mock_sqlalchemy_session):
