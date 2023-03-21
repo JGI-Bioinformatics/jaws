@@ -6,6 +6,7 @@ stages:
   - deploy-jaws
   - package
   - release-jaws
+  - end-to-end-test
 
 include:
   - project: "advanced-analysis/ci-templates"
@@ -130,6 +131,8 @@ deploy-jaws-cori-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
 
 deploy-jaws-cori-prod:
   stage: release-jaws
@@ -353,3 +356,16 @@ package:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
   allow_failure: true
+
+cori-staging-test:
+  stage: end-to-end-test
+  variables:
+    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_SITE_NAME: "cori"
+    RUN_END_TO_END: "true"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  trigger:
+    project: advanced-analysis/jaws-tests
+    strategy: depend
+

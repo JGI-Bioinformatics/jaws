@@ -48,8 +48,6 @@ JAWS_INSTALL_BASEDIR
 JAWS_LOAD_PYTHON
 JAWS_LOG_LEVEL
 JAWS_MAX_RAM_GB
-JAWS_PERFORMANCE_METRICS_DIR
-JAWS_PERFORMANCE_METRICS_SCRIPT
 JAWS_REF_DATA_DIR
 JAWS_REST_PORT
 JAWS_RMQ_HOST
@@ -99,7 +97,6 @@ else
     # Stop services only if it's not on Perlmutter
     # On Perlmutter, all services will be stopped by `scancel`
     [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
-    [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-pool-manager:*" || true)
 fi
 
 echo "Generating virtual environment"
@@ -142,7 +139,7 @@ echo "Writing extra shims (if Perlmutter)"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
 echo "Starting services (if not Perlmutter)"
-# Start supervisord only if it is not deloyed to Perlmutter
+# Start supervisord only if it is not deployed to Perlmutter
 [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisord || true)
 [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl start "jaws-site:*" || true)
 
