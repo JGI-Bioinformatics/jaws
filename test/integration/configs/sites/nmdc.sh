@@ -9,7 +9,6 @@ export JAWS_SCRATCH_BASEDIR="/global/cscratch1/sd/nmjaws"
 export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
 export JAWS_MAX_RAM_GB=1450
 export JAWS_MAX_CPU=72
-export JAWS_PERFORMANCE_METRICS_DIR="/global/cscratch1/sd/nmjaws/nmdc-prod/monitoring-runs"
 export JAWS_ACCESS_GROUP="nmdc"
 export JAWS_SUPERVISOR_PORT_PROD=64106
 export JAWS_AUTH_PORT_PROD=3006
