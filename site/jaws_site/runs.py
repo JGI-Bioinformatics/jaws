@@ -775,6 +775,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         if log.status_to == "submitted":
             run = session.query(models.Run).get(log.run_id)
             data["cromwell_run_id"] = run.cromwell_run_id
+            data["workflow_root"] = run.workflow_root
         try:
             response = central_rpc_client.request("update_run_logs", data)
         except Exception as error:
