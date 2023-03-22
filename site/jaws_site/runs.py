@@ -519,7 +519,9 @@ class Run:
                 sleep(5)
                 metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             except CromwellError as error:
-                logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
+                logger.error(
+                    f"Run {self.data.id} failed to get Cromwell metadata: {error}"
+                )
             else:
                 self.data.workflow_name = metadata.get("workflowName")
                 self.data.workflow_root = metadata.get("workflowRoot")
@@ -634,6 +636,7 @@ class Run:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             metadata.write_summary_files()
         except Exception as error:
+            # TODO CHANGE EXCEPTIONS TO DISTINGUISH BETWEEN CONNECTION AND REJECTION ERRORS
             logger.warn(
                 "Unable to retrieve Cromwell metadata to generate report."
                 + "It might be possible that the metadata row count exceeds the "
