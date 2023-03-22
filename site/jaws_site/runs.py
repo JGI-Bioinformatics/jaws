@@ -720,6 +720,7 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
         "succeeded",
         "failed",
         "cancel",
+        "complete",
     ]
     try:
         rows = (
