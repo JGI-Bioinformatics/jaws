@@ -348,7 +348,7 @@ class Run:
         """
         Read JSON file and return decoded contents as variable.
         """
-        return json.loads(self._read_file(path))
+        return json.load(self._read_file(path))
 
     # TODO SWITCH FROM KWARGS TO CONFIG
     def _write_file_s3(self, path: str, content: str, **kwargs):
