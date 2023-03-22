@@ -662,7 +662,7 @@ class Run:
             json.dump(errors_report, fh)
 
         # write outputs
-        outputs = metadata.outputs(executions_dir=self.config.cromwell_executions_dir)
+        outputs = metadata.outputs()
         outputs_file = f"{self.data.workflow_root}/outputs.json"
         with open(outputs_file, "w") as fh:
             json.dump(outputs, fh)
