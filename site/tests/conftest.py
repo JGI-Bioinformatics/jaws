@@ -1030,7 +1030,12 @@ def initTransferModel(**kwargs):
 def mock_metadata(monkeypatch):
     class MockMetadata:
         def __init__(self):
-            self.data = {"MOCK_METADATA": True, "workflowName": "unknown"}
+            self.data = {
+                "MOCK_METADATA": True,
+                "workflowName": "unknown",
+                "workflowRoot": "/data/cromwell-executions/example/ABCD",
+                "status": "Running"
+            }
 
         def started_running(self):
             return True
@@ -1070,7 +1075,7 @@ def mock_metadata(monkeypatch):
                 "run_duration": "01-01-2022",
             }
 
-        def get(self, param, default):
+        def get(self, param, default=None):
             return self.data.get(param, default)
 
         def workflow_root(self, executions_dir=None):

@@ -513,25 +513,6 @@ class Run:
             return
         else:
             self.data.cromwell_run_id = cromwell_run_id
-
-        while True:
-            try:
-                sleep(5)
-                metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            except CromwellError as error:
-                logger.error(
-                    f"Run {self.data.id} failed to get Cromwell metadata: {error}"
-                )
-            else:
-                self.data.workflow_name = metadata.get("workflowName")
-                self.data.workflow_root = metadata.get("workflowRoot")
-                if self.data.workflow_root:
-                    break
-        logger.debug(
-            f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"  # noqa
-        )
-
-        # save and return to central
         try:
             self.update_run_status("submitted")
         except Exception as error:
@@ -543,19 +524,39 @@ class Run:
         """
         Check Cromwell for the status of the Run.
         """
-        logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
+        cromwell_status = None
+        if self.data.workflow_root:
+            logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
+            try:
+                cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
+            except CromwellError as error:
+                logger.error(
+                    f"Unable to check Cromwell status of Run {self.data.id}: {error}"
+                )
+                return
+        else:
+            logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
+            try:
+                metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            except CromwellError as error:
+                logger.error(
+                    f"Run {self.data.id} failed to get Cromwell metadata: {error}"
+                )
+                return
+            else:
+                cromwell_status = metadata.get("status")
+                self.data.workflow_name = metadata.get("workflowName")
+                self.data.workflow_root = metadata.get("workflowRoot")
+                logger.debug(
+                    f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"  # noqa
+                )
+                try:
+                    self.session.commit()
+                except SQLAlchemyError as error:
+                    self.session.rollback()
+                    logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
-        try:
-            cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
-        except CromwellError as error:
-            logger.error(
-                f"Unable to check Cromwell status of Run {self.data.id}: {error}"
-            )
-            return
-
-        # check if state has changed; allowed states and transitions for a successful run are:
-        # submitted -> queued -> running -> succeeded (with no skipping of states allowed)
-        # Additionally, any state can transition directly to cancelled or failed.
+        # check if state has changed.
         logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
@@ -644,7 +645,9 @@ class Run:
                 + f"configured limit: {error}"
             )
             # TODO retry for x hrs before giving up and transitioning to finished
-            self.update_run_status("finished", "supplementary files could not be generated")
+            self.update_run_status(
+                "finished", "supplementary files could not be generated"
+            )
             return
 
         # write metadata

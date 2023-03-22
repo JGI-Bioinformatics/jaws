@@ -251,7 +251,7 @@ def mock_path(tmp_path):
     return tmp_path_mock
 
 
-def test_check_cromwell_run_status(monkeypatch):
+def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
 
@@ -273,7 +273,7 @@ def test_check_cromwell_run_status(monkeypatch):
     mock_session = MockSession()
 
     # test: submitted -> queued
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
@@ -283,7 +283,7 @@ def test_check_cromwell_run_status(monkeypatch):
     assert run.data.status == "queued"
 
     # test: queued -> queued
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
@@ -292,7 +292,7 @@ def test_check_cromwell_run_status(monkeypatch):
     assert run.data.status == "queued"
 
     # test: queued -> running
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
@@ -302,7 +302,7 @@ def test_check_cromwell_run_status(monkeypatch):
     assert run.data.status == "running"
 
     # test: queued -> succeeded
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
@@ -311,7 +311,7 @@ def test_check_cromwell_run_status(monkeypatch):
     assert run.data.status == "succeeded"
 
     # test: queued -> failed
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
@@ -320,7 +320,7 @@ def test_check_cromwell_run_status(monkeypatch):
     assert run.data.status == "failed"
 
     # test: running -> succeeded
-    mock_data = MockRunModel(status="running")
+    mock_data = MockRunModel(status="running", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
@@ -329,13 +329,21 @@ def test_check_cromwell_run_status(monkeypatch):
     assert run.data.status == "succeeded"
 
     # test: running -> failed
-    mock_data = MockRunModel(status="running")
+    mock_data = MockRunModel(status="running", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
     run.check_cromwell_run_status()
     assert run.data.status == "failed"
+
+    # test get metadata, workflow_root
+    mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.check_cromwell_run_status()
+    assert run.data.status == "running"
+    assert run.data.workflow_name == "unknown"
+    assert run.data.workflow_root == "/data/cromwell-executions/example/ABCD"
 
 
 def test_run_log(monkeypatch):
