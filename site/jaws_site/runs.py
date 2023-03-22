@@ -533,8 +533,8 @@ class Run:
                     self.data.cromwell_run_id,
                 )
         logger.debug(
-            f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"
-        ) # noqa
+            f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"  # noqa
+        )
 
         # save and return to central
         try:
