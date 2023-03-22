@@ -653,13 +653,13 @@ class Run:
         # write metadata
         metadata_file = f"{self.data.workflow_root}/metadata.json"
         with open(metadata_file, "w") as fh:
-            json.dump(metadata.data)
+            json.dump(metadata.data, fh)
 
         # write errors report
         errors_report = metadata.errors()
         errors_file = f"{self.data.workflow_root}/errors.json"
         with open(errors_file, "w") as fh:
-            json.dump(errors_report)
+            json.dump(errors_report, fh)
 
         # write outputs
         outputs = metadata.outputs(executions_dir=self.config.cromwell_executions_dir)
