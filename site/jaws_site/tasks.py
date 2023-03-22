@@ -104,6 +104,7 @@ class TaskLog:
                 return True
         return False
 
+
 def receive_messages(config, session):
     """
     Receive and consume task-log messages indefinately.

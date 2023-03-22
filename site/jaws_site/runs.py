@@ -515,7 +515,8 @@ class Run:
             self.data.cromwell_run_id = cromwell_run_id
 
         # We need the workflow_name and workflow_root from the Cromwell metadata.
-        # Give Cromwell a moment to init the new Run before requesting metadata.
+        # Give Cromwell a moment to init the new Run before requesting metadata,
+        # otherwise workflowRoot will not be defined yet.
         sleep(1)
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
@@ -531,21 +532,17 @@ class Run:
                     self.data.workflow_name,
                     self.data.cromwell_run_id,
                 )
+        logger.debug(
+            f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"
+        )
 
         # save and return to central
-        # TODO
-        info = {
-            "cromwell_run_id": self.data.cromwell_run_id,
-            "workflow_name": self.data.workflow_name,
-            "workflow_root": self.data.workflow_root,
-        }
         try:
-            self.update_run_status("submitted", json.dumps(info))
+            self.update_run_status("submitted")
         except Exception as error:
             logger.error(
                 f"Run {self.data.id} failed to update with cromwell_run_id: {error}"
             )
-        # /TODO
 
     def check_cromwell_run_status(self) -> None:
         """
