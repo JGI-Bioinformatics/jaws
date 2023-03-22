@@ -514,24 +514,17 @@ class Run:
         else:
             self.data.cromwell_run_id = cromwell_run_id
 
-        # We need the workflow_name and workflow_root from the Cromwell metadata.
-        # Give Cromwell a moment to init the new Run before requesting metadata,
-        # otherwise workflowRoot will not be defined yet.
-        sleep(1)
-        try:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-        except CromwellError as error:
-            logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
-            return
-        else:
-            self.data.workflow_name = metadata.get("workflowName")
-            self.data.workflow_root = metadata.get("workflowRoot")
-            if self.data.workflow_root is None:
-                self.data.workflow_root = os.path.join(
-                    self.config.get("CROMWELL", "executions_dir"),
-                    self.data.workflow_name,
-                    self.data.cromwell_run_id,
-                )
+        while True:
+            try:
+                sleep(5)
+                metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            except CromwellError as error:
+                logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
+            else:
+                self.data.workflow_name = metadata.get("workflowName")
+                self.data.workflow_root = metadata.get("workflowRoot")
+                if self.data.workflow_root:
+                    break
         logger.debug(
             f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"  # noqa
         )
