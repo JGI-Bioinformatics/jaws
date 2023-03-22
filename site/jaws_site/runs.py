@@ -631,10 +631,11 @@ class Run:
             self.update_run_status("finished")
             return
 
+        logger.info(f"Run {self.data.id}: Write supplementary files")
+
         # get Cromwell metadata
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            metadata.write_summary_files()
         except Exception as error:
             # TODO CHANGE EXCEPTIONS TO DISTINGUISH BETWEEN CONNECTION AND REJECTION ERRORS
             logger.warn(
@@ -643,13 +644,13 @@ class Run:
                 + f"configured limit: {error}"
             )
             # TODO retry for x hrs before giving up and transitioning to finished
-            self.update_run_status("finished")
+            self.update_run_status("finished", "supplementary files could not be generated")
             return
 
         # write metadata
         metadata_file = f"{self.data.workflow_root}/metadata.json"
         with open(metadata_file, "w") as fh:
-            json.dump(metadata)
+            json.dump(metadata.data)
 
         # write errors report
         errors_report = metadata.errors()
