@@ -681,6 +681,8 @@ class Run:
         with open(summary_file, "w") as fh:
             json.dump(task_summary, fh)
 
+        self.update_run_status("complete")
+
     def publish_report(self):
         """
         Save final run metadata and send report document to reports service via RPC.
