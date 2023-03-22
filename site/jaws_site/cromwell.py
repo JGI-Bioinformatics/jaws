@@ -533,7 +533,7 @@ class Task:
                 subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
-                for item in sub_meta.task_summary():
+                for item in sub_meta.task_summary(last_attempts=False):
                     renamed_item = item
                     name = item["name"]
                     renamed_item["name"] = f"{subworkflow_name}:{name}"
@@ -554,7 +554,7 @@ class Task:
             attempts = sorted(self.subworkflows[shard_index].keys())
             attempt = attempts[-1]
             sub_meta = self.subworkflows[shard_index][attempt]
-            for item in sub_meta.task_summary():
+            for item in sub_meta.task_summary(last_attempts=True):
                 renamed_item = item
                 name = item["name"]
                 renamed_item["name"] = f"{subworkflow_name}:{name}"
@@ -707,7 +707,7 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
-    def task_summary(self):
+    def task_summary(self, **kwargs):
         """
         Return list of all tasks, including any subworkflows.
         :return: List of task information dictionaries
@@ -715,7 +715,7 @@ class Metadata:
         """
         summary = []
         for task_name, task in self.tasks.items():
-            for item in task.summary():
+            for item in task.summary(**kwargs):
                 summary.append(item)
         return sort_table_dict(summary, "queue_start")
 
