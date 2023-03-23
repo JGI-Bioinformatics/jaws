@@ -520,12 +520,47 @@ class Run:
                 f"Run {self.data.id} failed to update with cromwell_run_id: {error}"
             )
 
+    def check_cromwell_metadata(self) -> str:
+        """
+        Check Cromwell metadata for status, workflow_root, and workflow_name.
+        This is used only for runs in "submitted" state.  Do not transition out of this
+        state until we have the workflow_name and workflow_root.
+        :return: status; may be None if unavailable
+        :rtype: str
+        """
+        logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
+        try:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+        except CromwellError as error:
+            logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
+            return None
+        cromwell_status = metadata.get("status")
+        workflow_name = metadata.get("workflowName")
+        workflow_root = metadata.get("workflowRoot")
+        if workflow_name is None or workflow_root is None:
+            # setting these fields is a requirement to transition past this state
+            return None
+        self.data.workflow_name = workflow_name
+        self.data.workflow_root = workflow_root
+        logger.debug(
+            f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
+        )
+        try:
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
+            return None
+        return cromwell_status
+
     def check_cromwell_run_status(self) -> None:
         """
         Check Cromwell for the status of the Run.
         """
         cromwell_status = None
-        if self.data.workflow_root:
+        if self.data.status == "submitted":
+            cromwell_status = self.check_cromwell_metadata()
+        else:
             logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
             try:
                 cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
@@ -534,27 +569,8 @@ class Run:
                     f"Unable to check Cromwell status of Run {self.data.id}: {error}"
                 )
                 return
-        else:
-            logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
-            try:
-                metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            except CromwellError as error:
-                logger.error(
-                    f"Run {self.data.id} failed to get Cromwell metadata: {error}"
-                )
-                return
-            else:
-                cromwell_status = metadata.get("status")
-                self.data.workflow_name = metadata.get("workflowName")
-                self.data.workflow_root = metadata.get("workflowRoot")
-                logger.debug(
-                    f"Run {self.data.id} workflow_name={self.data.workflow_name}; workflow_root={self.data.workflow_root}; cromwell_run_id={self.data.cromwell_run_id}"  # noqa
-                )
-                try:
-                    self.session.commit()
-                except SQLAlchemyError as error:
-                    self.session.rollback()
-                    logger.exception(f"Unable to update Run {self.data.id}: {error}")
+        if not cromwell_status:
+            return
 
         # check if state has changed.
         logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
@@ -775,6 +791,8 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         if log.status_to == "submitted":
             run = session.query(models.Run).get(log.run_id)
             data["cromwell_run_id"] = run.cromwell_run_id
+        elif log.status_to == "queued":
+            run = session.query(models.Run).get(log.run_id)
             data["workflow_root"] = run.workflow_root
         try:
             response = central_rpc_client.request("update_run_logs", data)
