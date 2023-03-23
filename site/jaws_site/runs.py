@@ -683,6 +683,12 @@ class Run:
         with open(outputs_file, "w") as fh:
             json.dump(outputs, fh)
 
+        # write outfiles
+        outfiles = metadata.outfiles()
+        outfiles_file = f"{self.data.workflow_root}/outfiles.json"
+        with open(outfiles_file, "w") as fh:
+            json.dump(outfiles, fh)
+
         # write task summary
         task_summary = self.summary()
         # convert to old name so as not to upset Elasticsearch

@@ -513,9 +513,7 @@ class Task:
         feature of Cromwell is turned on, but it's only available with "gcs" backend as of 5/25/2022.
         For simplicity, we use only the last attempt by default.
         """
-        last_attempts = False
-        if "last_attempts" in kwargs and kwargs["last_attempts"] is True:
-            last_attempts = True
+        last_attempts = kwargs["last_attempts", False]
         if last_attempts is True:
             return self.summary_last_attempts()
         else:
@@ -733,7 +731,7 @@ class Metadata:
 
     def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
-        relpath = True if "relpath" in kwargs and kwargs["relpath"] else False
+        relpath = kwargs.get("relpath", False)
         outputs = self.get("outputs", {})
         if not relpath:
             return outputs
@@ -777,8 +775,8 @@ class Metadata:
         :return: List of files
         :rtype: list
         """
-        complete = True if "complete" in kwargs and kwargs["complete"] else False
-        relpath = True if "relpath" in kwargs and kwargs["relpath"] else False
+        complete = kwargs.get("complete", False)
+        relpath = kwargs.get("relpath", False)
         workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
         if workflow_root is None:
