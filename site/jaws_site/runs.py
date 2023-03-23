@@ -713,7 +713,7 @@ class Run:
         logger.info(f"Publish report for run {self.data.id}")
 
         # read previously generate summary from file
-        summary = self._read_json_file(f"{self.data.workflow_root}/task_summary.json")
+        summary = self._read_json_file(f"{self.data.workflow_root}/tasks.json")
 
         # publish and if successful, mark as done, else skip until next time
         try:
