@@ -676,13 +676,13 @@ class Run:
             json.dump(errors_report, fh)
 
         # write outputs
-        outputs = metadata.outputs()
+        outputs = metadata.outputs(relpath=True)
         outputs_file = f"{self.data.workflow_root}/outputs.json"
         with open(outputs_file, "w") as fh:
             json.dump(outputs, fh)
 
         # write outfiles
-        outfiles = metadata.outfiles()
+        outfiles = metadata.outfiles(relpath=True)
         outfiles_file = f"{self.data.workflow_root}/outfiles.json"
         with open(outfiles_file, "w") as fh:
             json.dump(outfiles, fh)
