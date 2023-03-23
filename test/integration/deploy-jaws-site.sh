@@ -133,7 +133,7 @@ chmod 700 "$FACL_SCRIPT"
 "$FACL_SCRIPT"
 
 echo "Writing extra shims (if Perlmutter)"
-[[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+[[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site-cronjob"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
 echo "Starting services (if not Perlmutter)"
