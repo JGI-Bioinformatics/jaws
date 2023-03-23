@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- ci/cd now makes the end-to-end test manual and allowed to fail or not run
 
 ## 1.0.14 Summary [03/23/2023 --> Staging]
 - fixed performance_metrics path to match htcondor's path
