@@ -160,7 +160,7 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.rsync()
+                self.rsync_folder()
         except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")

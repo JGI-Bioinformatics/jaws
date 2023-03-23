@@ -130,9 +130,9 @@ def test_transfer_files(monkeypatch):
 
 
 def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
-    def mock_rsync(src):
+    def mock_rsync_folder(self):
         pass
-    monkeypatch.setattr(Transfer, "rsync", mock_rsync)
+    monkeypatch.setattr(Transfer, "rsync_folder", mock_rsync_folder)
     mock_data = MockTransferModel(
         status="queued",
         src_base_dir="/scratch/jaws-site/cromwell-executions/ex/AAAA",
