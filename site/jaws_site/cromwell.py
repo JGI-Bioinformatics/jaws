@@ -30,7 +30,7 @@ import os
 import glob
 import json
 import io
-from datetime import datetime, timezone
+from datetime import datetime
 from dateutil import parser
 from collections import deque
 import boto3
@@ -68,9 +68,9 @@ def _read_file_s3(path, **kwargs):
     """
     s3_bucket, src_path = s3_parse_uri(path)
     aws_session = boto3.Session(
-        aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region_name=aws_region_name,
+        aws_access_key_id=kwargs["aws_access_key_id"],
+        aws_secret_access_key=kwargs["aws_secret_access_key"],
+        region_name=kwargs["aws_region_name"],
     )
     s3_resource = aws_session.resource("s3")
     bucket_obj = s3_resource.Bucket(s3_bucket)
@@ -118,6 +118,37 @@ def _read_file(path: str, **kwargs):
         return _read_file_s3(path, **kwargs)
     else:
         return _read_file_nfs(path)
+
+
+def _write_file_s3(path: str, content: str, **kwargs):
+    s3_bucket, src_path = s3_parse_uri(path)
+    aws_session = boto3.Session(
+        aws_access_key_id=kwargs["aws_access_key_id"],
+        aws_secret_access_key=kwargs["aws_secret_access_key"],
+        region_name=kwargs["aws_region_name"],
+    )
+    s3_resource = aws_session.resource("s3")
+    bucket_obj = s3_resource.Bucket(s3_bucket)
+    bucket_obj.put(Body=content)
+
+
+def _write_file_nfs(path: str, content: str):
+    with open(path, "w") as fh:
+        fh.write(content)
+
+
+def _write_file(path: str, contents: str, **kwargs):
+    """
+    Write contents to NFS or S3 file.
+    :param path: Path to file (may be s3 item)
+    :ptype path: str
+    :param contents: Contents to write
+    :ptype contents: str
+    """
+    if path.startswith("s3://"):
+        return _write_file_s3(path, contents, **kwargs)
+    else:
+        return _write_file_nfs(path, contents)
 
 
 def sort_table(table: list, index: int):
@@ -169,7 +200,7 @@ class Call:
         self.result = None
         self.cached = False
         self.return_code = data.get("returnCode", None)
-        self.start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # ECCE!
+        self.start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # default
         if "start" in data:
             self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
         self.end = None
@@ -194,9 +225,9 @@ class Call:
             )
 
         if self.execution_status == "Failure":
-            self.result == "failed"
+            self.result = "failed"
         elif self.execution_status == "Done":
-            self.result == "succeeded"
+            self.result = "succeeded"
 
         if "runtimeAttributes" in self.data:
             self.requested_time = self.data["runtimeAttributes"].get("time", None)
@@ -302,21 +333,11 @@ class Call:
         """
         return self._get_file_path("stderr", relpath)
 
-    def summary(self, **kwargs):
+    def summary(self):
         """
         :return: Select fields
         :rtype: dict
         """
-        real_time = True
-        if "real_time" in kwargs and kwargs["real_time"] is False:
-            real_time = False
-        if real_time is True and self.execution_status in (
-            "Running",
-            "Done",
-            "Aborted",
-        ):
-            self.set_real_time_status()
-
         record = {
             "name": self.name,
             "shard_index": self.shard_index,
@@ -421,122 +442,6 @@ class Call:
                     result[log_file_name] = log_file_contents
         return result
 
-    def running(self):
-        """
-        Call report, if "Running" (else None).
-        :return: running report
-        :rtype: dict
-        """
-        if self.execution_status != "Running":
-            return None
-        result = {
-            "attempt": self.attempt,
-            "shardIndex": self.shard_index,
-        }
-        if "failures" in self.data:
-            result["failures"] = self.data["failures"]
-        if "jobId" in self.data:
-            result["jobId"] = self.data["jobId"]
-        if "returnCode" in self.data:
-            result["returnCode"] = self.data["returnCode"]
-        if "runtimeAttributes" in self.data:
-            result["runtimeAttributes"] = self.data["runtimeAttributes"]
-        if "stderr" in self.data:
-            # include *contents* of stderr files, instead of file paths
-            stderr_file = self.data["stderr"]
-            try:
-                stderr_contents = _read_file(stderr_file)
-            except Exception:  # noqa
-                # stderr file doesn't always exist (e.g. fails in submit step)
-                result["stderrContents"] = f"File not found: {stderr_file}"
-            else:
-                result["stderrContents"] = stderr_contents
-            stderr_submit_file = f"{stderr_file}.submit"
-            try:
-                stderr_submit_contents = _read_file(stderr_submit_file)
-            except Exception:  # noqa
-                # stderrSubmit file doesn't always exist (not used on AWS)
-                result["stderrSubmitContents"] = None
-            else:
-                result["stderrSubmitContents"] = stderr_submit_contents
-        if "stdout" in self.data:
-            # include *contents* of stdout file, instead of file path
-            stdout_file = self.data["stdout"]
-            try:
-                stdoutContents = _read_file(stdout_file)
-            except Exception:  # noqa
-                result["stdoutContents"] = f"File not found: {stdout_file}"
-            else:
-                result["stdoutContents"] = stdoutContents
-            stdout_submit_file = f"{stdout_file}.submit"
-            try:
-                stdout_submit_contents = _read_file(stdout_submit_file)
-            except Exception:  # noqa
-                # stdoutSubmit file doesn't always exist (not used on AWS)
-                result["stdoutSubmitContents"] = None
-            else:
-                result["stdoutSubmitContents"] = stdout_submit_contents
-        if "callRoot" in self.data:
-            stderr_submit_file = f"{self.data['callRoot']}/execution/stderr.submit"
-            try:
-                stderrSubmitContents = _read_file(stderr_submit_file)
-            except Exception:  # noqa
-                # submit stderr file doesn't always exist (e.g. never for AWS)
-                result["stderrSubmitContents"] = None
-            else:
-                result["stderrSubmitContents"] = stderrSubmitContents
-        if "callRoot" in self.data:
-            # check for existence of any task-specific *.log files.
-            # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
-            log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
-            for log_file_path in log_files:
-                log_file_name = os.path.basename(log_file_path)
-                try:
-                    log_file_contents = _read_file(log_file_path)
-                except Exception:  # noqa
-                    result[log_file_name] = None
-                else:
-                    result[log_file_name] = log_file_contents
-        return result
-
-    def set_real_time_status(self) -> None:
-        """
-        Set the start time of the task using the creation date of the touchfile "container_startfile".
-        If the Cromwell state is "Running", we use the above to infer if it's "Queued" or actually "Running".
-        This is only used by the summary() method because a) we usually don't need
-        real-time data and b) accessing the file system could be unnecessarily slow.
-        """
-        if self.stderr.startswith("s3://"):
-            # do nothing if AWS (we don't have access to the EBS volume)
-            return
-        elif self.container_startfile:
-            # Task is either "Running" or "Done" or "Aborted"
-            try:
-                self.get_run_start_time()
-            except IOError:  # noqa
-                pass
-        elif self.execution_status == "Running":
-            # create "Queued" state (Cromwell doesn't have this state)
-            self.execution_status = "Queued"
-
-    def get_run_start_time(self):
-        try:
-            file_ctime = os.path.getctime(self.container_startfile)
-        except IOError:  # noqa
-            raise
-        else:
-            # task is actually "Running" so calculate the queue-wait duration
-            self.run_start = datetime.fromtimestamp(
-                file_ctime, tz=timezone.utc
-            ).strftime("%Y-%m-%d %H:%M:%S")
-            delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
-            self.queue_duration = str(delta)
-
-            if self.run_end:
-                self.run_duration = str(
-                    parser.parse(self.run_end) - parser.parse(self.run_start)
-                )
-
 
 class TaskError(Exception):
     pass
@@ -602,74 +507,44 @@ class Task:
                 all_errors.append(sub_errors)
         return all_errors
 
-    def running(self):
-        """
-        Return report for this task/subworkflow for running tasks only.
-        The contents of the stderr, stderr.submit files are also added for convenience.
-        :return: Running tasks report
-        :rtype: dict
-        """
-        all_running = []
-        for shard_index in self.calls.keys():
-            for attempt in self.calls[shard_index].keys():
-                call = self.calls[shard_index][attempt]
-                call_running = call.running()
-                if call_running is not None:
-                    all_running.append(call_running)
-        for shard_index in self.subworkflows.keys():
-            for attempt in self.subworkflows[shard_index].keys():
-                sub_meta = self.subworkflows[shard_index][attempt]
-                sub_running = {
-                    "shardIndex": shard_index,
-                    "attempt": attempt,
-                    "subWorkflowMetadata": sub_meta.running(),
-                }
-                all_running.append(sub_running)
-        return all_running
-
     def summary(self, **kwargs):
         """
         Generally, there is only one attempt.  The only exception is when the resubmit with more memory
         feature of Cromwell is turned on, but it's only available with "gcs" backend as of 5/25/2022.
         For simplicity, we use only the last attempt by default.
         """
-        real_time = True
-        if "real_time" in kwargs and kwargs["real_time"] is False:
-            real_time = False
-        last_attempts = False
-        if "last_attempts" in kwargs and kwargs["last_attempts"] is True:
-            last_attempts = True
+        last_attempts = kwargs.get("last_attempts", False)
         if last_attempts is True:
-            return self.summary_last_attempts(real_time)
+            return self.summary_last_attempts()
         else:
-            return self.summary_all_attempts(real_time)
+            return self.summary_all_attempts()
 
-    def summary_all_attempts(self, real_time):
+    def summary_all_attempts(self):
         result = []
         for shard_index in self.calls.keys():
             for attempt in self.calls[shard_index].keys():
                 call = self.calls[shard_index][attempt]
-                result.append(call.summary(real_time=real_time))
+                result.append(call.summary())
         for shard_index in self.subworkflows.keys():
             subworkflow_name = self.name
             if shard_index > -1:
                 subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
-                for item in sub_meta.task_summary(real_time=real_time):
+                for item in sub_meta.task_summary(last_attempts=False):
                     renamed_item = item
                     name = item["name"]
                     renamed_item["name"] = f"{subworkflow_name}:{name}"
                     result.append(renamed_item)
         return result
 
-    def summary_last_attempts(self, real_time):
+    def summary_last_attempts(self):
         result = []
         for shard_index in self.calls.keys():
             attempts = sorted(self.calls[shard_index].keys())
             attempt = attempts[-1]
             call = self.calls[shard_index][attempt]
-            result.append(call.summary(real_time=real_time))
+            result.append(call.summary())
         for shard_index in self.subworkflows.keys():
             subworkflow_name = self.name
             if shard_index > -1:
@@ -677,7 +552,7 @@ class Task:
             attempts = sorted(self.subworkflows[shard_index].keys())
             attempt = attempts[-1]
             sub_meta = self.subworkflows[shard_index][attempt]
-            for item in sub_meta.task_summary(real_time=real_time):
+            for item in sub_meta.task_summary(last_attempts=True):
                 renamed_item = item
                 name = item["name"]
                 renamed_item["name"] = f"{subworkflow_name}:{name}"
@@ -782,41 +657,22 @@ class Metadata:
             return workflow_root
 
         # AWS runs don't have workflowRoot defined, so construct path
+        if "executions_dir" not in kwargs:
+            raise ValueError(
+                "'workflowRoot' is not defined in metadata; 'executions_dir' parameter is required."
+            )
+        executions_dir = kwargs["executions_dir"]
         workflow_name = self.get("workflowName", None)
+        if workflow_name is None:
+            raise ValueError(
+                "workflowName' is not defined in metadata; cannot generate workflow_root"
+            )
         workflow_id = self.get("id", None)
-        if "executions_dir" in kwargs:
-            executions_dir = kwargs["executions_dir"]
-            workflow_root = f"{executions_dir}/{workflow_name}/{workflow_id}"
-            return workflow_root
-
-        # for AWS, if executions dir was not provided, try to infer from an outfile
-        outputs = self.get("outputs", {})
-        an_outfile = None
-        for key, value in outputs.items():
-            if value is None:
-                # skip if null (i.e. optional output was not produced)
-                pass
-            elif type(value) is list:
-                # a sharded task may produce a list of outputs, one per shard
-                for item in value:
-                    if (
-                        type(item) is str
-                        and item is not None
-                        and self.workflow_id in item
-                    ):
-                        an_outfile = item
-                        break
-            elif value is not None and type(value) is str and self.workflow_id in value:
-                # a typical task produces outputs which may be a file path
-                an_outfile = value
-                break
-        if an_outfile is not None:
-            (root, partial_path) = an_outfile.split(self.workflow_id)
-            workflow_root = os.path.join(root, self.workflow_id)
-            return workflow_root
-
-        # for AWS, if the run doesn't have an outfile, return path relative to cromwell-execution dir
-        workflow_root = f"{workflow_name}/{workflow_id}"
+        if workflow_id is None:
+            raise ValueError(
+                "id' is not defined in metadata; cannot generate workflow_root"
+            )
+        workflow_root = f"{executions_dir}/{workflow_name}/{workflow_id}"
         return workflow_root
 
     def filtered_failures(self):
@@ -849,25 +705,9 @@ class Metadata:
             filtered_metadata["failures"] = other_failures
         return filtered_metadata
 
-    def running(self):
-        """
-        Return expanded metadata report for "Running" tasks only.
-        """
-        filtered_metadata = {}
-        calls = {}
-        for task_name, task in self.tasks.items():
-            task_running = task.running()
-            if len(task_running):
-                calls[task_name] = task_running
-        if len(calls):
-            filtered_metadata["calls"] = calls
-        return filtered_metadata
-
     def task_summary(self, **kwargs):
         """
         Return list of all tasks, including any subworkflows.
-        :param real_time: Check file system to distinguish between Queued and Running states
-        :ptype real_time: bool
         :return: List of task information dictionaries
         :rtype: list
         """
@@ -877,58 +717,25 @@ class Metadata:
                 summary.append(item)
         return sort_table_dict(summary, "queue_start")
 
-    def task_log(self, **kwargs):
-        """
-        Return select task summary fields in table format.
-        :param real_time: Check file system to distinguish between Queued and Running states
-        :ptype real_time: bool
-        :return: Table of tasks
-        :rtype: list
-        """
-        table = []
-        for info in self.task_summary(**kwargs):
-            name = info["name"]
-            row = [
-                name,
-                info["cached"],
-                info["execution_status"],
-                info["queue_start"],
-                info["run_start"],
-                info["run_end"],
-                info["queue_duration"],
-                info["run_duration"],
-            ]
-            table.append(row)
-        return sort_table(table, 3)
-
-    def started_running(self):
-        """
-        :return: True if any task actually started running; false otherwise.
-        :rtype: bool
-        """
-        for info in self.task_summary(real_time=True):
-            if info["run_start"] is not None:
-                return True
-        return False
-
     def job_summary(self, **kwargs) -> dict:
         """
         :return: task name for each job id
         :rtype: dict
         """
         job_ids = {}
-        for task in self.task_summary(real_time=False):
+        for task in self.task_summary():
             if "job_id" in task:
                 job_id = str(task["job_id"])
                 job_ids[job_id] = task.get("name", "unknown")
         return job_ids
 
-    def outputs(self, relpath=True):
+    def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
+        relpath = kwargs.get("relpath", False)
         outputs = self.get("outputs", {})
         if not relpath:
             return outputs
-        workflowRoot = self.workflow_root()
+        workflowRoot = self.workflow_root(**kwargs)
         if not workflowRoot:
             return outputs
         relpath_outputs = {}
@@ -957,18 +764,20 @@ class Metadata:
                 }
         return relpath_outputs
 
-    def outfiles(self, complete=False, relpath=True):
+    def outfiles(self, **kwargs):
         """
         Return list of all output files of a run.
         By default, only include files tagged as outputs for the Run.
-        :param complete: All files, not just workflow outputs.
-        :ptype complete: bool
-        :param relpath: Convert abs paths to rel paths.
-        :ptype relpath: bool
+        :param kwargs["complete"]: All files, not just workflow outputs.
+        :ptype kwargs["complete"]: bool
+        :param kwargs["relpath"]: Convert abs paths to rel paths.
+        :ptype kwargs["relpath"]: bool
         :return: List of files
         :rtype: list
         """
-        workflow_root = self.workflow_root()
+        complete = kwargs.get("complete", False)
+        relpath = kwargs.get("relpath", False)
+        workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
         if workflow_root is None:
             return []
@@ -1037,6 +846,29 @@ class Cromwell:
         self.workflows_url = f"{url}/api/workflows/v1"
         self.engine_url = f"{url}/engine/v1/status"
 
+    def get(self, workflow_id: str, output_type: str):
+        """
+        Get the specified Cromwell output for a Run.
+        :param workflow_id: unique ID of the run
+        :ptype workflow_id: str
+        :param output_type: Report name (REST endpoint)
+        :ptype output_type: str
+        :return: JSON report from Cromwell
+        :rtype: dict
+        """
+        url = f"{self.workflows_url}/{workflow_id}/{output_type}"
+        try:
+            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        except requests.exceptions.ConnectionError as error:
+            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        if response.status_code == 404:
+            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
+        elif response.status_code >= 400:
+            raise CromwellServiceError(
+                f"Error retrieving Cromwell Run report {output_type}: code {response.status_code}"
+            )
+        return response.json()
+
     def get_metadata(self, workflow_id: str, data=None):
         """Get Metadata object for a workflow-run.
 
@@ -1047,18 +879,7 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        url = f"{self.workflows_url}/{workflow_id}/metadata?expandSubWorkflows=1"
-        try:
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
-        except requests.exceptions.ConnectionError as error:
-            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        if response.status_code == 404:
-            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
-        elif response.status_code >= 400:
-            raise CromwellServiceError(
-                f"Error retrieving Cromwell metadata: code {response.status_code}"
-            )
-        data = response.json()
+        data = self.get(workflow_id, "metadata?expandSubWorkflows=1")
         return Metadata(data)
 
     def status(self):
@@ -1168,16 +989,7 @@ class Cromwell:
         :return: Status of workflow
         :rtype: str
         """
-        url = f"{self.workflows_url}/{workflow_id}/status"
-        try:
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
-        except requests.exceptions.ConnectionError as error:
-            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        if response.status_code >= 400:
-            raise CromwellServiceError(
-                f"Error retrieving Cromwell status: code {response.status_code}"
-            )
-        result = response.json()
+        result = self.get(workflow_id, "status")
         return result["status"]
 
 
