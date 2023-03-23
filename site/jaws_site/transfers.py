@@ -167,17 +167,20 @@ class Transfer:
         else:
             self.update_status("succeeded")
 
-    def rsync(self):
+    def rsync_folder(self) -> None:
         """
-        Copy source to destination using rsync.
-        Raise an exception if return code is non-zero.
+        Recursively copy a folder.
         """
-        src = self.data.src_base_dir
-        dest = self.data.dest_base_dir
-        options = "-rLtq"
-        subprocess.run(
-            ["rsync", *options, src, dest], capture_output=True, text=True, check=True
+        result = rsync(
+            self.data.src_base_dir,
+            self.data.dest_base_dir,
+            [
+                "-rLtq",
+                "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
+            ],
         )
+        if result.returncode != 0:
+            raise IOError(f"rsync failed: {result.stdout}; {result.stderr}")
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -413,3 +416,12 @@ def check_queue(session) -> None:
     if len(rows):
         transfer = Transfer(session, rows[0])
         transfer.transfer_files()
+
+
+def rsync(src, dest, options="-rLtq"):
+    """
+    Copy source to destination using rsync.
+    """
+    return subprocess.run(
+        ["rsync", *options, src, dest], capture_output=True, text=True
+    )
