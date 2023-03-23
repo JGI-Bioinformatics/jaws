@@ -9,19 +9,10 @@ from jaws_site.runs import (
     RunNotFoundError,
     RunFileNotFoundError,
 )
-from tests.conftest import MockSession, MockRunModel, this_date, initRunModel
+from tests.conftest import MockSession, MockRunModel, initRunModel
 from jaws_site.cromwell import Cromwell, CromwellError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 import io
-
-
-def mock__update_run_status(self, new_status, timestamp):
-    self.data.status = new_status
-    self.data.updated = timestamp
-    assert new_status is not None
-    assert isinstance(new_status, str)
-    assert len(new_status) > 0
-    return
 
 
 def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
@@ -118,146 +109,6 @@ def test_cancel(monkeypatch):
     run = Run(mock_session, mock_data)
     run.cancel()
     assert run.status() == "cancelled"
-
-
-def test_metadata(monkeypatch):
-    class MockMetadata:
-        def __init__(self):
-            self.data = {"MOCK_METADATA": True}
-
-    def mock_cromwell_get_metadata(self, cromwell_run_id):
-        assert type(cromwell_run_id) is str
-        mock_metadata = MockMetadata()
-        mock_metadata.data["runId"] = cromwell_run_id
-        return mock_metadata
-
-    monkeypatch.setattr(
-        jaws_site.cromwell.Cromwell, "get_metadata", mock_cromwell_get_metadata
-    )
-
-    # when no metadata, expect empty dict
-    mock_session = MockSession()
-    mock_data = MockRunModel(cromwell_run_id=None)
-    run = Run(mock_session, mock_data)
-    metadata = run.metadata()
-    assert metadata is None
-
-    test_cromwell_run_id = "ZZZZ"
-    mock_data = MockRunModel(cromwell_run_id=test_cromwell_run_id)
-    run = Run(mock_session, mock_data)
-    metadata = run.metadata()
-    assert metadata.data["runId"] == test_cromwell_run_id
-
-
-def test_outputs(monkeypatch):
-    class MockMetadata:
-        def __init__(self):
-            self.data = {}
-
-        def outputs(self, relpath=True):
-            mock_outputs = {"MOCK-TASK": "MOCK-TASK-OUTPUT"}
-            return mock_outputs
-
-    def mock_cromwell_get_metadata(self, cromwell_run_id):
-        assert type(cromwell_run_id) is str
-        mock_metadata = MockMetadata()
-        return mock_metadata
-
-    monkeypatch.setattr(
-        jaws_site.cromwell.Cromwell, "get_metadata", mock_cromwell_get_metadata
-    )
-
-    mock_session = MockSession()
-
-    # an empty dict is expected if Cromwell has not been executed yet
-    mock_data = MockRunModel(cromwell_run_id=None)
-    run = Run(mock_session, mock_data)
-    outputs = run.outputs()
-    assert type(outputs) == dict
-    assert len(outputs.keys()) == 0
-
-    # if cromwell has run, a dict of outputs is expected
-    mock_data = MockRunModel(cromwell_run_id="TEST-CROMWELL-RUN-ID")
-    run = Run(mock_session, mock_data)
-    outputs = run.outputs()
-    assert type(outputs) == dict
-    assert outputs["MOCK-TASK"] == "MOCK-TASK-OUTPUT"
-
-
-def test_outfiles(monkeypatch):
-    class MockMetadata:
-        def __init__(self):
-            self.data = {}
-
-        def outfiles(self, complete=False, relpath=True):
-            mock_outfiles = ["./TEST_OUTFILE"]
-            return mock_outfiles
-
-    def mock_cromwell_get_metadata(self, cromwell_run_id):
-        assert type(cromwell_run_id) is str
-        mock_metadata = MockMetadata()
-        return mock_metadata
-
-    monkeypatch.setattr(
-        jaws_site.cromwell.Cromwell, "get_metadata", mock_cromwell_get_metadata
-    )
-
-    mock_session = MockSession()
-
-    # an empty list is expected if Cromwell has not been executed yet
-    mock_data = MockRunModel(cromwell_run_id=None)
-    run = Run(mock_session, mock_data)
-    outfiles = run.outfiles()
-    assert type(outfiles) == list
-    assert len(outfiles) == 0
-
-    # if cromwell has run, a list of files is expected
-    mock_data = MockRunModel(cromwell_run_id="TEST-CROMWELL-RUN-ID")
-    run = Run(mock_session, mock_data)
-    outfiles = run.outfiles()
-    assert type(outfiles) == list
-    assert outfiles[0] == "./TEST_OUTFILE"
-
-
-def test_output_manifest(monkeypatch):
-    class MockMetadata:
-        def __init__(self):
-            self.data = {}
-
-        def workflow_root(self):
-            return "MOCK-WORKFLOW-ROOT"
-
-        def outfiles(self, complete=False, relpath=True):
-            return ["TEST_OUTFILE1", "TEST_OUTFILE2"]
-
-    def mock_cromwell_get_metadata(self, cromwell_run_id):
-        assert type(cromwell_run_id) is str
-        mock_metadata = MockMetadata()
-        return mock_metadata
-
-    monkeypatch.setattr(
-        jaws_site.cromwell.Cromwell, "get_metadata", mock_cromwell_get_metadata
-    )
-
-    mock_session = MockSession()
-
-    # an empty dict is expected if Cromwell has not been executed yet
-    mock_data = MockRunModel(cromwell_run_id=None)
-    run = Run(mock_session, mock_data)
-    output_manifest = run.output_manifest(complete=False)
-    assert type(output_manifest) == dict
-    assert len(output_manifest.keys()) == 0
-
-    # if cromwell has run, a dict with workflow_root and manifest is expected
-    mock_data = MockRunModel(cromwell_run_id="TEST-CROMWELL-RUN-ID")
-    run = Run(mock_session, mock_data)
-    output_manifest = run.output_manifest(complete=False)
-    assert type(output_manifest) == dict
-    assert "workflow_root" in output_manifest
-    assert "manifest" in output_manifest
-    assert type(output_manifest["manifest"]) is list
-    assert output_manifest["manifest"][0] == "TEST_OUTFILE1"
-    assert output_manifest["workflow_root"] == "MOCK-WORKFLOW-ROOT"
 
 
 def test_s3_parse_path():
@@ -362,9 +213,10 @@ def test_submit_run(monkeypatch, inputs_files):
 
     monkeypatch.setattr(jaws_site.cromwell.Cromwell, "submit", mock_cromwell_submit)
     monkeypatch.setattr(Run, "get_run_inputs", mock_get_run_inputs)
-    monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
-    monkeypatch.setattr(jaws_site.runs, "max_active_runs_exceeded", mock_max_active_runs_exceeded)
+    monkeypatch.setattr(
+        jaws_site.runs, "max_active_runs_exceeded", mock_max_active_runs_exceeded
+    )
 
     run.submit_run()
 
@@ -372,16 +224,22 @@ def test_submit_run(monkeypatch, inputs_files):
 def test_max_active_runs_exceeded(mock_sqlalchemy_session):
     # test user has active run but under exceeded threshold
     mock_sqlalchemy_session.output([{"run_id": 123}, {"run_id": 456}])
-    obs_result = jaws_site.runs.max_active_runs_exceeded(mock_sqlalchemy_session, 123, 10)
+    obs_result = jaws_site.runs.max_active_runs_exceeded(
+        mock_sqlalchemy_session, 123, 10
+    )
     assert obs_result is False
 
     # test user has active run and exceeds threshold
-    obs_result = jaws_site.runs.max_active_runs_exceeded(mock_sqlalchemy_session, 123, 1)
+    obs_result = jaws_site.runs.max_active_runs_exceeded(
+        mock_sqlalchemy_session, 123, 1
+    )
     assert obs_result is True
 
     # test user does not have any active run
     mock_sqlalchemy_session.clear()
-    obs_result = jaws_site.runs.max_active_runs_exceeded(mock_sqlalchemy_session, 123, 1)
+    obs_result = jaws_site.runs.max_active_runs_exceeded(
+        mock_sqlalchemy_session, 123, 1
+    )
     assert obs_result is False
 
 
@@ -393,9 +251,8 @@ def mock_path(tmp_path):
     return tmp_path_mock
 
 
-def test_check_run_cromwell_status(monkeypatch):
+def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
-    monkeypatch.setattr(Run, "_update_run_status", mock__update_run_status)
     monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
 
     def mock_get_status_running(self, run_id):
@@ -416,69 +273,77 @@ def test_check_run_cromwell_status(monkeypatch):
     mock_session = MockSession()
 
     # test: submitted -> queued
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
     monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_false)
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "queued"
 
     # test: queued -> queued
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "queued"
 
     # test: queued -> running
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
     monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_true)
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "running"
 
     # test: queued -> succeeded
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "succeeded"
 
     # test: queued -> failed
-    mock_data = MockRunModel(status="queued")
+    mock_data = MockRunModel(status="queued", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "failed"
 
     # test: running -> succeeded
-    mock_data = MockRunModel(status="running")
+    mock_data = MockRunModel(status="running", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "succeeded"
 
     # test: running -> failed
-    mock_data = MockRunModel(status="running")
+    mock_data = MockRunModel(status="running", workflow_root="/x")
     run = Run(mock_session, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
-    run.check_run_cromwell_status()
+    run.check_cromwell_run_status()
     assert run.data.status == "failed"
+
+    # test get metadata, workflow_root
+    mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.check_cromwell_run_status()
+    assert run.data.status == "queued"
+    assert run.data.workflow_name == "unknown"
+    assert run.data.workflow_root == "/data/cromwell-executions/example/ABCD"
 
 
 def test_run_log(monkeypatch):
@@ -511,35 +376,6 @@ def test_run_log(monkeypatch):
     run_log = RunLog(mock_session, run_id)
     obs_results = run_log.logs()
 
-    assert bool(DeepDiff(obs_results, exp_results, ignore_order=True)) is False
-
-
-@pytest.mark.skip(reason="getting rid of singleton config.conf")
-def test_summary():
-    mock_session = MockSession()
-    mock_data = MockRunModel(
-        id=123,
-        user_id="jdoe",
-        email="johndoe@lbl.gov",
-        submitted=this_date,
-        updated=this_date,
-        status="download complete",
-        result="succeeded",
-    )
-    run = Run(mock_session, mock_data)
-    exp_results = {
-        "run_id": 123,
-        "user_id": "jdoe",
-        "email": "johndoe@lbl.gov",
-        "submitted": this_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "updated": this_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "status": "download complete",
-        "result": "succeeded",
-        "compute_site_id": "EAGLE",
-        "status_detail": "",
-    }
-    run = Run(mock_session, mock_data)
-    obs_results = run.summary()
     assert bool(DeepDiff(obs_results, exp_results, ignore_order=True)) is False
 
 
@@ -658,80 +494,25 @@ def test_summary2(mock_sqlalchemy_session):
 
 
 def test_did_run_start(mock_metadata, mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
+
+    data = initRunModel(cromwell_run_id=None)
     run = Run(mock_sqlalchemy_session, data)
     ret = run.did_run_start()
-    assert ret is True
-
-
-def test_task_summary(mock_metadata, mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.task_summary()
-    assert ret == [
-        {
-            "name": "test",
-            "shard_index": "shard_index",
-            "attempt": "attempt",
-            "cached": "cached",
-            "job_id": "123",
-            "execution_status": "succeeded",
-            "result": "result",
-            "failure_message": "failure_message",
-            "queue_start": "01-01-2022",
-            "run_start": "01-01-2022",
-            "run_end": "01-01-2022",
-            "queue_duration": "queue_duration",
-            "run_duration": "run_duration",
-            "call_root": "call_root",
-            "requested_time": "01-01-2022",
-            "requested_cpu": 15,
-            "requested_memory": "100",
-        }
-    ]
-
-    data = initRunModel(status="succeeded")
-    data.cromwell_run_id = None
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.task_summary()
-    assert len(ret) == 0
+    assert ret is False
 
 
 def test_task_log(mock_metadata, mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.task_log()
-    assert ret == {
-        "name": "test",
-        "cached": False,
-        "execution_status": "succeeded",
-        "queue_start": "01-01-2022",
-        "run_start": "01-01-2022",
-        "run_end": "01-01-2022",
-        "queue_duration": "01-01-2022",
-        "run_duration": "01-01-2022",
-    }
-
-    data = initRunModel(status="succeeded")
-    data.cromwell_run_id = None
+    data = initRunModel(cromwell_run_id=None)
     run = Run(mock_sqlalchemy_session, data)
     ret = run.task_log()
     assert len(ret) == 0
 
 
-def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
-
-    def mock_rpc_client_request(self, payload):
-        successful_response = {
-            "result": {}
-        }
-        return successful_response
-
-    monkeypatch.setattr(RpcClientBasic, "request", mock_rpc_client_request)
+def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
 
     data = initRunModel(status="succeeded")
     run = Run(mock_sqlalchemy_session, data)
-    ret = run.publish_report()
+    ret = run.summary()
     ret == {
         "run_id": "99",
         "user_id": "test_user",
@@ -765,6 +546,28 @@ def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
             }
         ],
     }
+
+
+def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
+    def mock__read_json_file(self, path):
+        contents = {
+            "run_id": "99",
+        }
+        return contents
+
+    def mock_rpc_client_request(self, payload):
+        successful_response = {"result": {}}
+        return successful_response
+
+    def mock_update_run_status(self, new_status):
+        assert new_status
+
+    monkeypatch.setattr(Run, "_read_json_file", mock__read_json_file)
+    monkeypatch.setattr(RpcClientBasic, "request", mock_rpc_client_request)
+
+    data = initRunModel(status="complete")
+    run = Run(mock_sqlalchemy_session, data)
+    run.publish_report()
 
 
 def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
@@ -801,42 +604,6 @@ def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
 
     with pytest.raises(RunDbError):
         run.cancel()
-
-
-def test_workflow_root(mock_metadata, mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.workflow_root()
-    assert ret == "/root"
-
-    data.cromwell_run_id = None
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.workflow_root()
-    assert ret is None
-
-
-def test_errors(mock_metadata, mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.errors()
-    assert ret == "error"
-
-    data.cromwell_run_id = None
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.errors()
-    assert ret == {}
-
-
-def test_running_tasks(mock_metadata, mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.running_tasks()
-    assert ret == "running"
-
-    data.cromwell_run_id = None
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.running_tasks()
-    assert ret == {}
 
 
 def test__read_file_nfs(

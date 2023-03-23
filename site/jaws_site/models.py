@@ -3,15 +3,7 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    DateTime,
-    String,
-    Integer,
-    Boolean,
-    ForeignKey,
-    Text
-)
+from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey, Text
 from jaws_site.database import Base
 
 
@@ -52,6 +44,8 @@ class Run(Base):
         default=same_as("submitted"),
         onupdate=datetime.utcnow,
     )
+    workflow_root = Column(String(1024), nullable=True)
+    workflow_name = Column(String(64), nullable=True)
 
 
 class Run_Log(Base):
@@ -66,6 +60,15 @@ class Run_Log(Base):
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=False, default="")
     sent = Column(Boolean, default=False, nullable=False)
+
+
+class Task_Log(Base):
+    __tablename__ = "task_logs"
+    id = Column(Integer, primary_key=True)  # auto-increment
+    cromwell_run_id = Column(String(36), nullable=False)
+    execution_dir = Column(String(1024), nullable=False)
+    status = Column(String(32), nullable=False)
+    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
 class Transfer(Base):

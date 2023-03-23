@@ -158,6 +158,7 @@ def initRunModel(**kwargs):
         status=kwargs.get("status", "running"),
         submitted=kwargs.get("submitted", datetime.utcnow()),
         updated=kwargs.get("updated", datetime.utcnow()),
+        workflow_root=kwargs.get("workflow_root", None)
     )
 
 
@@ -185,6 +186,7 @@ class MockRunModel:
         self.caching = kwargs.get("caching", True)
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
+        self.workflow_root = kwargs.get("workflow_root", None)
 
 
 class MockRun:
@@ -1028,7 +1030,12 @@ def initTransferModel(**kwargs):
 def mock_metadata(monkeypatch):
     class MockMetadata:
         def __init__(self):
-            self.data = {"MOCK_METADATA": True, "workflowName": "unknown"}
+            self.data = {
+                "MOCK_METADATA": True,
+                "workflowName": "unknown",
+                "workflowRoot": "/data/cromwell-executions/example/ABCD",
+                "status": "Running"
+            }
 
         def started_running(self):
             return True
@@ -1068,7 +1075,7 @@ def mock_metadata(monkeypatch):
                 "run_duration": "01-01-2022",
             }
 
-        def get(self, param, default):
+        def get(self, param, default=None):
             return self.data.get(param, default)
 
         def workflow_root(self, executions_dir=None):
