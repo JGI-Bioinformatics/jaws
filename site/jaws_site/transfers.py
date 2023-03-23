@@ -12,6 +12,7 @@ import json
 import boto3
 from jaws_site import config, models
 import botocore
+import subprocess
 
 
 logger = logging.getLogger(__package__)
@@ -159,15 +160,24 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                logger.error(
-                    f"Transfer {self.data.id} failed because neither src/dest start with s3://"
-                )
-                self.update_status("failed")
+                self.rsync()
         except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
+
+    def rsync(self):
+        """
+        Copy source to destination using rsync.
+        Raise an exception if return code is non-zero.
+        """
+        src = self.data.src_base_dir
+        dest = self.data.dest_base_dir
+        options = "-rLtq"
+        subprocess.run(
+            ["rsync", *options, src, dest], capture_output=True, text=True, check=True
+        )
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")

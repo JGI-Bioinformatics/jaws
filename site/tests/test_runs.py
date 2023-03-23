@@ -338,10 +338,10 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     assert run.data.status == "failed"
 
     # test get metadata, workflow_root
-    mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
+    mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.check_cromwell_run_status()
-    assert run.data.status == "running"
+    assert run.data.status == "queued"
     assert run.data.workflow_name == "unknown"
     assert run.data.workflow_root == "/data/cromwell-executions/example/ABCD"
 

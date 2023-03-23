@@ -130,31 +130,18 @@ def test_transfer_files(monkeypatch):
 
 
 def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
+    def mock_rsync(src):
+        pass
+    monkeypatch.setattr(Transfer, "rsync", mock_rsync)
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="xxx://jaws-site/cromwell-executions/AAAA",
-        dest_base_dir="xxx://jaws-site/uploads",
+        src_base_dir="/scratch/jaws-site/cromwell-executions/ex/AAAA",
+        dest_base_dir="/scratch/jaws-site/uploads/AAAA",
     )
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.transfer_files()
-    # assert transfer.data.status == "failed"
     assert mock_sqlalchemy_session.data.session["commit"] is True
     assert transfer.data.status == "succeeded"
-
-    # Test Exception
-    # def mock_s3_download_folder(self):
-    #     print('here')
-    #     raise Exception
-    #
-    # monkeypatch.setattr(Transfer, "s3_download_folder", mock_s3_download_folder)
-    #
-    # mock_data = MockTransferModel(
-    #     status="failed",
-    #     src_base_dir="s3://jaws-site/cromwell-executions/AAAA",
-    # )
-    # transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    # transfer.transfer_files()
-    # print(mock_sqlalchemy_session.data.session)
 
 
 def test_s3_parse_path():
