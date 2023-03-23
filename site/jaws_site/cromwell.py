@@ -513,7 +513,7 @@ class Task:
         feature of Cromwell is turned on, but it's only available with "gcs" backend as of 5/25/2022.
         For simplicity, we use only the last attempt by default.
         """
-        last_attempts = kwargs["last_attempts", False]
+        last_attempts = kwargs.get("last_attempts", False)
         if last_attempts is True:
             return self.summary_last_attempts()
         else:

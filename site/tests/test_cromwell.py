@@ -199,7 +199,6 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
     actual = metadata.task_summary()
-    print(actual)  # ECCE
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
