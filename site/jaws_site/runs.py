@@ -699,7 +699,7 @@ class Run:
             # rename job_id key to cromwell_job_id
             task["cromwell_job_id"] = task["job_id"]
             task_summary["tasks"].append(task)
-        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        summary_file = f"{self.data.workflow_root}/tasks.json"
         with open(summary_file, "w") as fh:
             json.dump(task_summary, fh)
 
