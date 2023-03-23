@@ -121,7 +121,7 @@ def receive_messages(config, session):
     vhost = config.get("RMQ", "vhost")
     user = config.get("RMQ", "user")
     password = config.get("RMQ", "password")
-    ttl = int(config.get("RMQ", "ttl"))
+    ttl = int(config.get("RMQ", "ttl", 600000))  # 10 min
     site_id = config.get("SITE", "id")
     queue = f"{site_id}_tasks"
 
