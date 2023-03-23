@@ -656,7 +656,7 @@ class Run:
         except Exception as error:
             # TODO CHANGE EXCEPTIONS TO DISTINGUISH BETWEEN CONNECTION AND REJECTION ERRORS
             logger.warn(
-                "Run {self.data.id}: Unable to retrieve Cromwell metadata: {error}"
+                f"Run {self.data.id}: Unable to retrieve Cromwell metadata: {error}"
             )
             # TODO retry for x hrs before giving up and transitioning to finished
             self.update_run_status(
