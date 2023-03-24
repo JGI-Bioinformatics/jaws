@@ -72,7 +72,7 @@ def submit_run(params, session):
         return success(run.data.status)
 
 
-def task_log(params, session):
+def run_task_log(params, session):
     """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
@@ -163,8 +163,8 @@ operations = {
         "function": cancel_run,
         "required_params": ["user_id", "run_id"],
     },
-    "task_log": {
-        "function": task_log,
+    "run_task_log": {
+        "function": run_task_log,
         "required_params": ["user_id", "run_id"],
     },
     "submit_transfer": {
