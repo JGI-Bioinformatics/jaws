@@ -15,11 +15,6 @@ from jaws_rpc.rpc_client_basic import RpcClientBasic
 import io
 
 
-def mock__insert_run_log(self, status_from, status_to, timestamp, reason=None):
-    assert isinstance(status_from, str)
-    assert isinstance(status_to, str)
-
-
 def test_constructor():
     mock_session = MockSession()
     mock_data = MockRunModel()
@@ -213,7 +208,6 @@ def test_submit_run(monkeypatch, inputs_files):
 
     monkeypatch.setattr(jaws_site.cromwell.Cromwell, "submit", mock_cromwell_submit)
     monkeypatch.setattr(Run, "get_run_inputs", mock_get_run_inputs)
-    monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
     monkeypatch.setattr(
         jaws_site.runs, "max_active_runs_exceeded", mock_max_active_runs_exceeded
     )
@@ -252,8 +246,6 @@ def mock_path(tmp_path):
 
 
 def test_check_cromwell_run_status(monkeypatch, mock_metadata):
-
-    monkeypatch.setattr(Run, "_insert_run_log", mock__insert_run_log)
 
     def mock_get_status_running(self, run_id):
         return "Running"

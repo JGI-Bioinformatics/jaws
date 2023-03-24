@@ -607,33 +607,19 @@ class Run:
         self.data.updated = timestamp
         if status_to in ("succeeded", "failed", "cancelled"):
             self.data.result = status_to
+        log_entry = models.Run_Log(
+            run_id=self.data.id,
+            status_from=status_from,
+            status_to=status_to,
+            timestamp=timestamp,
+            reason=reason,
+        )
         try:
-            self.session.commit()
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
-        self._insert_run_log(status_from, status_to, timestamp, reason)
-        # TODO UPDATE STATUS AND RUN LOG SHOULD BE IN SAME TRANSACTION
-
-    def _insert_run_log(self, status_from, status_to, timestamp, reason) -> None:
-        """
-        Save record of state transition in 'run_logs' table
-        """
-        try:
-            log_entry = models.Run_Log(
-                run_id=self.data.id,
-                status_from=status_from,
-                status_to=status_to,
-                timestamp=timestamp,
-                reason=reason,
-            )
             self.session.add(log_entry)
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(
-                f"Failed to insert log for Run {self.data.id} ({status_to}): {error}"
-            )
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def write_supplement(self):
         """
