@@ -126,8 +126,7 @@ def receive_messages(config, session):
     queue = f"{site_id}_tasks"
 
     def _insert_task_log(message: str) -> None:
-        (execution_dir, status, timestamp) = json.loads(message)
-        cromwell_run_id = "/".split(execution_dir)[0]
+        (cromwell_run_id, execution_dir, status, timestamp) = json.loads(message)
         timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         try:
             log_entry = models.Task_Log(
