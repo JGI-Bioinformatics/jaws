@@ -216,7 +216,7 @@ class Run:
     def task_log(self):
         if not self.data.cromwell_run_id:
             return []
-        task_log = TaskLog(self.config, self.session, self.data.cromwell_run_id)
+        task_log = TaskLog(self.session, self.data.cromwell_run_id)
         return task_log.table()
 
     def check_status(self) -> None:

@@ -127,7 +127,7 @@ def task_log() -> None:
     from jaws_site.database import session_factory
 
     session = session_factory()
-    receive_messages(config, session)
+    receive_messages(config.conf, session)
 
 
 def jaws():

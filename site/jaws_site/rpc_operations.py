@@ -3,6 +3,7 @@ from jaws_rpc.responses import success, failure
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
+from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
 
 
@@ -72,12 +73,12 @@ def submit_run(params, session):
         return success(run.data.status)
 
 
-def task_log(params, session):
+def run_task_log(params, session):
     """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.task_log()
+        task_log = TaskLog(session, params["cromwell_run_id"], logger)
+        result = task_log.table()
     except Exception as error:
         return failure(error)
     else:
@@ -163,8 +164,8 @@ operations = {
         "function": cancel_run,
         "required_params": ["user_id", "run_id"],
     },
-    "task_log": {
-        "function": task_log,
+    "run_task_log": {
+        "function": run_task_log,
         "required_params": ["user_id", "run_id"],
     },
     "submit_transfer": {

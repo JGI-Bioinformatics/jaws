@@ -3,7 +3,6 @@ import logging
 import pika
 from datetime import datetime
 from dateutil import parser
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
@@ -27,30 +26,29 @@ class TaskLog:
             self.logger = logging.getLogger(__package__)
         else:
             self.logger = logger
+        table = []
         try:
-            self.data = self._select_rows()
-        except TaskDbError as error:
-            raise error
-
-    def _select_rows(self):
-        try:
-            stmt = (
-                select(
-                    models.Task_Log.execution_dir,
-                    models.Task_Log.status,
-                    models.Task_Log.timestamp,
-                )
-                .where(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
+            query = (
+                self.session.query(models.Task_Log)
+                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
                 .order_by(models.Task_Log.id)
             )
-            rows = self.session.execute(stmt).all()
         except NoResultFound:
             # it's possible for a newly created run to not have any task-log messages yet
             return []
         except SQLAlchemyError as error:
             self.logger.error(f"Unable to select task_logs: {error}")
             raise TaskDbError(error)
-        return rows
+
+        for row in query:
+            table.append(
+                [
+                    row.execution_dir,
+                    row.status,
+                    row.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                ]
+            )
+        self.data = table
 
     def table(self):
         """
@@ -64,7 +62,7 @@ class TaskLog:
         - running duration
         """
         execution_dirs = {}
-        for execution_dir, status, timestamp in self.data:
+        for (execution_dir, status, timestamp) in self.data:
             if execution_dir not in execution_dirs:
                 execution_dirs[execution_dir] = ["", "", "", ""]
             if status == "queued":
@@ -75,7 +73,7 @@ class TaskLog:
                 execution_dirs[execution_dir][3] = timestamp
                 execution_dirs[execution_dir][0] = status
         table = []
-        for execution_dir in execution_dirs.sort():
+        for execution_dir in sorted(execution_dirs.keys()):
             # calculate queue and run durations
             row = execution_dirs[execution_dir]
             if row[1] is not None and row[2] is not None:
@@ -121,14 +119,13 @@ def receive_messages(config, session):
     vhost = config.get("RMQ", "vhost")
     user = config.get("RMQ", "user")
     password = config.get("RMQ", "password")
-    ttl = int(config.get("RMQ", "ttl"))
+    ttl = int(config.get("RMQ", "ttl", 3600000))  # must match value in sender's config
     site_id = config.get("SITE", "id")
     queue = f"{site_id}_tasks"
 
     def _insert_task_log(message: str) -> None:
-        (execution_dir, status, timestamp) = json.loads(message)
-        cromwell_run_id = "/".split(execution_dir)[0]
-        timestamp = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
+        (cromwell_run_id, execution_dir, status, timestamp) = json.loads(message)
+        timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         try:
             log_entry = models.Task_Log(
                 cromwell_run_id=cromwell_run_id,

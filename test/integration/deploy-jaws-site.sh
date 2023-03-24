@@ -120,6 +120,7 @@ chmod 600 $JAWS_CONFIG_DIR/*.conf
 echo "Writing shims"
 envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
 envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/runs"
+envsubst < "./test/integration/templates/tasks.sh" > "$JAWS_BIN_DIR/tasks"
 envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfers"
 envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics"
 envsubst < "./test/integration/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"

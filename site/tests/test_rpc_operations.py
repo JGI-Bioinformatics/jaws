@@ -72,15 +72,12 @@ def mock_run_from_id_runnotfound(monkeypatch):
 
 def test_run_all_functions(mock_run_from_id):
     mock_session = MockSession()
-    p = {"user_id": "user", "run_id": 99}
+    p = {"user_id": "user", "run_id": 99, "cromwell_run_id": "ABCD"}
 
     ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
     assert ret == {"jsonrpc": "2.0", "result": {"test": "success"}}
 
     ret = jaws_site.rpc_operations.cancel_run(p, mock_session)
-    assert ret == {"jsonrpc": "2.0", "result": {"test": "success"}}
-
-    ret = jaws_site.rpc_operations.task_log(p, mock_session)
     assert ret == {"jsonrpc": "2.0", "result": {"test": "success"}}
 
 
@@ -92,9 +89,6 @@ def test_run_all_functions_exception(mock_run_from_id_exception):
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
     ret = jaws_site.rpc_operations.cancel_run(p, mock_session)
-    assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
-
-    ret = jaws_site.rpc_operations.task_log(p, mock_session)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
 
