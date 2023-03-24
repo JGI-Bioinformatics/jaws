@@ -3,7 +3,6 @@ import logging
 import pika
 from datetime import datetime
 from dateutil import parser
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models

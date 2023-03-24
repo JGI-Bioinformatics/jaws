@@ -5,7 +5,6 @@ from jaws_site import runs, transfers
 from tests.conftest import (
     MockSession,
     MockRun,
-    MockTaskLog,
     MockCromwell,
     MockCromwellException,
     MockTransferModel,
