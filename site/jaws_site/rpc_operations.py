@@ -76,8 +76,8 @@ def run_task_log(params, session):
     """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.task_log()
+        task_log = TaskLog(session, params["cromwell_run_id"], logger)
+        result = task_log.table()
     except Exception as error:
         return failure(error)
     else:
