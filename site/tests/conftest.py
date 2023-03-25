@@ -158,6 +158,7 @@ def initRunModel(**kwargs):
         status=kwargs.get("status", "running"),
         submitted=kwargs.get("submitted", datetime.utcnow()),
         updated=kwargs.get("updated", datetime.utcnow()),
+        workflow_root=kwargs.get("workflow_root", None),
     )
 
 
@@ -185,6 +186,7 @@ class MockRunModel:
         self.caching = kwargs.get("caching", True)
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
+        self.workflow_root = kwargs.get("workflow_root", None)
 
 
 class MockRun:
@@ -223,6 +225,17 @@ class MockRun:
 
     def mark_to_cancel(self):
         return {"test": "success"}
+
+
+class MockTaskLog:
+    def __init__(self, session, cromwell_run_id, logger=None):
+        self.session = session
+        self.cromwell_run_id = cromwell_run_id
+        self.logger = logger
+        self.data = []
+
+    def table(self):
+        return []
 
 
 class MockCromwell:
@@ -1028,7 +1041,12 @@ def initTransferModel(**kwargs):
 def mock_metadata(monkeypatch):
     class MockMetadata:
         def __init__(self):
-            self.data = {"MOCK_METADATA": True, "workflowName": "unknown"}
+            self.data = {
+                "MOCK_METADATA": True,
+                "workflowName": "unknown",
+                "workflowRoot": "/data/cromwell-executions/example/ABCD",
+                "status": "Running",
+            }
 
         def started_running(self):
             return True
@@ -1068,7 +1086,7 @@ def mock_metadata(monkeypatch):
                 "run_duration": "01-01-2022",
             }
 
-        def get(self, param, default):
+        def get(self, param, default=None):
             return self.data.get(param, default)
 
         def workflow_root(self, executions_dir=None):
@@ -1100,6 +1118,6 @@ def s3():
         s3_client = boto3.client("s3")
         s3_client.create_bucket(
             Bucket=S3_BUCKET,
-            CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
+            CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
         )
         yield s3_client

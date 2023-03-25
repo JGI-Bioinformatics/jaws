@@ -120,6 +120,7 @@ chmod 600 $JAWS_CONFIG_DIR/*.conf
 echo "Writing shims"
 envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
 envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/runs"
+envsubst < "./test/integration/templates/tasks.sh" > "$JAWS_BIN_DIR/tasks"
 envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfers"
 envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics"
 envsubst < "./test/integration/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
@@ -135,7 +136,7 @@ if [[ "$JAWS_SETFACL" -eq 1 ]]; then
 fi
 
 echo "Writing extra shims (if Perlmutter)"
-[[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site"
+[[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site-cronjob"
 [[ -n ${JAWS_PERLMUTTER:-} ]] && envsubst < "./test/integration/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 
 echo "Starting services (if not Perlmutter)"

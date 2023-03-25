@@ -24,10 +24,12 @@ JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 @click.option("--config", "config_file", default=None, help="Config INI file")
 @click.option("--log", "log_file", default=None, help="Log file")
 @click.option("--log-level", "log_level", default="INFO", help="Logging level")
-@click.option("--env-override",
-              envvar="ENV_OVERRIDE_PREFIX",
-              default=None,
-              help="prefix for environment variable override of configuration values")
+@click.option(
+    "--env-override",
+    envvar="ENV_OVERRIDE_PREFIX",
+    default=None,
+    help="prefix for environment variable override of configuration values",
+)
 def cli(config_file: str, log_file: str, log_level: str, env_override: str):
     """JAWS-Site"""
     # Initialize logging and configuration singletons;
@@ -73,7 +75,10 @@ def rpc_server() -> None:
     rpc_server_params["queue"] = config.conf.get("SITE", "id")
     logger = logging.getLogger(__package__)
     app = rpc_server.RpcServer(
-        rpc_server_params, logger, rpc_operations.operations, scoped_session(session_factory)
+        rpc_server_params,
+        logger,
+        rpc_operations.operations,
+        scoped_session(session_factory),
     )
     app.start_server()
 
@@ -113,6 +118,16 @@ def pool_manager_daemon() -> None:
 
     pool_managerd = PoolManagerDaemon()
     pool_managerd.start_daemon()
+
+
+@cli.command()
+def task_log() -> None:
+    """Start task-log message receiver."""
+    from jaws_site.tasks import receive_messages
+    from jaws_site.database import session_factory
+
+    session = session_factory()
+    receive_messages(config.conf, session)
 
 
 def jaws():

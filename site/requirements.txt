@@ -12,6 +12,7 @@ typing_extensions==4.2.0
 zipp==3.5.0
 numpy==1.21.5
 pandas==1.3.5
+pika==1.3.1
 pytest-cov
 moto==4.0.3
 matplotlib==3.6.2

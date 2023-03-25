@@ -2,7 +2,9 @@
 
 # Inbound changes not assigned to version # yet
 
-## 1.0.14 Summary [03/23/2023 --> Staging]
+## 1.1.0 Summary [03/24/2023 --> Staging]
+- ci/cd now makes the end-to-end test manual and allowed to fail or not run
+- task-log is now much faster and supports >10k tasks; it no longer uses cromwell metadata and so there are no longer records for cached tasks which did not actually execute
 - fixed performance_metrics path to match htcondor's path
 
 ## 1.0.13b Summary [03/01/2023]

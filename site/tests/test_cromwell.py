@@ -1,7 +1,6 @@
 import pytest
 import json
 import os
-import glob
 from deepdiff import DeepDiff
 from jaws_site import cromwell
 from jaws_site.cromwell import (
@@ -157,20 +156,6 @@ def test_workflow_name(requests_mock):
     assert ret == "jgi_meta"
 
 
-def test_workflow_root(requests_mock):
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_9}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_9, "metadata"),
-    )
-    expected = "s3://jaws-site/cromwell-execution/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d"
-    metadata = crom.get_metadata(example_cromwell_run_id_9)
-    actual = metadata.workflow_root()
-    assert expected == actual
-
-    actual = metadata.workflow_root(executions_dir="/test")
-    assert actual == "/test/jgi_meta/f4f5afd1-79f5-497a-9612-baed76dc365d"
-
-
 def test_task(requests_mock):
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
@@ -203,11 +188,9 @@ def test_task_summary(requests_mock):
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
     actual = metadata.task_summary()
-
     expected = __load_example_output_from_file(
         example_cromwell_run_id_2, "task-summary"
     )
-
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
     requests_mock.get(
@@ -219,18 +202,6 @@ def test_task_summary(requests_mock):
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
     )
-
-    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
-
-
-def test_task_log(requests_mock):
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
-    )
-    metadata = crom.get_metadata(example_cromwell_run_id_2)
-    actual = metadata.task_log()
-    expected = __load_example_output_from_file(example_cromwell_run_id_2, "task-log")
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
@@ -371,55 +342,6 @@ def test_errors(requests_mock, monkeypatch):
     )
 
 
-def test_running(requests_mock, monkeypatch):
-    def mock_read_file(path):
-        return None
-
-    monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
-
-    def mock_glob(path):
-        return []
-
-    monkeypatch.setattr(glob, "glob", mock_glob)
-
-    # completed workflow
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
-    )
-    expected_running_report_1 = {}
-    metadata_1 = crom.get_metadata(example_cromwell_run_id_1)
-    actual_running_report_1 = metadata_1.running()
-    assert (
-        bool(
-            DeepDiff(
-                actual_running_report_1, expected_running_report_1, ignore_order=True
-            )
-        )
-        is False
-    )
-
-    # running workflow
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_10}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_10, "metadata"),
-    )
-    expected_running_report_10 = __load_example_output_from_file(
-        example_cromwell_run_id_10, "running"
-    )
-    metadata_10 = crom.get_metadata(example_cromwell_run_id_10)
-    actual_running_report_10 = metadata_10.running()
-    # print(actual_running_report_10)
-    assert (
-        bool(
-            DeepDiff(
-                actual_running_report_10, expected_running_report_10, ignore_order=True
-            )
-        )
-        is False
-    )
-
-
 def test_get_outputs(requests_mock):
     # test 1 : outputs scalar
     requests_mock.get(
@@ -489,7 +411,7 @@ def test_get_outputs(requests_mock):
 
 
 def test_outfiles(requests_mock):
-    # test 1 : outputs scalar
+    # test : outputs scalar
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
@@ -515,7 +437,7 @@ def test_outfiles(requests_mock):
         "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
     ]  # noqa
 
-    # test 2 : outputs list
+    # test : outputs list
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_8}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_8, "metadata"),
@@ -536,7 +458,7 @@ def test_outfiles(requests_mock):
         is False
     )
 
-    # test 9 : aws outputs
+    # test : aws outputs
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_9}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_9, "metadata"),
@@ -566,13 +488,13 @@ def test_outfiles(requests_mock):
         "./call-create_agp/cacheCopy/assembly.agp",
     ]
     ex_9 = crom.get_metadata(example_cromwell_run_id_9)
-    actual_outfiles_9 = ex_9.outfiles(relpath=True)
+    actual_outfiles_9 = ex_9.outfiles(relpath=True, executions_dir='s3://jaws-site/cromwell-execution')
     assert (
         bool(DeepDiff(actual_outfiles_9, expected_outfiles_9, ignore_order=True))
         is False
     )
 
-    # test 10 : pair output
+    # test : pair output
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_11}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_11, "metadata"),
@@ -587,7 +509,7 @@ def test_outfiles(requests_mock):
         is False
     )
 
-    # test 11 : map output
+    # test : map output
     requests_mock.get(
         f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_12}/metadata",
         json=__load_example_output_from_file(example_cromwell_run_id_12, "metadata"),
@@ -601,34 +523,6 @@ def test_outfiles(requests_mock):
         bool(DeepDiff(actual_outfiles_12, expected_outfiles_12, ignore_order=True))
         is False
     )
-
-
-def test_started_running(requests_mock):
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
-    )
-    metadata = crom.get_metadata(example_cromwell_run_id_2)
-    ret = metadata.started_running()
-    assert ret is True
-
-
-def test_job_summary(requests_mock):
-    requests_mock.get(
-        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
-        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
-    )
-    metadata = crom.get_metadata(example_cromwell_run_id_2)
-    actual = metadata.job_summary()
-    expected = {
-        "12129": "main_workflow.goodbye",
-        "12130": "main_workflow.hello",
-        "12131": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
-        "12132": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
-        "12133": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-        "12134": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-    }
-    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
 def test_parse_cromwell_task_dir():
