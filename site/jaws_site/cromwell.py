@@ -510,12 +510,14 @@ class Task:
         for shard_index in self.subworkflows.keys():
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
-                sub_errors = {
-                    "shardIndex": shard_index,
-                    "attempt": attempt,
-                    "subWorkflowMetadata": sub_meta.errors(),
-                }
-                all_errors.append(sub_errors)
+                sub_meta_errors = sub_meta.errors()
+                if len(sub_meta_errors.keys()) > 0:
+                    sub_errors = {
+                        "shardIndex": shard_index,
+                        "attempt": attempt,
+                        "subWorkflowMetadata": sub_meta_errors,
+                    }
+                    all_errors.append(sub_errors)
         return all_errors
 
     def summary(self, **kwargs):
