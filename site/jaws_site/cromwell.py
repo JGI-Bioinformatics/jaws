@@ -889,8 +889,8 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        # data = self.get(workflow_id, "metadata?expandSubWorkflows=1")
-        data = self.get(workflow_id, "metadata?expandSubWorkflows=1")
+        # don't expand subworkflows because it fails for very large runs (>1M rows)
+        data = self.get(workflow_id, "metadata?expandSubWorkflows=0")
         return Metadata(data, url=self.url)
 
     def status(self):
