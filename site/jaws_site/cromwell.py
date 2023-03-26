@@ -480,6 +480,8 @@ class Task:
                 cromwell = Cromwell(self.url)
                 metadata = cromwell.get_metadata(sub_id)
                 call_data["subWorkflowMetadata"] = metadata.data
+                if shard_index not in self.subworkflows:
+                    self.subworkflows[shard_index] = {}
                 self.subworkflows[shard_index][attempt] = metadata
             elif "subWorkflowMetadata" in call_data:
                 sub_data = call_data["subWorkflowMetadata"]
