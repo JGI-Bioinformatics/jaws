@@ -484,14 +484,13 @@ class Run:
 
         logger.debug(f"Run {self.data.id}: Submit to Cromwell")
 
-        # if user has a cromwell currently running, don't submit another cromwell job.
-        # this is done to throttle cases where user submits multiple runs that may cause cromwell
-        # problems.
+        # If this user has too many concurrent runs, don't submit any more at this time.
+        # This is to enforce fair-sharing; the limit is a configuration parameter.
         if max_active_runs_exceeded(
             self.session, self.data.user_id, self.config["max_user_active_runs"]
         ):
             logger.debug(
-                f"Run {self.data.id}: another run is submitted to cromwell. skipping."
+                f"Run {self.data.id}: User reached concurrent runs limit; skipping."
             )
             return
 
@@ -499,26 +498,19 @@ class Run:
             file_handles = self.get_run_inputs()
         except Exception as error:
             self.update_run_status("submission failed", f"Input error: {error}")
-            return
         try:
             options = self.cromwell_options()
         except Exception as error:
             self.update_run_status("submission failed", f"Options error: {error}")
-            return
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:
             logger.error(f"Run {self.data.id} submission failed: {error}")
-            self.update_run_status("submission failed", f"{error}")
-            return
+            # self.update_run_status("submission failed", f"{error}")
+            return  # try again later
         else:
             self.data.cromwell_run_id = cromwell_run_id
-        try:
             self.update_run_status("submitted")
-        except Exception as error:
-            logger.error(
-                f"Run {self.data.id} failed to update with cromwell_run_id: {error}"
-            )
 
     def check_cromwell_metadata(self) -> str:
         """
