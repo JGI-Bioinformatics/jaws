@@ -544,6 +544,9 @@ class MockSession:
     def __init__(self):
         return
 
+    def begin(self):
+        return
+
     def commit(self):
         return
 
@@ -944,6 +947,9 @@ def mock_sqlalchemy_session():
     class MockSession:
         def __init__(self):
             self.data = data_obj
+
+        def begin(self):
+            return
 
         @staticmethod
         def add(*args, **kwargs):
