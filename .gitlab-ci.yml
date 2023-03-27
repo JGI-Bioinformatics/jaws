@@ -326,6 +326,20 @@ deploy-jaws-perlmutter-prod:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
+deploy-jaws-dori-dev:
+  stage: deploy-jaws
+  tags:
+    - dori
+  variables:
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_NAME: "dori"
+  environment:
+    name: "dori/dev"
+  script:
+    - ./test/integration/deploy-jaws-site.sh
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
+
 package:
   tags:
     - shared-shell
