@@ -353,7 +353,6 @@ deploy-jaws-dori-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
 
 deploy-jaws-dori-prod:
   stage: release-jaws
