@@ -611,6 +611,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
+            self.data.status = status_from
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def write_supplement(self):
