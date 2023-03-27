@@ -453,7 +453,7 @@ class Task:
     If a Task is a subworkflow, it's Call object will contain a Metadata object.
     """
 
-    def __init__(self, name, data):
+    def __init__(self, name, data, url=None):
         """
         Initialize a Task object, which may contain multiple shards or a subworkflow.
 
@@ -464,6 +464,7 @@ class Task:
         """
         self.name = name
         self.data = data
+        self.url = url
         self.calls = {}
         self.subworkflows = {}
         for call_data in data:
@@ -472,7 +473,17 @@ class Task:
             # in general, there is only 1 attempt
             attempt = int(call_data["attempt"])
 
-            if "subWorkflowMetadata" in call_data:
+            # if "expandSubWorkflows" option was used, "subWorkflowMetadata" will be populated,
+            # otherwise "subWorkflowId" will be present; the latter requires another GET
+            if "subWorkflowId" in call_data and self.url is not None:
+                sub_id = call_data["subWorkflowId"]
+                cromwell = Cromwell(self.url)
+                metadata = cromwell.get_metadata(sub_id)
+                call_data["subWorkflowMetadata"] = metadata.data
+                if shard_index not in self.subworkflows:
+                    self.subworkflows[shard_index] = {}
+                self.subworkflows[shard_index][attempt] = metadata
+            elif "subWorkflowMetadata" in call_data:
                 sub_data = call_data["subWorkflowMetadata"]
                 if shard_index not in self.subworkflows:
                     self.subworkflows[shard_index] = {}
@@ -499,12 +510,14 @@ class Task:
         for shard_index in self.subworkflows.keys():
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
-                sub_errors = {
-                    "shardIndex": shard_index,
-                    "attempt": attempt,
-                    "subWorkflowMetadata": sub_meta.errors(),
-                }
-                all_errors.append(sub_errors)
+                sub_meta_errors = sub_meta.errors()
+                if len(sub_meta_errors.keys()) > 0:
+                    sub_errors = {
+                        "shardIndex": shard_index,
+                        "attempt": attempt,
+                        "subWorkflowMetadata": sub_meta_errors,
+                    }
+                    all_errors.append(sub_errors)
         return all_errors
 
     def summary(self, **kwargs):
@@ -615,7 +628,7 @@ class Metadata:
     # "workflowProcessingEvents" =>  list
     # "workflowRoot" =>  str (path)
 
-    def __init__(self, data):
+    def __init__(self, data, url=None):
         """
         Initialize Metadata object by retrieving metadata from Cromwell,
         including subworkflows, and initialize Task objects.
@@ -626,13 +639,14 @@ class Metadata:
         """
         logger = logging.getLogger(__package__)
         self.data = data
+        self.url = url
         self.workflow_id = data["id"]
         self.tasks = {}  # Task objects
         if "calls" in self.data:
             calls = self.data["calls"]
             for task_name, task_data in calls.items():
                 logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
-                self.tasks[task_name] = Task(task_name, task_data)
+                self.tasks[task_name] = Task(task_name, task_data, url=self.url)
 
     def get(self, param, default=None):
         """
@@ -879,8 +893,9 @@ class Cromwell:
         :return: Metadata object
         :rtype: cromwell.Metadata
         """
-        data = self.get(workflow_id, "metadata?expandSubWorkflows=1")
-        return Metadata(data)
+        # don't expand subworkflows because it fails for very large runs (>1M rows)
+        data = self.get(workflow_id, "metadata?expandSubWorkflows=0")
+        return Metadata(data, url=self.url)
 
     def status(self):
         """Check if Cromwell is available"""
