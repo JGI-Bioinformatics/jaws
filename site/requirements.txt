@@ -7,7 +7,7 @@ requests==2.27.1
 requests-mock==1.9.3
 schedule==1.1.0
 shortuuid==1.0.1
-SQLAlchemy==1.4.22
+SQLAlchemy==2.0.7
 typing_extensions==4.2.0
 zipp==3.5.0
 numpy==1.21.5

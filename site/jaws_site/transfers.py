@@ -82,6 +82,7 @@ class Transfer:
                 f"Error creating model for new Transfer: {params}: {error}"
             )
         try:
+            session.begin()
             session.add(data)
             session.commit()
         except SQLAlchemyError as error:
@@ -138,6 +139,7 @@ class Transfer:
         logger.info(f"Transfers {self.data.id}: now {new_status}")
         timestamp = datetime.utcnow()
         try:
+            session.begin()
             self.data.status = new_status
             self.data.updated = timestamp
             if reason is not None:
