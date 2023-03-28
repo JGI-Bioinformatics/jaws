@@ -77,9 +77,9 @@ setup_dirs "$FOLDERS" "$JAWS_GROUP" 750
 
 
 # On Perlmutter, need to get slurm ids for this deployment and site names and scancel it first
-# Grep'ing with slurm job name 
+# Grep'ing with slurm job name
 # ex) jaws_perlmutter_prod or jaws_perlmutter_prod_htcondor_worker_large
-# or 
+# or
 #      jaws_nmdc_prod or jaws_nmdc_prod_htcondor_worker_large
 [[ -n ${JAWS_PERLMUTTER:-} ]] && (squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep ${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME} |  xargs -n 1 scancel || true)
 
@@ -99,30 +99,45 @@ else
     [[ ! -n ${JAWS_PERLMUTTER:-} ]] && ($JAWS_BIN_DIR/supervisorctl stop "jaws-site:*" || true)
 fi
 
-echo "Generating virtual environment"
-rm -rf ./*/dist/*
-test -d "$JAWS_VENV_DIR" && rm -rf "$JAWS_VENV_DIR"
-[[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
-$JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
-  . "$JAWS_VENV_DIR/bin/activate" && \
-  pip install wheel && \
-  make pkg && \
-  pip install rpc/dist/* && \
-  pip install site/dist/* && \
-  deactivate
 
 echo "Writing config files"
 envsubst < "./test/integration/templates/site.conf" > "$JAWS_CONFIG_DIR/jaws-site.conf"
+envsubst < "./test/integration/templates/site.env.templ" > "$JAWS_CONFIG_DIR/site.env"
 envsubst < "./test/integration/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
 envsubst < "./test/integration/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
 chmod 600 $JAWS_CONFIG_DIR/*.conf
 
 echo "Writing shims"
-envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
-envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/runs"
-envsubst < "./test/integration/templates/tasks.sh" > "$JAWS_BIN_DIR/tasks"
-envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfers"
-envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics"
+if test -v "OCI_RUNTIME"; then
+  if [ "$OCI_RUNTIME" == "apptainer" ]; then
+    apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "docker://$CI_REGISTRY/advanced-analysis/jaws-site:${JAWS_SITE_VERSION}"
+  fi
+  OCI_TEMPL="./test/integration/templates/container_runtime_templates/${OCI_RUNTIME}.sh"
+  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-mertrics-daemon")
+  for SERVICE in "${SERVICES[@]}"; do
+    export SERVICE
+    envsubst < "$OCI_TEMPL" > "$JAWS_BIN_DIR/$SERVICE"
+  done
+else
+  echo "Generating virtual environment"
+  rm -rf ./*/dist/*
+  test -d "$JAWS_VENV_DIR" && rm -rf "$JAWS_VENV_DIR"
+  [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
+  $JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
+    . "$JAWS_VENV_DIR/bin/activate" && \
+    pip install wheel && \
+    make pkg && \
+    pip install rpc/dist/* && \
+    pip install site/dist/* && \
+    deactivate
+
+    envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
+    envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
+    envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
+    envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
+fi
+
+# Creating supervisord configs from template
 envsubst < "./test/integration/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
 envsubst < "./test/integration/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
 chmod 700 $JAWS_BIN_DIR/*
