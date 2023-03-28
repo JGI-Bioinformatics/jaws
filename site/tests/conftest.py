@@ -547,6 +547,9 @@ class MockSession:
     def begin(self):
         return
 
+    def begin_nested(self):
+        return
+
     def commit(self):
         return
 
@@ -949,6 +952,9 @@ def mock_sqlalchemy_session():
             self.data = data_obj
 
         def begin(self):
+            return
+
+        def begin_nested(self):
             return
 
         @staticmethod
