@@ -596,7 +596,7 @@ class Run:
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
         try:
-            session.begin_nested()
+            self.session.begin_nested()
             self.data.status = status_to
             self.data.updated = timestamp
             if status_to in ("succeeded", "failed", "cancelled"):
