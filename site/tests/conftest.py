@@ -947,6 +947,15 @@ def mock_sqlalchemy_session():
         def all(*args, **kwargs):
             return MockSessionQuery.filter(*args, **kwargs)
 
+
+    class MockSessionNested:
+        def __init__(self):
+            return
+
+        def rollback(self):
+            return
+
+
     class MockSession:
         def __init__(self):
             self.data = data_obj
@@ -955,7 +964,7 @@ def mock_sqlalchemy_session():
             return
 
         def begin_nested(self):
-            return
+            return MockSessionNested()
 
         @staticmethod
         def add(*args, **kwargs):

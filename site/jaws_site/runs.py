@@ -595,23 +595,23 @@ class Run:
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
+        log_entry = models.Run_Log(
+            run_id=self.data.id,
+            status_from=status_from,
+            status_to=status_to,
+            timestamp=timestamp,
+            reason=reason,
+        )
         try:
-            self.session.begin_nested()
+            savepoint = self.session.begin_nested()
             self.data.status = status_to
             self.data.updated = timestamp
             if status_to in ("succeeded", "failed", "cancelled"):
                 self.data.result = status_to
-            log_entry = models.Run_Log(
-                run_id=self.data.id,
-                status_from=status_from,
-                status_to=status_to,
-                timestamp=timestamp,
-                reason=reason,
-            )
             self.session.add(log_entry)
             self.session.commit()
         except SQLAlchemyError as error:
-            self.session.rollback()
+            savepoint.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def write_supplement(self):
