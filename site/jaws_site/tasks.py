@@ -73,7 +73,10 @@ class TaskLog:
                 execution_dirs[execution_dir][1] = timestamp
             elif status == "running":
                 execution_dirs[execution_dir][2] = timestamp
+            elif status == "cancelled":
+                execution_dirs[execution_dir][0] = "cancelled"
             else:
+                # "succeeded" or "failed"
                 execution_dirs[execution_dir][3] = timestamp
             execution_dirs[execution_dir][0] = status
         table = []
