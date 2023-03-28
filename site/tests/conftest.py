@@ -947,14 +947,12 @@ def mock_sqlalchemy_session():
         def all(*args, **kwargs):
             return MockSessionQuery.filter(*args, **kwargs)
 
-
     class MockSessionNested:
         def __init__(self):
             return
 
         def rollback(self):
             return
-
 
     class MockSession:
         def __init__(self):
