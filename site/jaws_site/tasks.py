@@ -133,7 +133,6 @@ def receive_messages(config, session):
                 status=status,
                 timestamp=timestamp,
             )
-            session.begin()
             session.add(log_entry)
             session.commit()
         except IntegrityError as error:

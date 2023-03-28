@@ -123,7 +123,6 @@ class Run:
                 f"Error creating model for new Run {params['run_id']}: {error}"
             )
         try:
-            session.begin()
             session.add(data)
             session.commit()
         except SQLAlchemyError as error:
@@ -537,7 +536,6 @@ class Run:
             f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
         )
         try:
-            self.session.begin()
             self.data.workflow_name = workflow_name
             self.data.workflow_root = workflow_root
             self.session.commit()
@@ -598,7 +596,6 @@ class Run:
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
         try:
-            self.session.begin()
             self.data.status = status_to
             self.data.updated = timestamp
             if status_to in ("succeeded", "failed", "cancelled"):
@@ -789,7 +786,6 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             continue
         try:
-            session.begin()
             log.sent = True
             session.commit()
         except Exception as error:
