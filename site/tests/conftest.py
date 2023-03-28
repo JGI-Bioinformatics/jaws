@@ -949,10 +949,10 @@ def mock_sqlalchemy_session():
 
     class MockSessionNested:
         def __init__(self):
-            return
+            self.data = data_obj
 
         def rollback(self):
-            return
+            data_obj.session["rollback"] = True
 
     class MockSession:
         def __init__(self):
