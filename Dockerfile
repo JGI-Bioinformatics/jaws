@@ -13,4 +13,6 @@ FROM builder as site
 WORKDIR /usr/app
 COPY site .
 RUN python setup.py install
-USER jaws
+
+ENTRYPOINT ["jaws-site", "--config", "/etc/config/site/jaws-site.conf"]
+CMD ["--log", "/var/log/rpc-server.log", "--log-level", "DEBUG", "rpc-server"]

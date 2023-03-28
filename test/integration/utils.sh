@@ -56,3 +56,18 @@ function fix_perms() {
 function not_available() {
   command -v $1 >/dev/null 2>&1
 }
+
+# Method factory that creates functions for each container runtime that we support
+# Takes in as argument a list of container runtime names and generates a function
+# for each.
+# Any script that imports this one here, will then import a list of functions with
+# prefixed by the container runtime name.
+containerPullFactory() {
+  local text
+  for arg; do
+    container_exec=$arg
+    printf -v text '%s-pull() { %s pull "$@"; }' "$container_exec" "$container_exec"
+    eval "$text"
+  done
+}
+containerPullFactory apptainer
