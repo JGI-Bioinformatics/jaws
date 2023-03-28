@@ -532,12 +532,12 @@ class Run:
         if workflow_name is None or workflow_root is None:
             # setting these fields is a requirement to transition past this state
             return None
-        self.data.workflow_name = workflow_name
-        self.data.workflow_root = workflow_root
         logger.debug(
             f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
         )
         try:
+            self.data.workflow_name = workflow_name
+            self.data.workflow_root = workflow_root
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
@@ -595,7 +595,6 @@ class Run:
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
-        self.session.begin()
         try:
             self.data.status = status_to
             self.data.updated = timestamp
@@ -609,11 +608,10 @@ class Run:
                 reason=reason,
             )
             self.session.add(log_entry)
+            self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
-        else:
-            self.session.commit()
 
     def write_supplement(self):
         """
@@ -787,8 +785,8 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
             continue
-        log.sent = True
         try:
+            log.sent = True
             session.commit()
         except Exception as error:
             session.rollback()
