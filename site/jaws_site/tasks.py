@@ -128,11 +128,12 @@ def receive_messages(config, session):
         timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
         cromwell_run_id = params.get("cromwell_run_id", None)
         execution_dir = params.get("execution_dir", None)
+        status = params.get("status", None)
         try:
             log_entry = models.Task_Log(
                 cromwell_run_id=cromwell_run_id,
                 execution_dir=execution_dir,
-                status=params.get("status"),
+                status=status,
                 timestamp=timestamp,
             )
             session.add(log_entry)
