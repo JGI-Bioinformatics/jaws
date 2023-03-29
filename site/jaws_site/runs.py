@@ -25,7 +25,6 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import sessionmaker
-from time import sleep
 import boto3
 import botocore
 from random import shuffle
@@ -661,7 +660,6 @@ class Run:
         # supplementary files, so skip.
         if self.data.user_id == "test":
             self.update_run_status("complete")
-            sleep(1)
             self.update_run_status("finished")
             return
 
@@ -879,6 +877,7 @@ class RunLog:
             rows = (
                 self.session.query(models.Run_Log)
                 .filter(models.Run_Log.run_id == self.run_id)
+                .order_by(models.Run_Log.id)
                 .all()
             )
         except SQLAlchemyError as error:
@@ -893,7 +892,7 @@ class RunLog:
         """Reformat logs table to (verbose) dictionary"""
         logs = []
         for row in self.data:
-            (run_id, status_from, status_to, timestamp, reason, sent) = row
+            (id, run_id, status_from, status_to, timestamp, reason, sent) = row
             log = {
                 "status_from": status_from,
                 "status_to": status_to,
