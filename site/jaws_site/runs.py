@@ -56,6 +56,10 @@ class RunFileNotFoundError(Exception):
     pass
 
 
+class RunInputError(Exception):
+    pass
+
+
 class Run:
     """Class representing a single Run"""
 
@@ -511,6 +515,39 @@ class Run:
         else:
             self.data.cromwell_run_id = cromwell_run_id
             self.update_run_status("submitted")
+
+    def resubmit(self) -> None:
+        """
+        Clear fields related to previous run and change state to "ready".
+        """
+        status_from = self.data.status
+        if status_from != "finished":
+            raise RunInputError(
+                f"Cannot resubmit run while previous run is still active."
+            )
+
+        logger.info(f"Run {self.data.id}: Resubmit run")
+        timestamp = datetime.utcnow()
+        log_entry = models.Run_Log(
+            run_id=self.data.id,
+            status_from=status_from,
+            status_to="ready",
+            timestamp=timestamp,
+            reason="resubmit run",
+        )
+        try:
+            savepoint = self.session.begin_nested()
+            self.data.status = "ready"
+            self.data.updated = timestamp
+            self.data.workflow_root = None
+            self.data.workflow_name = None
+            self.data.cromwell_run_id = None
+            self.data.result = None
+            self.session.add(log_entry)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            savepoint.rollback()
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def check_cromwell_metadata(self) -> str:
         """

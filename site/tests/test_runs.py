@@ -8,6 +8,7 @@ from jaws_site.runs import (
     RunDbError,
     RunNotFoundError,
     RunFileNotFoundError,
+    RunInputError,
 )
 from tests.conftest import MockSession, MockRunModel, initRunModel
 from jaws_site.cromwell import Cromwell, CromwellError
@@ -215,6 +216,20 @@ def test_submit_run(monkeypatch, inputs_files):
     run.submit_run()
 
 
+def test_resubmit_run(mock_sqlalchemy_session):
+    # test 1: fail active run
+    mock_session = MockSession()
+    mock_data = MockRunModel(status="running")
+    run = Run(mock_session, mock_data)
+    with pytest.raises(RunInputError):
+        run.resubmit()
+
+    # test 2: success for finished run
+    mock_data = MockRunModel(status="finished")
+    run = Run(mock_session, mock_data)
+    run.resubmit()
+
+
 def test_max_active_runs_exceeded(mock_sqlalchemy_session):
     # test user has active run but under exceeded threshold
     mock_sqlalchemy_session.output([{"run_id": 123}, {"run_id": 456}])
@@ -246,7 +261,6 @@ def mock_path(tmp_path):
 
 
 def test_check_cromwell_run_status(monkeypatch, mock_metadata):
-
     def mock_get_status_running(self, run_id):
         return "Running"
 
