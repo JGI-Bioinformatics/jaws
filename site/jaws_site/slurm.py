@@ -2,20 +2,6 @@
 This module provides a collection of functions called by rpc_operations.py.
 """
 
-
-#import requests
-import logging
-#import os
-#import glob
-#import json
-#import io
-#from datetime import datetime
-#from dateutil import parser
-#from collections import deque
-#import boto3
-#import botocore
-
-
 def status(logger):
         """
         Check the status of all the sites by using the "sbatch --test-only" command which returns an estimatated 
