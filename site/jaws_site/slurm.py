@@ -43,10 +43,10 @@ def check_queue_wait(logger):
     }
     """
 
-    dictData= json.loads(results.stdout)
+    dictData = json.loads(results.stdout)
 
     times = {}
-    for (k,v) in dictData.items():
+    for (k, v) in dictData.items():
         if v:
             try:
                 x = re.search(r"to\sstart\sat\s(\S+)", v)
@@ -57,6 +57,7 @@ def check_queue_wait(logger):
             times[k] = hit
 
     return times
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__package__)
