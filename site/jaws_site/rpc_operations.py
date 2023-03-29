@@ -24,7 +24,7 @@ def server_status(params, session):
     status = {}
     try:
         status["cromwell"] = cromwell.status()
-        status["slurm"] = slurm.status(logger)
+        status["slurm"] = slurm.check_queue_wait(logger)
         logger.info(status)
     except Exception as error:
         return failure(error)
