@@ -95,8 +95,7 @@ class TaskLog:
         """
         Check if any task has started running by checking the task log.
         """
-        rows = self._select_rows()
-        for row in rows:
+        for row in self.data:
             (cromwell_run_id, execution_dir, status, timestamp) = row
             if status != "queued":
                 return True
@@ -124,8 +123,11 @@ def receive_messages(config, session):
     queue = f"{site_id}_tasks"
 
     def _insert_task_log(message: str) -> None:
-        (cromwell_run_id, execution_dir, status, timestamp) = json.loads(message)
-        timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+        params = json.loads(message)
+        timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
+        cromwell_run_id = params.get("cromwell_run_id", None)
+        execution_dir = params.get("execution_dir", None)
+        status = params.get("status", None)
         try:
             log_entry = models.Task_Log(
                 cromwell_run_id=cromwell_run_id,
