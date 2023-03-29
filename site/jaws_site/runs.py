@@ -523,7 +523,7 @@ class Run:
         status_from = self.data.status
         if status_from != "finished":
             raise RunInputError(
-                f"Cannot resubmit run while previous run is still active."
+                "Cannot resubmit run while previous run is still active."
             )
 
         logger.info(f"Run {self.data.id}: Resubmit run")
