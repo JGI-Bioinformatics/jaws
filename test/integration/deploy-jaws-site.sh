@@ -132,6 +132,7 @@ else
     deactivate
 
     envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
+    envsubst < "./test/integration/templates/task-log.sh" > "$JAWS_BIN_DIR/task-log"
     envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
