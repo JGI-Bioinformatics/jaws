@@ -2,14 +2,14 @@
 This module provides a collection of functions called by rpc_operations.py.
 """
 
+
 def status(logger):
-        """
-        Check the status of all the sites by using the "sbatch --test-only" command which returns an estimatated 
-        start time for a job. The jobs are asking for the same resources as condor asks for when creating slurm pools.  
-        Each site has a combination of  small, medium, large, xlarge pools.
-        """
+    """
+    Check the status of all the sites by using the "sbatch --test-only" command which returns an estimatated
+    start time for a job. The jobs are asking for the same resources as condor asks for when creating slurm pools.
+    Each site has a combination of  small, medium, large, xlarge pools.
+    """
 
-        logger.debug(f"Getting status of ")
+    logger.debug("Getting status of ")
 
-        return {"sites": "cmds"}
-
+    return {"sites": "cmds"}
