@@ -2,7 +2,7 @@ import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
-import jaws_site.slurm
+from jaws_site import slurm
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
