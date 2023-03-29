@@ -73,6 +73,18 @@ def submit_run(params, session):
         return success(run.data.status)
 
 
+def resubmit_run(params, session):
+    """Resubmit a run"""
+    logger.info(f"User {params['user_id']}: Re-submit Run {params['run_id']}")
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.resubmit()
+    except Exception as error:
+        return failure(error)
+    else:
+        return success(result)
+
+
 def run_task_log(params, session):
     """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
@@ -155,6 +167,10 @@ operations = {
             "submission_id",
             "input_site_id",
         ],
+    },
+    "resubmit_run": {
+        "function": resubmit_run,
+        "required_params": ["run_id"],
     },
     "output_manifest": {
         "function": output_manifest,
