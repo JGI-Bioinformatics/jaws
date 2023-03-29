@@ -21,3 +21,5 @@ export JAWS_SUPERVISOR_PORT_DEV=64101
 export JAWS_AUTH_PORT_DEV=3001
 export JAWS_REST_PORT_DEV=5001
 export JAWS_CROMWELL_PORT_DEV=50101
+export JAWS_QUEUE_WAIT_MEDIUM="sbatch --test-only -q genepool_special -C haswell -A fungalp --time=72:00:00 --wrap 'sleep 30' 2>&1"
+export JAWS_QUEUE_WAIT_XLARGE="module load esslurm && sbatch --test-only -q jgi_exvivo -C skylake -A fungalp --time=72:00:00 --wrap 'sleep 30' 2>&1"
