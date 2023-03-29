@@ -113,7 +113,7 @@ if [[ -z "OCI_RUNTIME" ]]; then
     apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "docker://$CI_REGISTRY/advanced-analysis/jaws-site:${JAWS_SITE_VERSION}"
   fi
   OCI_TEMPL="./test/integration/templates/container_runtime_templates/${OCI_RUNTIME}.sh"
-  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-mertrics-daemon" "task-log")
+  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-log")
   for SERVICE in "${SERVICES[@]}"; do
     export SERVICE
     envsubst < "$OCI_TEMPL" > "$JAWS_BIN_DIR/$SERVICE"
