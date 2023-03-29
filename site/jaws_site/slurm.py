@@ -20,7 +20,7 @@ def check_queue_wait(logger):
 
     logger.debug("Getting path of queue_wait.sh shim")
     os.getenv('JAWS_BIN_DIR')
-    queue_wait_shim = "$JAWS_BIN_DIR/queue_wait.sh"
+    queue_wait_shim = "$JAWS_BIN_DIR/queue-wait.sh"
 
     try:
         results = subprocess.run([queue_wait_shim], capture_output=True, check=True)
