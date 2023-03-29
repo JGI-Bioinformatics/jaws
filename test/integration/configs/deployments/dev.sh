@@ -1,1 +1,2 @@
 export JAWS_LOG_LEVEL="DEBUG"
+export OCI_RUNTIME=""
