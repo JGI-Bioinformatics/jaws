@@ -78,10 +78,11 @@ def resubmit_run(params, session):
     logger.info(f"User {params['user_id']}: Re-submit Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
+        result = run.resubmit()
     except Exception as error:
         return failure(error)
     else:
-        return success(run.data.status)
+        return success(result)
 
 
 def run_task_log(params, session):
