@@ -72,6 +72,7 @@ class Run:
             "running": self.check_cromwell_run_status,
             "succeeded": self.write_supplement,
             "failed": self.write_supplement,
+            "cancelled": self.write_supplement,
             "complete": self.publish_report,
             "cancel": self.cancel,
         }
@@ -724,6 +725,10 @@ class Run:
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
         logger.info(f"Publish report for run {self.data.id}")
+
+        if self.data.result == "cancelled":
+            self.update_run_status("finished")
+            return
 
         # read previously generate summary from file
         summary = self._read_json_file(f"{self.data.workflow_root}/tasks.json")
