@@ -11,5 +11,8 @@ def status(logger):
     """
 
     logger.debug("Getting status of ")
+    # test integration shim. Not full path.  Use jaws_bin_dir.
 
-    return {"sites": "cmds"}
+    path = "$JAWS_BIN_DIR/slurm-scripts.sh"
+
+    return 
