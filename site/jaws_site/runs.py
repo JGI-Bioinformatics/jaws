@@ -548,7 +548,7 @@ class Run:
         except SQLAlchemyError as error:
             savepoint.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
-        return { run.data.id: "ready" }
+        return {run.data.id: "ready"}
 
     def check_cromwell_metadata(self) -> str:
         """
