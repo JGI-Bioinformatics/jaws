@@ -355,8 +355,8 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 def test_run_log(monkeypatch):
     def mock_select_rows(self):
         mock_results = [
-            [123, "queued", "running", "2022-05-03 11:06:05", None, True],
-            [123, "running", "failed", "2022-05-03 11:18:44", "failure reason", True],
+            [3825, 123, "queued", "running", "2022-05-03 11:06:05", None, True],
+            [3895, 123, "running", "failed", "2022-05-03 11:18:44", "failure reason", True],
         ]
         return mock_results
 
