@@ -12,7 +12,8 @@ import logging
 def check_queue_wait(logger):
     """
     Check the queue wait times for all the sites by using the "sbatch --test-only" command which returns an estimatated
-    start time for a job. The commands used here are asking for the same resources as condor asks for when creating slurm pools.
+    start time for a job. The commands used here are asking for the same resources as
+    condor asks for when creating slurm pools.
     Each site has a combination of small, medium, large, xlarge pools.
 
     :param logger: The logger passed from rpc_operations.py
@@ -35,10 +36,10 @@ def check_queue_wait(logger):
     """
     The outputs from the slurm command should look something like a json
     {
-      "small":"", 
-      "medium":"sbatch: Job 1239738 to start at 2023-03-29T13:28:43 using 2 processors on nodes nid00311 in partition genepool_shared",
+      "small":"",
+      "medium":"sbatch: Job 1239738 to start at 2023-03-29T13:28:43 (...) nid00311 in partition genepool_shared",
       "large":"",
-      "xlarge":"sbatch: Job 3909868 to start at 2023-03-30T04:20:01 using 72 processors on nodes exvivo014 in partition exvivo"
+      "xlarge":"sbatch: Job 3909868 to start at 2023-03-30T04:20:01 (...) exvivo014 in partition exvivo"
     }
     """
 
