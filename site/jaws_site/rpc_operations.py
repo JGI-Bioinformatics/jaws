@@ -2,6 +2,7 @@ import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
 from jaws_site.cromwell import Cromwell
+import jaws_site.slurm
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
@@ -20,8 +21,11 @@ def server_status(params, session):
     """
     logger.info("Check server status")
     cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+    status = {}
     try:
-        status = cromwell.status()
+        status["cromwell"] = cromwell.status()
+        status["slurm"] = slurm.status(logger)
+        logger.info(status)
     except Exception as error:
         return failure(error)
     return success(status)
