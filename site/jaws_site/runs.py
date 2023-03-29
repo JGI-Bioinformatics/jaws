@@ -25,7 +25,6 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import sessionmaker
-from time import sleep
 import boto3
 import botocore
 from random import shuffle
@@ -53,6 +52,10 @@ class RunNotFoundError(Exception):
 
 
 class RunFileNotFoundError(Exception):
+    pass
+
+
+class RunInputError(Exception):
     pass
 
 
@@ -512,6 +515,40 @@ class Run:
             self.data.cromwell_run_id = cromwell_run_id
             self.update_run_status("submitted")
 
+    def resubmit(self) -> None:
+        """
+        Clear fields related to previous run and change state to "ready".
+        """
+        status_from = self.data.status
+        if status_from != "finished":
+            raise RunInputError(
+                "Cannot resubmit run while previous run is still active."
+            )
+
+        logger.info(f"Run {self.data.id}: Resubmit run")
+        timestamp = datetime.utcnow()
+        log_entry = models.Run_Log(
+            run_id=self.data.id,
+            status_from=status_from,
+            status_to="ready",
+            timestamp=timestamp,
+            reason="resubmit run",
+        )
+        try:
+            savepoint = self.session.begin_nested()
+            self.data.status = "ready"
+            self.data.updated = timestamp
+            self.data.workflow_root = None
+            self.data.workflow_name = None
+            self.data.cromwell_run_id = None
+            self.data.result = None
+            self.session.add(log_entry)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            savepoint.rollback()
+            logger.exception(f"Unable to update Run {self.data.id}: {error}")
+        return {self.data.id: "ready"}
+
     def check_cromwell_metadata(self) -> str:
         """
         Check Cromwell metadata for status, workflow_root, and workflow_name.
@@ -623,7 +660,6 @@ class Run:
         # supplementary files, so skip.
         if self.data.user_id == "test":
             self.update_run_status("complete")
-            sleep(1)
             self.update_run_status("finished")
             return
 
@@ -841,6 +877,7 @@ class RunLog:
             rows = (
                 self.session.query(models.Run_Log)
                 .filter(models.Run_Log.run_id == self.run_id)
+                .order_by(models.Run_Log.id)
                 .all()
             )
         except SQLAlchemyError as error:
@@ -855,7 +892,7 @@ class RunLog:
         """Reformat logs table to (verbose) dictionary"""
         logs = []
         for row in self.data:
-            (run_id, status_from, status_to, timestamp, reason, sent) = row
+            (id, run_id, status_from, status_to, timestamp, reason, sent) = row
             log = {
                 "status_from": status_from,
                 "status_to": status_to,

@@ -54,9 +54,10 @@ class Run_Log(Base):
     """
 
     __tablename__ = "run_logs"
-    run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
-    status_from = Column(String(32), primary_key=True)
-    status_to = Column(String(32), primary_key=True)
+    id = Column(Integer, primary_key=True)  # auto-increment
+    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
+    status_from = Column(String(32), nullable=False)
+    status_to = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=False, default="")
     sent = Column(Boolean, default=False, nullable=False)
