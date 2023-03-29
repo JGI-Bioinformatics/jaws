@@ -10,6 +10,6 @@ def status(logger):
         """
 
         logger.debug(f"Getting status of ")
-        
-		return {"sites": "cmds"}
+
+        return {"sites": "cmds"}
 
