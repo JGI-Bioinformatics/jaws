@@ -108,7 +108,7 @@ envsubst < "./test/integration/templates/supervisor.site.conf" > "$JAWS_CONFIG_D
 chmod 600 $JAWS_CONFIG_DIR/*.conf
 
 echo "Writing shims"
-if [[ -n "${CONTAINER_RUNTIME}" ]]; then
+if [[ -n "${CONTAINER_RUNTIME:-}" ]]; then
   if [ "$CONTAINER_RUNTIME" == "apptainer" ]; then
     apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "docker://$CI_REGISTRY/advanced-analysis/jaws-site:${JAWS_SITE_VERSION}"
   fi
