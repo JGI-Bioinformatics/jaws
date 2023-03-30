@@ -182,7 +182,7 @@ deploy-jaws-jgi-dev:
   <<: *deploy-apptainer-template
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE: "JGI"
+    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/dev"
   rules:
@@ -195,7 +195,7 @@ deploy-jaws-jgi-staging:
   <<: *deploy-apptainer-template
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE: "JGI"
+    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/staging"
   rules:
@@ -209,7 +209,7 @@ deploy-jaws-jgi-prod:
     - jgi
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE: "JGI"
+    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/production"
   <<: *deploy-apptainer-template
