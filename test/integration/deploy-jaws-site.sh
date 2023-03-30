@@ -108,12 +108,12 @@ envsubst < "./test/integration/templates/supervisor.site.conf" > "$JAWS_CONFIG_D
 chmod 600 $JAWS_CONFIG_DIR/*.conf
 
 echo "Writing shims"
-if test -v "OCI_RUNTIME"; then
+if [[ -z "OCI_RUNTIME" ]]; then
   if [ "$OCI_RUNTIME" == "apptainer" ]; then
     apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "docker://$CI_REGISTRY/advanced-analysis/jaws-site:${JAWS_SITE_VERSION}"
   fi
   OCI_TEMPL="./test/integration/templates/container_runtime_templates/${OCI_RUNTIME}.sh"
-  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-mertrics-daemon" "task-log")
+  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-log")
   for SERVICE in "${SERVICES[@]}"; do
     export SERVICE
     envsubst < "$OCI_TEMPL" > "$JAWS_BIN_DIR/$SERVICE"
@@ -132,6 +132,7 @@ else
     deactivate
 
     envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
+    envsubst < "./test/integration/templates/task-log.sh" > "$JAWS_BIN_DIR/task-log"
     envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"

@@ -2,6 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 - improved support for generating metadata for large runs (>10k tasks)
+- added 'jaws resubmit <run_id>' command
 
 ## 1.1.0 Summary [03/24/2023 --> Staging]
 - ci/cd now makes the end-to-end test manual and allowed to fail or not run
