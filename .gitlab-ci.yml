@@ -78,6 +78,13 @@ build-site:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
+.deploy-apptainer-template: &deploy-apptainer-template
+  variables:
+    CONTAINER_RUNTIME: "apptainer"
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
+
 ## integration tests - only run on merge request
 deploy-jaws-aws-dev:
   stage: deploy-jaws
@@ -172,13 +179,12 @@ deploy-jaws-jgi-dev:
   stage: deploy-jaws
   tags:
     - jgi
+  <<: *deploy-apptainer-template
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "JGI"
-    OCI_RUNTIME: "apptainer"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
+    JAWS_SITE: "JGI"
+  environment:
+    name: "jgi/dev"
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -186,13 +192,12 @@ deploy-jaws-jgi-staging:
   stage: deploy-jaws
   tags:
     - jgi
+  <<: *deploy-apptainer-template
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "JGI"
+    JAWS_SITE: "JGI"
   environment:
     name: "jgi/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
@@ -202,11 +207,10 @@ deploy-jaws-jgi-prod:
     - jgi
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "JGI"
+    JAWS_SITE: "JGI"
   environment:
     name: "jgi/production"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
+  <<: *deploy-apptainer-template
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
@@ -224,10 +228,7 @@ deploy-jaws-tahoma-dev:
     https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "TAHOMA"
-    OCI_RUNTIME: "apptainer"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
+  <<: *deploy-apptainer-template
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -241,8 +242,7 @@ deploy-jaws-tahoma-staging:
     JAWS_SITE_NAME: "TAHOMA"
   environment:
     name: "tahoma/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
+  <<: *deploy-apptainer-template
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
@@ -257,12 +257,10 @@ deploy-jaws-tahoma-prod:
     JAWS_SITE_NAME: "TAHOMA"
   environment:
     name: "tahoma/prod"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
+  <<: *deploy-apptainer-template
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
-      allow_failure: true
 
 deploy-jaws-nmdc-dev:
   stage: deploy-jaws
@@ -357,12 +355,9 @@ deploy-jaws-dori-dev:
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "DORI"
-    OCI_RUNTIME: "apptainer"
+  <<: *deploy-apptainer-template
   environment:
     name: "dori/dev"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -373,10 +368,9 @@ deploy-jaws-dori-staging:
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "DORI"
+  <<: *deploy-apptainer-template
   environment:
     name: "dori/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
@@ -389,8 +383,7 @@ deploy-jaws-dori-prod:
     JAWS_SITE_NAME: "DORI"
   environment:
     name: "dori/production"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
+  <<: *deploy-apptainer-template
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual

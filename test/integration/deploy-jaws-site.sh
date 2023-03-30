@@ -108,15 +108,15 @@ envsubst < "./test/integration/templates/supervisor.site.conf" > "$JAWS_CONFIG_D
 chmod 600 $JAWS_CONFIG_DIR/*.conf
 
 echo "Writing shims"
-if [[ -z "OCI_RUNTIME" ]]; then
-  if [ "$OCI_RUNTIME" == "apptainer" ]; then
+if [[ -z "$CONTAINER_RUNTIME" ]]; then
+  if [ "$CONTAINER_RUNTIME" == "apptainer" ]; then
     apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "docker://$CI_REGISTRY/advanced-analysis/jaws-site:${JAWS_SITE_VERSION}"
   fi
-  OCI_TEMPL="./test/integration/templates/container_runtime_templates/${OCI_RUNTIME}.sh"
+  CONTAINER_TEMPL="./test/integration/templates/container_runtime_templates/${CONTAINER_RUNTIME}.sh"
   SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-log")
   for SERVICE in "${SERVICES[@]}"; do
     export SERVICE
-    envsubst < "$OCI_TEMPL" > "$JAWS_BIN_DIR/$SERVICE"
+    envsubst < "$CONTAINER_TEMPL" > "$JAWS_BIN_DIR/$SERVICE"
   done
 else
   echo "Generating virtual environment"
