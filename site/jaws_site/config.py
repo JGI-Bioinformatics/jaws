@@ -131,4 +131,5 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         result["access_group"] = self.get("SITE", "access_group")
         result["globus_host_path"] = self.get("GLOBUS", "host_path")
         result["globus_endpoint"] = self.get("GLOBUS", "endpoint_id")
+        result["file_sync_delay_sec"] = self.get("SITE", "file_sync_delay_sec", 0)
         return result
