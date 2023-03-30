@@ -251,6 +251,11 @@ deploy-jaws-tahoma-staging:
     - tahoma
     - pnnl
   variables:
+    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
+    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    http_proxy: "http://proxy.emsl.pnl.gov:3128"
+    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "TAHOMA"
     CONTAINER_RUNTIME: "apptainer"
@@ -269,6 +274,11 @@ deploy-jaws-tahoma-prod:
     - tahoma
     - pnnl
   variables:
+    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
+    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    http_proxy: "http://proxy.emsl.pnl.gov:3128"
+    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_NAME: "TAHOMA"
     CONTAINER_RUNTIME: "apptainer"
