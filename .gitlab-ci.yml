@@ -179,12 +179,15 @@ deploy-jaws-jgi-dev:
   stage: deploy-jaws
   tags:
     - jgi
-  <<: *deploy-apptainer-template
   variables:
+    CONTAINER_RUNTIME: "apptainer"
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/dev"
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -192,12 +195,15 @@ deploy-jaws-jgi-staging:
   stage: deploy-jaws
   tags:
     - jgi
-  <<: *deploy-apptainer-template
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "JGI"
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "jgi/staging"
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
@@ -210,9 +216,12 @@ deploy-jaws-jgi-prod:
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_NAME: "JGI"
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "jgi/production"
-  <<: *deploy-apptainer-template
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
@@ -230,7 +239,10 @@ deploy-jaws-tahoma-dev:
     https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "TAHOMA"
-  <<: *deploy-apptainer-template
+    CONTAINER_RUNTIME: "apptainer"
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -242,9 +254,12 @@ deploy-jaws-tahoma-staging:
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "TAHOMA"
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "tahoma/staging"
-  <<: *deploy-apptainer-template
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
@@ -257,9 +272,12 @@ deploy-jaws-tahoma-prod:
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_NAME: "TAHOMA"
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "tahoma/prod"
-  <<: *deploy-apptainer-template
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       when: manual
@@ -357,9 +375,12 @@ deploy-jaws-dori-dev:
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "DORI"
-  <<: *deploy-apptainer-template
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "dori/dev"
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
@@ -370,9 +391,12 @@ deploy-jaws-dori-staging:
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "DORI"
-  <<: *deploy-apptainer-template
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "dori/staging"
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
 
@@ -383,9 +407,12 @@ deploy-jaws-dori-prod:
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_NAME: "DORI"
+    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "dori/production"
-  <<: *deploy-apptainer-template
+  script:
+    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
+    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
