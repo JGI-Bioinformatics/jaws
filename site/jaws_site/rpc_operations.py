@@ -1,8 +1,8 @@
 import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
+from jaws_site import queue_wait
 from jaws_site.cromwell import Cromwell
-from jaws_site import slurm
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
@@ -21,15 +21,26 @@ def server_status(params, session):
     """
     logger.info("Check server status")
     cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-    status = {}
     try:
-        status["cromwell"] = cromwell.status()
-        status["slurm"] = slurm.check_queue_wait(logger)
-        logger.info(status)
+        status = cromwell.status()
     except Exception as error:
         return failure(error)
     return success(status)
 
+def queue_wait(params, session):
+    """Return the current queue wait times of the possible 
+    condor pools (sm, md, lg, xlg).
+
+    :return: returns the estimated queue wait times for each condor pool.
+    :rtype: dict
+    """
+
+    logger.info("Check estimated queue wait times for condor slurm pools")
+    try:
+		result = queue_wait.check_queue_wait(logger)
+    except Exception as error:
+        return failure(error)
+    return success(result)
 
 def output_manifest(params, session):
     """Retrieve a Run's output manifest (files to return to user).
@@ -163,6 +174,7 @@ def site_config(params, session):
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
+    "queue_wait": {"function": queue_wait},
     "submit_run": {
         "function": submit_run,
         "required_params": [
