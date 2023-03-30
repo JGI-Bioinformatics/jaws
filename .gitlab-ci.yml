@@ -206,8 +206,7 @@ deploy-jaws-jgi-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
+
 
 deploy-jaws-jgi-prod:
   stage: release-jaws
