@@ -1,7 +1,7 @@
 import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
-from jaws_site import queue_wait
+from jaws_site import queue_wait as slurm_queue_wait
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
@@ -27,8 +27,9 @@ def server_status(params, session):
         return failure(error)
     return success(status)
 
+
 def queue_wait(params, session):
-    """Return the current queue wait times of the possible 
+    """Return the current queue wait times of the possible
     condor pools (sm, md, lg, xlg).
 
     :return: returns the estimated queue wait times for each condor pool.
@@ -37,10 +38,11 @@ def queue_wait(params, session):
 
     logger.info("Check estimated queue wait times for condor slurm pools")
     try:
-		result = queue_wait.check_queue_wait(logger)
+        result = slurm_queue_wait.check_queue_wait(logger)
     except Exception as error:
         return failure(error)
     return success(result)
+
 
 def output_manifest(params, session):
     """Retrieve a Run's output manifest (files to return to user).
