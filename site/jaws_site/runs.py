@@ -86,6 +86,7 @@ class Run:
         try:
             self.config = {
                 "site_id": config.conf.get("SITE", "id"),
+                "deployment": config.conf.get("SITE", "deployment"),
                 "inputs_dir": config.conf.get("SITE", "inputs_dir"),
                 "default_container": config.conf.get(
                     "SITE", "default_container", "ubuntu:latest"
@@ -723,12 +724,24 @@ class Run:
         """
         Save final run metadata and send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
+        :return: True if RPC message was sent, False otherwise
+        :rtype: bool
         """
         logger.info(f"Publish report for run {self.data.id}")
 
         if self.data.result == "cancelled":
+            logger.debug(
+                f"Run {self.data.id}: Skipping publish report for cancelled run"
+            )
             self.update_run_status("finished")
-            return
+            return False
+
+        if self.config["deployment"] != "prod":
+            logger.debug(
+                f"Run {self.data.id}: Skipping publish report for non-'prod' deployment"
+            )
+            self.update_run_status("finished")
+            return False
 
         # read previously generate summary from file
         summary = self._read_json_file(f"{self.data.workflow_root}/tasks.json")
@@ -738,7 +751,7 @@ class Run:
             response = self.reports_rpc_client.request(summary)
         except Exception as error:
             logger.exception(f"RPC save_run_report error: {error}")
-            return
+            return False
         if "error" in response:
             logger.warning(
                 f"RPC save_run_report failed: {response['error']['message']}"
@@ -746,6 +759,7 @@ class Run:
             # do not change state; try again next time
         else:
             self.update_run_status("finished")
+        return True
 
 
 def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:

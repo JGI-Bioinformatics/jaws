@@ -356,7 +356,15 @@ def test_run_log(monkeypatch):
     def mock_select_rows(self):
         mock_results = [
             [3825, 123, "queued", "running", "2022-05-03 11:06:05", None, True],
-            [3895, 123, "running", "failed", "2022-05-03 11:18:44", "failure reason", True],
+            [
+                3895,
+                123,
+                "running",
+                "failed",
+                "2022-05-03 11:18:44",
+                "failure reason",
+                True,
+            ],
         ]
         return mock_results
 
@@ -561,19 +569,44 @@ def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
         }
         return contents
 
-    def mock_rpc_client_request(self, payload):
-        successful_response = {"result": {}}
-        return successful_response
-
     def mock_update_run_status(self, new_status):
         assert new_status
+        self.data.status = new_status
 
     monkeypatch.setattr(Run, "_read_json_file", mock__read_json_file)
-    monkeypatch.setattr(RpcClientBasic, "request", mock_rpc_client_request)
 
+    class MockRpcClientBasic:
+        def __init__(self):
+            pass
+
+        def request(self, message: str):
+            assert message
+            return {"result": ""}
+
+    # message should be sent before promoting to next state
     data = initRunModel(status="complete")
     run = Run(mock_sqlalchemy_session, data)
-    run.publish_report()
+    run.config["deployment"] = "prod"
+    run.reports_rpc_client = MockRpcClientBasic()
+    result = run.publish_report()
+    assert run.data.status == "finished"
+    assert result is True
+
+    # cancelled run should be promoted to next state without sending rpc message
+    data = initRunModel(result="cancelled")
+    run = Run(mock_sqlalchemy_session, data)
+    run.config["deployment"] = "prod"
+    result = run.publish_report()
+    assert run.data.status == "finished"
+    assert result is False
+
+    # for non-prod deployment, run should be promoted to next state without sending rpc message
+    data = initRunModel()
+    run = Run(mock_sqlalchemy_session, data)
+    run.config["deployment"] = "dev"
+    result = run.publish_report()
+    assert run.data.status == "finished"
+    assert result is False
 
 
 def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
