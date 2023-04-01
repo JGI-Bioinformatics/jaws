@@ -1140,3 +1140,20 @@ def s3():
             CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
         )
         yield s3_client
+
+
+class MockLogger:
+    def __init__(self):
+        pass
+
+    def error(self, message):
+        pass
+
+    def warning(self, message):
+        pass
+
+    def info(self, message):
+        pass
+
+    def debug(self, message):
+        pass
