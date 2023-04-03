@@ -547,6 +547,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
+            self.data.status = status_from
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
         return {self.data.id: "ready"}
 
@@ -579,6 +580,8 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
+            self.data.workflow_name = None
+            self.data.workflow_root = None
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
             return None
         return cromwell_status
@@ -650,6 +653,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
+            self.data.status = status_from
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def write_supplement(self):
@@ -832,6 +836,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             session.commit()
         except Exception as error:
             session.rollback()
+            log.sent = False
             logger.exception(f"Error updating run_logs as sent: {error}")
 
 
