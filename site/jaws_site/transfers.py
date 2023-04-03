@@ -171,8 +171,9 @@ class Transfer:
         """
         Recursively copy a folder.
         """
+        # end-"/" are required to not create extra folders
         result = rsync(
-            self.data.src_base_dir,
+            f"{self.data.src_base_dir}/",
             f"{self.data.dest_base_dir}/",
             [
                 "-rLtq",
