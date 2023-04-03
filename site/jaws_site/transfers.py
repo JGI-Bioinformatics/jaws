@@ -173,7 +173,7 @@ class Transfer:
         """
         result = rsync(
             self.data.src_base_dir,
-            self.data.dest_base_dir,
+            f"{self.data.dest_base_dir}/",
             [
                 "-rLtq",
                 "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
