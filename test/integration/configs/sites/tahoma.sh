@@ -22,3 +22,5 @@ export JAWS_SUPERVISOR_PORT_DEV=64101
 export JAWS_AUTH_PORT_DEV=3001
 export JAWS_REST_PORT_DEV=5001
 export JAWS_CROMWELL_PORT_DEV=50101
+export JAWS_QUEUE_WAIT_MEDIUM="sbatch --test-only --time=48:00:00 --qos=normal --mem=364G --account=mscjgi --nodes=1 --wrap 'sleep 30' 2>&1"
+export JAWS_QUEUE_WAIT_XLARGE="sbatch --test-only --time=48:00:00 --qos=normal --mem=1480G --account=mscjgi --nodes=1 --wrap 'sleep 30' 2>&1"

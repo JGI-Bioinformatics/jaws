@@ -21,3 +21,6 @@ export JAWS_SUPERVISOR_PORT_DEV=64101
 export JAWS_AUTH_PORT_DEV=3001
 export JAWS_REST_PORT_DEV=5001
 export JAWS_CROMWELL_PORT_DEV=50101
+export JAWS_QUEUE_WAIT_SMALL="sbatch --test-only --time=72:00:00 --mem=46G --partition=lr3 --qos=condo_jgicloud --account=lr_jgicloud --wrap 'sleep 30' 2>&1"
+export JAWS_QUEUE_WAIT_MEDIUM="sbatch --test-only --time=72:00:00 --mem=236G --partition=jgi --qos=normal --account=jgi --cpus-per-task=32 --wrap 'sleep 30' 2>&1"
+export JAWS_QUEUE_WAIT_LARGE="sbatch --test-only --time=72:00:00 --mem=492G --partition=lr3 --qos=condo_jgicloud --constraint=lr3_c32 --account=lr_jgicloud  --wrap 'sleep 30' 2>&1"

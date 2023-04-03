@@ -137,6 +137,7 @@ else
     envsubst < "./test/integration/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "./test/integration/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "./test/integration/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
+    envsubst < "./test/integration/templates/queue-wait.sh" > "$JAWS_BIN_DIR/queue-wait.sh"
 fi
 
 # Creating supervisord configs from template
