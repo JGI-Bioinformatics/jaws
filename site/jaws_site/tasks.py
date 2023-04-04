@@ -64,14 +64,14 @@ class TaskLog:
         execution_dirs = {}
         for (execution_dir, status, timestamp) in self.data:
             if execution_dir not in execution_dirs:
-                execution_dirs[execution_dir] = ["", "", "", ""]
+                execution_dirs[execution_dir] = [None, None, None, None]
             if status == "queued":
                 execution_dirs[execution_dir][1] = timestamp
             elif status == "running":
                 execution_dirs[execution_dir][2] = timestamp
             else:
                 execution_dirs[execution_dir][3] = timestamp
-                execution_dirs[execution_dir][0] = status
+            execution_dirs[execution_dir][0] = status
         table = []
         for execution_dir in sorted(execution_dirs.keys()):
             # calculate queue and run durations
