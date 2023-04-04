@@ -768,22 +768,23 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
         )
     except SQLAlchemyError as error:
         logger.warning(f"Failed to select active runs from db: {error}", exc_info=True)
-    else:
-        n = len(rows)
-        logger.debug(f"There are {n} active runs")
-        # If there is an unexpected error prevening a Run from being processed, it could block
-        # other runs from being processed, so we randomize the list.  This isn't usually necessary,
-        # but it increases the robustness of the system.
-        if n > 1:
-            shuffle(rows)
-        for row in rows:
-            run = Run(
-                session,
-                row,
-                central_rpc_client=central_rpc_client,
-                reports_rpc_client=reports_rpc_client,
-            )
-            run.check_status()
+    n = len(rows)
+    if n == 0:
+        return
+    logger.debug(f"There are {n} active runs")
+    # If there is an unexpected error prevening a Run from being processed, it could block
+    # other runs from being processed, so we randomize the list.  This isn't usually necessary,
+    # but it increases the robustness of the system.
+    if n > 1:
+        shuffle(rows)
+    for row in rows:
+        run = Run(
+            session,
+            row,
+            central_rpc_client=central_rpc_client,
+            reports_rpc_client=reports_rpc_client,
+        )
+        run.check_status()
 
 
 def send_run_status_logs(session, central_rpc_client) -> None:
