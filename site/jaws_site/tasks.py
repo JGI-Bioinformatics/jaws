@@ -96,7 +96,7 @@ class TaskLog:
         Check if any task has started running by checking the task log.
         """
         for row in self.data:
-            (cromwell_run_id, execution_dir, status, timestamp) = row
+            (execution_dir, status, timestamp) = row
             if status != "queued":
                 return True
         return False
