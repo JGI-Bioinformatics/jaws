@@ -26,6 +26,10 @@ class TaskLog:
             self.logger = logging.getLogger(__package__)
         else:
             self.logger = logger
+        self.data = []
+        self._select_rows()
+
+    def _select_rows(self):
         table = []
         try:
             query = (
