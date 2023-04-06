@@ -224,6 +224,22 @@ class Run:
         task_log = TaskLog(self.session, self.data.cromwell_run_id)
         return task_log.table()
 
+    def task_summary(self):
+        run_id = self.data.id
+        if self.data.status not in ("complete", "finished"):
+            raise ValueError("Task-summary has not been generated yet")
+        try:
+            data = self.session.query(models.Task_Summary).get(run_id)
+        except IntegrityError as error:
+            logger.warning(f"Run {run_id} Task-Summary not found: {error}")
+            raise RunNotFoundError(f"Run {run_id} Task-Summary not found")
+        except SQLAlchemyError as error:
+            err_msg = f"Unable to select task_summary of run {run_id}: {error}"
+            logger.error(err_msg)
+            raise RunDbError(err_msg)
+        else:
+            return data.tasks_json
+
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
         status = self.data.status
