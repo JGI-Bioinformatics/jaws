@@ -36,6 +36,7 @@ from jaws_site.cromwell import (
     CromwellServiceError,
 )
 from jaws_site.tasks import TaskLog
+from jaws_site.utils import write_json_file
 
 
 logger = logging.getLogger(__package__)
@@ -222,6 +223,22 @@ class Run:
             return []
         task_log = TaskLog(self.session, self.data.cromwell_run_id)
         return task_log.table()
+
+    def task_summary(self):
+        run_id = self.data.id
+        if self.data.status not in ("complete", "finished"):
+            raise ValueError("Task-summary has not been generated yet")
+        try:
+            data = self.session.query(models.Task_Summary).get(run_id)
+        except IntegrityError as error:
+            logger.warning(f"Run {run_id} Task-Summary not found: {error}")
+            raise RunNotFoundError(f"Run {run_id} Task-Summary not found")
+        except SQLAlchemyError as error:
+            err_msg = f"Unable to select task_summary of run {run_id}: {error}"
+            logger.error(err_msg)
+            raise RunDbError(err_msg)
+        else:
+            return json.loads(data.tasks_json)
 
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
@@ -688,20 +705,17 @@ class Run:
         # write errors report
         errors_report = metadata.errors()
         errors_file = f"{self.data.workflow_root}/errors.json"
-        with open(errors_file, "w") as fh:
-            json.dump(errors_report, fh)
+        write_json_file(errors_file, errors_report)
 
         # write outputs
         outputs = metadata.outputs(relpath=True)
         outputs_file = f"{self.data.workflow_root}/outputs.json"
-        with open(outputs_file, "w") as fh:
-            json.dump(outputs, fh)
+        write_json_file(outputs_file, outputs)
 
         # write outfiles
         outfiles = metadata.outfiles(relpath=True)
         outfiles_file = f"{self.data.workflow_root}/outfiles.json"
-        with open(outfiles_file, "w") as fh:
-            json.dump(outfiles, fh)
+        write_json_file(outfiles_file, outfiles)
 
         # write task summary
         task_summary = self.summary()
@@ -713,11 +727,35 @@ class Run:
             # rename job_id key to cromwell_job_id
             task["cromwell_job_id"] = task["job_id"]
             task_summary["tasks"].append(task)
-        summary_file = f"{self.data.workflow_root}/tasks.json"
-        with open(summary_file, "w") as fh:
-            json.dump(task_summary, fh)
+        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        write_json_file(summary_file, task_summary)
+
+        # the task summary needs to be save in a db so it may be provided (e.g. to the dashboard)
+        # even after the files have been purged
+        try:
+            self._insert_task_summary(task_summary)
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Unable to insert task-summary: {error}")
+            # do not change state; try again later
+            return
 
         self.update_run_status("complete")
+
+    def _insert_task_summary(self, contents_json: dict):
+        contents = json.dumps(contents_json)
+        task_summary = models.Task_Summary(
+            run_id=self.data.id,
+            tasks_json=contents,
+        )
+        try:
+            savepoint = self.session.begin_nested()
+            self.session.add(task_summary)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            savepoint.rollback()
+            logger.exception(
+                f"Unable to insert task-summary of Run {self.data.id}: {error}"
+            )
 
     def publish_report(self):
         """
@@ -730,8 +768,8 @@ class Run:
             self.update_run_status("finished")
             return
 
-        # read previously generate summary from file
-        summary = self._read_json_file(f"{self.data.workflow_root}/tasks.json")
+        # read previously generated summary
+        summary = self.task_summary()
 
         # publish and if successful, mark as done, else skip until next time
         try:

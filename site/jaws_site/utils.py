@@ -1,3 +1,7 @@
+import json
+import os
+
+
 class Singleton(type):
     """
     Metaclass for creating singleton objects.
@@ -12,3 +16,9 @@ class Singleton(type):
 
     def _destructor(cls):
         del cls._instances[cls]
+
+
+def write_json_file(outfile: str, contents: dict):
+    with open(outfile, "w") as fh:
+        fh.write(json.dumps(contents, sort_keys=True, indent=4))
+    os.chmod(outfile, 0o0664)
