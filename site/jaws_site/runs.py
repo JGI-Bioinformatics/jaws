@@ -741,7 +741,8 @@ class Run:
 
         self.update_run_status("complete")
 
-    def _insert_task_summary(self, contents):
+    def _insert_task_summary(self, contents_json: dict):
+        contents = json.dumps(contents_json)
         task_summary = models.Task_Summary(
             run_id=self.data.id,
             tasks_json=contents,
