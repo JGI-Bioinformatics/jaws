@@ -768,8 +768,8 @@ class Run:
             self.update_run_status("finished")
             return
 
-        # read previously generate summary from file
-        summary = self._read_json_file(f"{self.data.workflow_root}/tasks.json")
+        # read previously generated summary
+        summary = self.task_summary()
 
         # publish and if successful, mark as done, else skip until next time
         try:
