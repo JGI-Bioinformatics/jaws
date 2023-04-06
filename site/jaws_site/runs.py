@@ -238,7 +238,7 @@ class Run:
             logger.error(err_msg)
             raise RunDbError(err_msg)
         else:
-            return data.tasks_json
+            return json.loads(data.tasks_json)
 
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
