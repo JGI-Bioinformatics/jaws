@@ -752,9 +752,9 @@ class Run:
         )
         try:
             savepoint = self.session.begin_nested()
-            task_summary = self.session.get(models.Task_Summary, self.data.id)
-            if task_summary is not None:
-                self.session.delete(task_summary)
+            old_task_summary = self.session.get(models.Task_Summary, self.data.id)
+            if old_task_summary is not None:
+                self.session.delete(old_task_summary)
             self.session.add(task_summary)
             self.session.commit()
         except SQLAlchemyError as error:
