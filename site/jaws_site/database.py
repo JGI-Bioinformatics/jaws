@@ -1,8 +1,7 @@
 import logging
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, registry
 from jaws_site import config
 
 
@@ -33,4 +32,5 @@ except Exception as error:
 
 session_factory = sessionmaker(bind=engine, autobegin=True, autocommit=False)
 
-Base = declarative_base()
+mapper_registry = registry()
+Base = mapper_registry.generate_base()

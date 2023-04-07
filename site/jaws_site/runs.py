@@ -538,7 +538,7 @@ class Run:
         Clear fields related to previous run and change state to "ready".
         """
         status_from = self.data.status
-        if status_from != "finished":
+        if status_from not in ("finished", "cancelled"):
             raise RunInputError(
                 "Cannot resubmit run while previous run is still active."
             )
@@ -561,6 +561,9 @@ class Run:
             self.data.cromwell_run_id = None
             self.data.result = None
             self.session.add(log_entry)
+            task_summary = self.session.get(models.Task_Summary, self.data.id)
+            if task_summary is not None:
+                self.session.delete(task_summary)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
@@ -749,6 +752,9 @@ class Run:
         )
         try:
             savepoint = self.session.begin_nested()
+            old_task_summary = self.session.get(models.Task_Summary, self.data.id)
+            if old_task_summary is not None:
+                self.session.delete(old_task_summary)
             self.session.add(task_summary)
             self.session.commit()
         except SQLAlchemyError as error:

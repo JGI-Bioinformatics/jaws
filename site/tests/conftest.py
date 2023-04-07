@@ -565,6 +565,9 @@ class MockSession:
     def query(self, orm):
         return None
 
+    def get(self, model, pk):
+        return None
+
 
 class MockTransferClientWithCopy:
     def __init__(self, status, transfer_result={"task_id": "325"}):
