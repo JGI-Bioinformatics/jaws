@@ -73,7 +73,7 @@ class Task_Log(Base):
 
 
 class Task_Summary(Base):
-    __tablename__ = "task_summary"
+    __tablename__ = "task_summaries"
     run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
     tasks_json = Column(Text, nullable=False)
 
