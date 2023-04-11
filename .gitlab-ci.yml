@@ -159,6 +159,7 @@ deploy-jaws-cori-staging:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       when: manual
+  allow_failure: true
 
 deploy-jaws-cori-prod:
   stage: release-jaws
@@ -206,7 +207,7 @@ deploy-jaws-jgi-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-
+  allow_failure: true
 
 deploy-jaws-jgi-prod:
   stage: release-jaws
@@ -267,6 +268,7 @@ deploy-jaws-tahoma-staging:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
+  allow_failure: true
 
 deploy-jaws-tahoma-prod:
   stage: release-jaws
@@ -318,6 +320,7 @@ deploy-jaws-nmdc-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+  allow_failure: true
 
 deploy-jaws-nmdc-prod:
   stage: release-jaws
@@ -361,6 +364,7 @@ deploy-jaws-perlmutter-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+  allow_failure: true
 
 deploy-jaws-perlmutter-prod:
   stage: release-jaws
@@ -408,6 +412,7 @@ deploy-jaws-dori-staging:
     - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+  allow_failure: true
 
 deploy-jaws-dori-prod:
   stage: release-jaws
