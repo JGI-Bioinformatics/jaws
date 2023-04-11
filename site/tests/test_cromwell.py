@@ -418,24 +418,14 @@ def test_outfiles(requests_mock):
     )
     expected_outfiles_1 = ["./call-count_seqs/execution/num_seqs.txt"]
     ex_1 = crom.get_metadata(example_cromwell_run_id_1)
-    actual_outfiles_1 = ex_1.outfiles(relpath=True)
+    actual_outfiles_1 = ex_1.outfiles()
     assert (
         bool(DeepDiff(actual_outfiles_1, expected_outfiles_1, ignore_order=True))
         is False
     )
 
-    actual_outfiles_1 = ex_1.outfiles(complete=False, relpath=True)
+    actual_outfiles_1 = ex_1.outfiles()
     assert actual_outfiles_1 == ["./call-count_seqs/execution/num_seqs.txt"]
-
-    actual_outfiles_1 = ex_1.outfiles(complete=False, relpath=False)
-    assert actual_outfiles_1 == [
-        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
-    ]  # noqa
-
-    actual_outfiles_1 = ex_1.outfiles(relpath=False)
-    assert actual_outfiles_1 == [
-        "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"  # noqa
-    ]  # noqa
 
     # test : outputs list
     requests_mock.get(
@@ -452,7 +442,7 @@ def test_outfiles(requests_mock):
         "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",
     ]
     ex_8 = crom.get_metadata(example_cromwell_run_id_8)
-    actual_outfiles_8 = ex_8.outfiles(relpath=True)
+    actual_outfiles_8 = ex_8.outfiles()
     assert (
         bool(DeepDiff(actual_outfiles_8, expected_outfiles_8, ignore_order=True))
         is False
@@ -488,7 +478,7 @@ def test_outfiles(requests_mock):
         "./call-create_agp/cacheCopy/assembly.agp",
     ]
     ex_9 = crom.get_metadata(example_cromwell_run_id_9)
-    actual_outfiles_9 = ex_9.outfiles(relpath=True, executions_dir='s3://jaws-site/cromwell-execution')
+    actual_outfiles_9 = ex_9.outfiles(executions_dir='s3://jaws-site/cromwell-execution')
     assert (
         bool(DeepDiff(actual_outfiles_9, expected_outfiles_9, ignore_order=True))
         is False
@@ -503,7 +493,7 @@ def test_outfiles(requests_mock):
         example_cromwell_run_id_11, "outfiles"
     )
     ex_11 = crom.get_metadata(example_cromwell_run_id_11)
-    actual_outfiles_11 = ex_11.outfiles(relpath=True)
+    actual_outfiles_11 = ex_11.outfiles()
     assert (
         bool(DeepDiff(actual_outfiles_11, expected_outfiles_11, ignore_order=True))
         is False
@@ -518,7 +508,7 @@ def test_outfiles(requests_mock):
         example_cromwell_run_id_12, "outfiles"
     )
     ex_12 = crom.get_metadata(example_cromwell_run_id_12)
-    actual_outfiles_12 = ex_12.outfiles(relpath=True)
+    actual_outfiles_12 = ex_12.outfiles()
     assert (
         bool(DeepDiff(actual_outfiles_12, expected_outfiles_12, ignore_order=True))
         is False
