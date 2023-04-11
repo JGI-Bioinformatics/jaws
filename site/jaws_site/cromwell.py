@@ -743,29 +743,15 @@ class Metadata:
                 job_ids[job_id] = task.get("name", "unknown")
         return job_ids
 
-    def outputs(self):
+    def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
-        return self.get("outputs", {})
-
-    def outfiles(self, **kwargs):
-        """
-        Return list of all output files of a run.
-        By default, only include files tagged as outputs for the Run.
-        :param kwargs["complete"]: All files, not just workflow outputs.
-        :ptype kwargs["complete"]: bool
-        :param kwargs["relpath"]: Convert abs paths to rel paths.
-        :ptype kwargs["relpath"]: bool
-        :return: List of files
-        :rtype: list
-        """
-        complete = kwargs.get("complete", False)
         relpath = kwargs.get("relpath", False)
-        workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
+        if not relpath:
+            return outputs
         workflowRoot = self.workflow_root(**kwargs)
         if not workflowRoot:
             return outputs
-
         relpath_outputs = {}
         for key, value in outputs.items():
             if value is None:
@@ -784,13 +770,77 @@ class Metadata:
                 relpath_outputs[key] = {
                     "left": value["left"].replace(workflowRoot, ".", 1),
                     "right": value["right"].replace(workflowRoot, ".", 1),
-                } #            elif type(value) is dict and "1" in value:
+                }
+            elif type(value) is dict and "1" in value:
                 relpath_outputs[key] = {
                     "1": value["1"].replace(workflowRoot, ".", 1),
                     "2": value["2"].replace(workflowRoot, ".", 1),
                 }
+        return relpath_outputs
 
-         return relpath_outputs
+    def outfiles(self, **kwargs):
+        """
+        Return list of all output files of a run.
+        By default, only include files tagged as outputs for the Run.
+        :param kwargs["complete"]: All files, not just workflow outputs.
+        :ptype kwargs["complete"]: bool
+        :param kwargs["relpath"]: Convert abs paths to rel paths.
+        :ptype kwargs["relpath"]: bool
+        :return: List of files
+        :rtype: list
+        """
+        complete = kwargs.get("complete", False)
+        relpath = kwargs.get("relpath", False)
+        workflow_root = self.workflow_root(**kwargs)
+        outputs = self.get("outputs", {})
+        if workflow_root is None:
+            return []
+        elif complete is True:
+            if relpath:
+                return []
+            else:
+                return [workflow_root]
+        elif len(outputs.keys()) == 0:
+            return []
+        full_paths = []
+        for key, value in outputs.items():
+            if value is None:
+                # skip if null (i.e. optional output was not produced)
+                pass
+            elif type(value) is list:
+                # a sharded task may produce a list of outputs, one per shard
+                for item in value:
+                    if (
+                        type(item) is str
+                        and item is not None
+                        and item.startswith(workflow_root)
+                    ):
+                        full_paths.append(item)
+            elif (
+                value is not None
+                and type(value) is str
+                and value.startswith(workflow_root)
+            ):
+                # a typical task produces outputs which may be a file path
+                full_paths.append(value)
+            elif type(value) is dict and "left" in value:
+                if value["left"].startswith(workflow_root):
+                    full_paths.append(value["left"])
+                if value["right"].startswith(workflow_root):
+                    full_paths.append(value["right"])
+            elif type(value) is dict and "1" in value:
+                if value["1"].startswith(workflow_root):
+                    full_paths.append(value["1"])
+                if value["2"].startswith(workflow_root):
+                    full_paths.append(value["2"])
+
+        if relpath:
+            rel_paths = []
+            for path in full_paths:
+                rel_paths.append(path.replace(workflow_root, ".", 1))
+            return rel_paths
+        else:
+            return full_paths
 
 
 class Cromwell:
