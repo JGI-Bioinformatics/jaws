@@ -12,7 +12,7 @@ import json
 import boto3
 from jaws_site import config, models
 import botocore
-import subprocess
+import shutil
 
 
 logger = logging.getLogger(__package__)
@@ -160,28 +160,22 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.rsync_folder()
+                self.copy_folder()
         except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
 
-    def rsync_folder(self) -> None:
+    def copy_folder(self) -> None:
         """
         Recursively copy a folder.
         """
-        # end-"/" are required to not create extra folders
-        result = rsync(
-            f"{self.data.src_base_dir}/",
-            f"{self.data.dest_base_dir}/",
-            [
-                "-rLq",
-                "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
-            ],
-        )
-        if result.returncode != 0:
-            raise IOError(f"rsync failed: {result.stdout}; {result.stderr}")
+        params = {
+            "dirmode": 0o0777,
+            "filemode": 0o0666,
+        }
+        copy_folder(self.data.src_base_dir, self.data.dest_base_dir, **params)
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -419,10 +413,26 @@ def check_queue(session) -> None:
         transfer.transfer_files()
 
 
-def rsync(src, dest, options="-rLtq"):
+def copy_folder(root_src_dir, root_dst_dir, **kwargs):
     """
-    Copy source to destination using rsync.
+    Recursively copy folder and set permissions.
     """
-    return subprocess.run(
-        ["rsync", *options, src, dest], capture_output=True, text=True
-    )
+    root_src_dir = os.path.abspath(root_src_dir)
+    root_dst_dir = os.path.abspath(root_dst_dir)
+    dirmode = kwargs.get("dirmode", 0o0775)
+    filemode = kwargs.get("filemode", 0o0664)
+    os.chmod(root_src_dir, dirmode)
+    for src_dir, dirs, files in os.walk(root_src_dir):
+        dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
+        for subdir in dirs:
+            dst_subdir = os.path.join(dst_dir, subdir)
+            if not os.path.exists(dst_subdir):
+                os.makedirs(dst_subdir)
+            os.chmod(dst_subdir, dirmode)
+        for file in files:
+            src_file = os.path.join(src_dir, file)
+            dst_file = os.path.join(dst_dir, file)
+            if os.path.exists(dst_file):
+                os.remove(dst_file)
+            shutil.copy(src_file, dst_file)
+            os.chmod(dst_file, filemode)
