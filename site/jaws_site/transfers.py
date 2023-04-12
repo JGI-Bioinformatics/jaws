@@ -13,7 +13,6 @@ import boto3
 from jaws_site import config, models
 import botocore
 import shutil
-import subprocess
 
 
 logger = logging.getLogger(__package__)
