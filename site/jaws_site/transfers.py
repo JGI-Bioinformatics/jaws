@@ -426,7 +426,6 @@ def copy_folder(root_src_dir, root_dst_dir, **kwargs):
     for src_dir, dirs, files in os.walk(root_src_dir):
         dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
         for subdir in dirs:
-            src_subdir = os.path.join(src_dir, subdir)
             dst_subdir = os.path.join(dst_dir, subdir)
             if not os.path.exists(dst_subdir):
                 os.makedirs(dst_subdir)
