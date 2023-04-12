@@ -421,7 +421,9 @@ def copy_folder(root_src_dir, root_dst_dir, **kwargs):
     root_dst_dir = os.path.abspath(root_dst_dir)
     dirmode = kwargs.get("dirmode", 0o0775)
     filemode = kwargs.get("filemode", 0o0664)
-    os.chmod(root_src_dir, dirmode)
+    if not os.path.exists(root_dst_dir):
+        os.makedirs(root_dst_dir)
+    os.chmod(root_dst_dir, dirmode)
     for src_dir, dirs, files in os.walk(root_src_dir):
         dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
         for subdir in dirs:
