@@ -30,6 +30,7 @@ import os
 import glob
 import json
 import io
+import re
 from datetime import datetime
 from dateutil import parser
 from collections import deque
@@ -743,49 +744,38 @@ class Metadata:
                 job_ids[job_id] = task.get("name", "unknown")
         return job_ids
 
-    def outputs(self):
+    def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
+        workflowRoot = self.workflow_root(**kwargs)
         return self.get("outputs", {})
 
     def outfiles(self, **kwargs):
         """
         Return list of all output files of a run.
         By default, only include files tagged as outputs for the Run.
-        :param kwargs["complete"]: All files, not just workflow outputs.
-        :ptype kwargs["complete"]: bool
-        :param kwargs["relpath"]: Convert abs paths to rel paths.
-        :ptype kwargs["relpath"]: bool
         :return: List of files
         :rtype: list
         """
+        workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
-        workflowRoot = self.workflow_root(**kwargs)
-        if not workflowRoot:
-            return outputs
 
-        relpath_outputs = {}
-        for key, value in outputs.items():
-            if value is None:
-                # skip if null (i.e. optional output was not produced)
-                pass
-            elif type(value) is list:
-                # a sharded task may produce a list of outputs, one per shard
-                relpath_outputs[key] = []
-                for item in value:
-                    if type(item) is str and item is not None:
-                        relpath_outputs[key].append(item.replace(workflowRoot, ".", 1))
-            elif value is not None and type(value) is str:
-                # a typical task produces outputs which may be a file path
-                relpath_outputs[key] = value.replace(workflowRoot, ".", 1)
-            elif type(value) is dict and "left" in value:
-                relpath_outputs[key] = {
-                    "left": value["left"].replace(workflowRoot, ".", 1),
-                    "right": value["right"].replace(workflowRoot, ".", 1),
-                }  # elif type(value) is dict and "1" in value:
-                relpath_outputs[key] = {
-                    "1": value["1"].replace(workflowRoot, ".", 1),
-                    "2": value["2"].replace(workflowRoot, ".", 1),
-                }
+        if not workflow_root:
+            return outputs
+        elif len(outputs.keys()) == 0:
+            return []
+
+        relpath_outputs = []
+
+        # find all the file paths
+        output_str = json.dumps(outputs)
+        regex = f"{workflow_root}\\S+"
+        matches = re.findall(regex, output_str)
+
+        # change full paths to relative paths
+        for myfile in matches:
+            relpath = myfile.replace(workflow_root, ".")
+            relpath = re.sub(r'[\"\}\],]', "", relpath)
+            relpath_outputs.append(relpath)
 
         return relpath_outputs
 
