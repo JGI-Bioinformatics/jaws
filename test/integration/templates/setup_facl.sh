@@ -4,7 +4,7 @@ test -d "$JAWS_SCRATCH_DIR" || mkdir "$JAWS_SCRATCH_DIR"
 chgrp "$JAWS_GROUP" "$JAWS_SCRATCH_DIR"
 chmod 0775 "$JAWS_SCRATCH_DIR"
 setfacl -m d:g:"$JAWS_GROUP":rwx "$JAWS_SCRATCH_DIR"
-if [ -z "$JAWS_USERS_GROUP" ]; then
+if [ -z '$JAWS_USERS_GROUP' ]; then
     setfacl -m d:o::rwx "$JAWS_SCRATCH_DIR"
 else
     setfacl -m d:g:"$JAWS_USERS_GROUP":rwx "$JAWS_SCRATCH_DIR"
@@ -14,7 +14,7 @@ test -d "$JAWS_CROMWELL_EXECUTIONS_DIR" || mkdir "$JAWS_CROMWELL_EXECUTIONS_DIR"
 chgrp "$JAWS_GROUP" "$JAWS_CROMWELL_EXECUTIONS_DIR"
 chmod 0775 "$JAWS_CROMWELL_EXECUTIONS_DIR"
 setfacl -m d:g:"$JAWS_GROUP":rwx "$JAWS_CROMWELL_EXECUTIONS_DIR"
-if [ -z "$JAWS_USERS_GROUP" ]; then
+if [ -z "\$JAWS_USERS_GROUP" ]; then
     setfacl -m d:o::rx "$JAWS_CROMWELL_EXECUTIONS_DIR"
 else
     setfacl -m d:g:"$JAWS_USERS_GROUP":rx "$JAWS_CROMWELL_EXECUTIONS_DIR"
@@ -24,7 +24,7 @@ test -d "$JAWS_INPUTS_DIR" || mkdir "$JAWS_INPUTS_DIR"
 chgrp "$JAWS_GROUP" "$JAWS_INPUTS_DIR"
 chmod 0775 "$JAWS_INPUTS_DIR"
 setfacl -m d:g:"$JAWS_GROUP":rwx "$JAWS_INPUTS_DIR"
-if [ -z "$JAWS_USERS_GROUP" ]; then
+if [[ "$JAWS_USERS_GROUP" == "" ]]; then
     setfacl -m d:o::rwx "$JAWS_INPUTS_DIR"
 else
     setfacl -m d:g:"$JAWS_USERS_GROUP":rwx "$JAWS_INPUTS_DIR"
