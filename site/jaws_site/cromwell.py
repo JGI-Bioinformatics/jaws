@@ -746,7 +746,6 @@ class Metadata:
 
     def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
-        workflowRoot = self.workflow_root(**kwargs)
         return self.get("outputs", {})
 
     def outfiles(self, **kwargs):

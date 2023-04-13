@@ -59,6 +59,7 @@ example_cromwell_run_id_12 = "3f039d2d-d1db-4c98-b927-305b49ff1651"
 # Run with nested List outfiles
 example_cromwell_run_id_13 = "40231670-b6d5-4ec4-b475-5a78a4c00b23"
 
+
 def __load_example_output_from_file(cromwell_run_id, output_type):
     with open(f"{tests_dir}/{cromwell_run_id}.{output_type}.json", "r") as fh:
         output = json.load(fh)
@@ -351,7 +352,8 @@ def test_get_outputs(requests_mock):
         json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
     )
     expected_outputs_1 = {
-        "fq_count.outfile": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"
+        "fq_count.outfile": "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/"
+        "ee30d68f-39d4-4fde-85c2-afdecce2bad3/call-count_seqs/execution/num_seqs.txt"
     }
     ex_1 = crom.get_metadata(example_cromwell_run_id_1)
     actual_outputs_1 = ex_1.outputs()
@@ -366,13 +368,13 @@ def test_get_outputs(requests_mock):
     )
     expected_outputs_8 = {
         "create_lastdb.dbFiles": [
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",  # noqa: E501
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",  # noqa: E501
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",  # noqa: E501
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",  # noqa: E501
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",  # noqa: E501
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",  # noqa: E501
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",  # noqa: E501
         ]
     }
     ex_8 = crom.get_metadata(example_cromwell_run_id_8)
@@ -392,7 +394,8 @@ def test_get_outputs(requests_mock):
     ex_11 = crom.get_metadata(example_cromwell_run_id_11)
     actual_outputs_11 = ex_11.outputs()
     assert (
-        bool(DeepDiff(actual_outputs_11, expected_outputs_11, ignore_order=True)) is False
+        bool(DeepDiff(actual_outputs_11, expected_outputs_11, ignore_order=True))
+        is False
     )
 
     # test 4 : map output
@@ -418,17 +421,18 @@ def test_get_outputs(requests_mock):
     expected_outputs_13 = {
         "test_glob.files": [
             [
-                "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"
+                "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"  # noqa: E501
             ],
             [
-                "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"
-            ]
+                "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"  # noqa: E501
+            ],
         ]
     }
     ex_13 = crom.get_metadata(example_cromwell_run_id_13)
     actual_outputs_13 = ex_13.outputs()
     assert (
-        bool(DeepDiff(actual_outputs_13, expected_outputs_13, ignore_order=True)) is False
+        bool(DeepDiff(actual_outputs_13, expected_outputs_13, ignore_order=True))
+        is False
     )
 
 
@@ -445,7 +449,6 @@ def test_outfiles(requests_mock):
         bool(DeepDiff(actual_outfiles_1, expected_outfiles_1, ignore_order=True))
         is False
     )
-
 
     # test : outputs list
     requests_mock.get(
@@ -465,6 +468,23 @@ def test_outfiles(requests_mock):
     actual_outfiles_8 = ex_8.outfiles()
     assert (
         bool(DeepDiff(actual_outfiles_8, expected_outfiles_8, ignore_order=True))
+        is False
+    )
+
+    # test : outputs nested list
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_11}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_11, "metadata"),
+    )
+    expected_outfiles_11 = [
+        "./call-WriteGreeting/execution/test.txt",
+        "./call-WriteGreeting/execution/file1",
+        "./call-WriteGreeting/execution/file2",
+    ]
+    ex_11 = crom.get_metadata(example_cromwell_run_id_11)
+    actual_outfiles_11 = ex_11.outfiles()
+    assert (
+        bool(DeepDiff(actual_outfiles_11, expected_outfiles_11, ignore_order=True))
         is False
     )
 
@@ -498,7 +518,9 @@ def test_outfiles(requests_mock):
         "./call-create_agp/cacheCopy/assembly.agp",
     ]
     ex_9 = crom.get_metadata(example_cromwell_run_id_9)
-    actual_outfiles_9 = ex_9.outfiles(executions_dir='s3://jaws-site/cromwell-execution')
+    actual_outfiles_9 = ex_9.outfiles(
+        executions_dir="s3://jaws-site/cromwell-execution"
+    )
     assert (
         bool(DeepDiff(actual_outfiles_9, expected_outfiles_9, ignore_order=True))
         is False
