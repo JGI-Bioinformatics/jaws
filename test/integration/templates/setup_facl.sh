@@ -6,6 +6,7 @@ chmod 0775 "$JAWS_SCRATCH_DIR"
 setfacl -m d:g:"$JAWS_GROUP":rwx "$JAWS_SCRATCH_DIR"
 if [[ "$JAWS_USERS_GROUP" == "" ]]; then
     setfacl -m d:o::rwx "$JAWS_SCRATCH_DIR"
+    setfacl -m o::rwx "$JAWS_SCRATCH_DIR"
 else
     setfacl -m d:g:"$JAWS_USERS_GROUP":rwx "$JAWS_SCRATCH_DIR"
 fi
@@ -26,6 +27,7 @@ chmod 0775 "$JAWS_INPUTS_DIR"
 setfacl -m d:g:"$JAWS_GROUP":rwx "$JAWS_INPUTS_DIR"
 if [[ "$JAWS_USERS_GROUP" == "" ]]; then
     setfacl -m d:o::rwx "$JAWS_INPUTS_DIR"
+    setfacl -m o::rwx "$JAWS_INPUTS_DIR"
 else
     setfacl -m d:g:"$JAWS_USERS_GROUP":rwx "$JAWS_INPUTS_DIR"
 fi
@@ -36,6 +38,7 @@ chmod 0775 "$JAWS_DOWNLOADS_DIR"
 setfacl -m d:g:"$JAWS_GROUP":rwx "$JAWS_DOWNLOADS_DIR"
 if [[ "$JAWS_USERS_GROUP" == "" ]]; then
     setfacl -m d:o::rwx "$JAWS_DOWNLOADS_DIR"
+    setfacl -m o::rwx "$JAWS_DOWNLOADS_DIR"
 else
     setfacl -m d:g:"$JAWS_USERS_GROUP":rx "$JAWS_DOWNLOADS_DIR"
 fi
