@@ -3,7 +3,7 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey, Text
+from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
 from sqlalchemy.dialects.mysql import LONGTEXT
 from jaws_site.database import Base
 
@@ -91,7 +91,7 @@ class Transfer(Base):
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     src_base_dir = Column(String(128), nullable=False)
     dest_base_dir = Column(String(128), nullable=False)
-    manifest_json = Column(Text(64000), nullable=False)  # MEDIUMTEXT
+    manifest_json = Column(LONGTEXT, nullable=False)
     reason = Column(String(256), nullable=True)
 
 
