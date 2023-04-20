@@ -4,7 +4,7 @@ SQLAlchemy models for persistent data structures.
 
 from datetime import datetime
 from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
-from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.dialects.mysql import MEDIUMTEXT, LONGTEXT
 from jaws_site.database import Base
 
 
@@ -89,9 +89,9 @@ class Transfer(Base):
     status = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    src_base_dir = Column(String(128), nullable=False)
-    dest_base_dir = Column(String(128), nullable=False)
-    manifest_json = Column(LONGTEXT, nullable=False)
+    src_base_dir = Column(String(1024), nullable=False)
+    dest_base_dir = Column(String(1024), nullable=False)
+    manifest_json = Column(MEDIUMTEXT, nullable=False)
     reason = Column(String(256), nullable=True)
 
 
