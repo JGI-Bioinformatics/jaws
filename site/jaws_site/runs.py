@@ -710,12 +710,12 @@ class Run:
         write_json_file(errors_file, errors_report)
 
         # write outputs
-        outputs = metadata.outputs(relpath=True)
+        outputs = metadata.outputs()
         outputs_file = f"{self.data.workflow_root}/outputs.json"
         write_json_file(outputs_file, outputs)
 
         # write outfiles
-        outfiles = metadata.outfiles(relpath=True)
+        outfiles = metadata.outfiles()
         outfiles_file = f"{self.data.workflow_root}/outfiles.json"
         write_json_file(outfiles_file, outfiles)
 
