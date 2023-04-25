@@ -6,6 +6,9 @@
 - improved support for generating metadata for large runs (>10k tasks)
 - added 'jaws resubmit <run_id>' command
 - Enabled setfacl for dori
+- You can now use nested-array datastructures in your outputs{} section in the wdl (#1620)
+
+## 1.1.0 Summary [03/24/2023 --> Staging]
 - ci/cd now makes the end-to-end test manual and allowed to fail or not run
 - task-log is now much faster and supports >10k tasks; it no longer uses cromwell metadata and so there are no longer records for cached tasks which did not actually execute
 - fixed performance_metrics path to match htcondor's path

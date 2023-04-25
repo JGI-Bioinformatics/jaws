@@ -1,0 +1,198 @@
+{
+  "workflowName": "test_glob",
+  "workflowProcessingEvents": [
+    {
+      "cromwellId": "cromid-d9a721d",
+      "description": "PickedUp",
+      "timestamp": "2023-04-11T21:38:47.448Z",
+      "cromwellVersion": "84"
+    },
+    {
+      "cromwellId": "cromid-d9a721d",
+      "description": "Finished",
+      "timestamp": "2023-04-11T21:39:45.421Z",
+      "cromwellVersion": "84"
+    }
+  ],
+  "actualWorkflowLanguageVersion": "1.0",
+  "submittedFiles": {
+    "workflow": "version 1.0\n\nworkflow test_glob {\n  input {\n    Array[String] file_contents = ['foo', 'bar']\n  }\n  scatter (content in file_contents) {\n    call write_file {\n      input:\n        content=content\n    }\n  }\n  output {\n    Array[Array[File]] files = write_file.files\n  }\n}\n\ntask write_file {\n  input {\n    String content\n  }\n  command <<<\n    echo  ~{content} > output_file\n  >>>\n  output {\n    Array[File] files = glob('output_file')\n  }\n  runtime {\n    docker: \"debian:bullseye-slim\"\n  }\n}\n\n",
+    "root": "",
+    "options": "{\n  \"default_runtime_attributes\": {\n    \"docker\": \"ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf\"\n  },\n  \"read_from_cache\": true,\n  \"write_to_cache\": true\n}",
+    "inputs": "{}",
+    "workflowUrl": "",
+    "labels": "{}"
+  },
+  "calls": {
+    "test_glob.write_file": [
+      {
+        "executionStatus": "Done",
+        "stdout": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0/execution/stdout",
+        "backendStatus": "Done",
+        "commandLine": "echo  foo > output_file",
+        "shardIndex": 0,
+        "outputs": {
+          "files": [
+            "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"
+          ]
+        },
+        "runtimeAttributes": {
+          "disk": "0.0244140625 GB",
+          "failOnStderr": "false",
+          "continueOnReturnCode": "0",
+          "docker": "debian:bullseye-slim",
+          "maxRetries": "0",
+          "cpu": "1",
+          "memory": "2 GB"
+        },
+        "callCaching": {
+          "allowResultReuse": false,
+          "effectiveCallCachingMode": "CallCachingOff",
+          "result": "Cache Miss",
+          "hit": false
+        },
+        "inputs": {
+          "content": "foo"
+        },
+        "returnCode": 0,
+        "jobId": "53",
+        "backend": "Htcondor",
+        "start": "2023-04-11T21:39:19.919Z",
+        "end": "2023-04-11T21:39:42.043Z",
+        "dockerImageUsed": "debian:bullseye-slim",
+        "stderr": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0/execution/stderr",
+        "callRoot": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2023-04-11T21:39:21.126Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2023-04-11T21:39:21.127Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:19.920Z",
+            "description": "RequestingExecutionToken",
+            "endTime": "2023-04-11T21:39:21.126Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:19.919Z",
+            "description": "Pending",
+            "endTime": "2023-04-11T21:39:19.920Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:21.127Z",
+            "description": "PreparingJob",
+            "endTime": "2023-04-11T21:39:21.138Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:21.138Z",
+            "description": "RunningJob",
+            "endTime": "2023-04-11T21:39:41.288Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:41.288Z",
+            "description": "UpdatingJobStore",
+            "endTime": "2023-04-11T21:39:42.043Z"
+          }
+        ]
+      },
+      {
+        "executionStatus": "Done",
+        "stdout": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1/execution/stdout",
+        "backendStatus": "Done",
+        "commandLine": "echo  bar > output_file",
+        "shardIndex": 1,
+        "outputs": {
+          "files": [
+            "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"
+          ]
+        },
+        "runtimeAttributes": {
+          "disk": "0.0244140625 GB",
+          "failOnStderr": "false",
+          "continueOnReturnCode": "0",
+          "docker": "debian:bullseye-slim",
+          "maxRetries": "0",
+          "cpu": "1",
+          "memory": "2 GB"
+        },
+        "callCaching": {
+          "allowResultReuse": false,
+          "effectiveCallCachingMode": "CallCachingOff",
+          "result": "Cache Miss",
+          "hit": false
+        },
+        "inputs": {
+          "content": "bar"
+        },
+        "returnCode": 0,
+        "jobId": "52",
+        "backend": "Htcondor",
+        "start": "2023-04-11T21:39:19.919Z",
+        "end": "2023-04-11T21:39:43.039Z",
+        "dockerImageUsed": "debian:bullseye-slim",
+        "stderr": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1/execution/stderr",
+        "callRoot": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1",
+        "attempt": 1,
+        "executionEvents": [
+          {
+            "startTime": "2023-04-11T21:39:19.919Z",
+            "description": "Pending",
+            "endTime": "2023-04-11T21:39:19.919Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:20.126Z",
+            "description": "WaitingForValueStore",
+            "endTime": "2023-04-11T21:39:20.126Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:19.919Z",
+            "description": "RequestingExecutionToken",
+            "endTime": "2023-04-11T21:39:20.126Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:20.126Z",
+            "description": "PreparingJob",
+            "endTime": "2023-04-11T21:39:20.141Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:42.654Z",
+            "description": "UpdatingJobStore",
+            "endTime": "2023-04-11T21:39:43.039Z"
+          },
+          {
+            "startTime": "2023-04-11T21:39:20.141Z",
+            "description": "RunningJob",
+            "endTime": "2023-04-11T21:39:42.654Z"
+          }
+        ]
+      }
+    ]
+  },
+  "outputs": {
+    "test_glob.files": [
+      [
+        "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-0/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"
+      ],
+      [
+        "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23/call-write_file/shard-1/execution/glob-9c697d9c39d348b2d4020ab63de7f958/output_file"
+      ]
+    ]
+  },
+  "workflowRoot": "/global/cscratch1/sd/jaws/cori-dev/cromwell-executions/test_glob/40231670-b6d5-4ec4-b475-5a78a4c00b23",
+  "actualWorkflowLanguage": "WDL",
+  "status": "Succeeded",
+  "end": "2023-04-11T21:39:45.421Z",
+  "start": "2023-04-11T21:38:47.450Z",
+  "id": "40231670-b6d5-4ec4-b475-5a78a4c00b23",
+  "inputs": {
+    "file_contents": [
+      "foo",
+      "bar"
+    ]
+  },
+  "labels": {
+    "cromwell-workflow-id": "cromwell-40231670-b6d5-4ec4-b475-5a78a4c00b23"
+  },
+  "submission": "2023-04-11T21:38:46.725Z"
+}

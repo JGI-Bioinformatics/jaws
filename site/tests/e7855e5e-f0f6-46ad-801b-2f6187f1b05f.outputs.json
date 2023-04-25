@@ -1,8 +1,7 @@
 {
-    "HelloWorld.WriteGreeting.pair_test":
-    {
-        "right": "./call-WriteGreeting/execution/file2",
-        "left": "./call-WriteGreeting/execution/file1"
-    },
-    "HelloWorld.WriteGreeting.output_wdl": "./call-WriteGreeting/execution/test.txt"
+    "HelloWorld.WriteGreeting.output_wdl": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/test.txt",
+	"HelloWorld.WriteGreeting.pair_test": {
+	"left": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/file1",
+	"right": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/HelloWorld/e7855e5e-f0f6-46ad-801b-2f6187f1b05f/call-WriteGreeting/execution/file2"
+	}
 }
