@@ -702,8 +702,7 @@ class Run:
 
         # write metadata
         metadata_file = f"{self.data.workflow_root}/metadata.json"
-        with open(metadata_file, "w") as fh:
-            json.dump(metadata.data, fh)
+        write_json_file(metadata_file, metadata.data)
 
         # write errors report
         errors_report = metadata.errors()

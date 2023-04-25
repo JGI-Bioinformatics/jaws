@@ -1,6 +1,8 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+
+## 1.1.0 Summary [04/12/2023]
 - improved support for generating metadata for large runs (>10k tasks)
 - added 'jaws resubmit <run_id>' command
 - Enabled setfacl for dori
@@ -10,6 +12,7 @@
 - ci/cd now makes the end-to-end test manual and allowed to fail or not run
 - task-log is now much faster and supports >10k tasks; it no longer uses cromwell metadata and so there are no longer records for cached tasks which did not actually execute
 - fixed performance_metrics path to match htcondor's path
+- Added job in gitlab-ci.yml to deploy to dori in addition to cori (triggered by MR is created)
 
 ## 1.0.13b Summary [03/01/2023]
 - AMS CI/CD 
