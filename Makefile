@@ -6,28 +6,13 @@ Q := $(if $V,,@)
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
 
-.PHONY: pkg-poetry-requirements
-pkg-poetry-requirements:
-	$(if $(shell which poetry),,$(error "Packaging needs Python poetry module installed. Please run 'pip install poetry'"))
-
-.PHONY: pkg-rpc-poetry
-pkg-rpc-poetry: pkg-poetry-requirements
-	$Q cd rpc && poetry version $(VERSION) && poetry build
-
-.PHONY: pkg-site-poetry
-pkg-site-poetry: pkg-poetry-requirements
-	$Q cd site && poetry version $(VERSION) && poetry build 
-
-.PHONY: pkg-poetry
-pkg-poetry: pkg-rpc-poetry pkg-site-poetry
-
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel
+	$Q cd rpc && python -m build
 
 .PHONY: pkg-site
 pkg-site: pkg-requirements
-	$Q cd rpc && python setup.py bdist_wheel && cd ../site && python setup.py bdist_wheel
+	$Q cd rpc && python -m build && cd ../site && python -m build
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site

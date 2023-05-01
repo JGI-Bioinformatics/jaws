@@ -100,7 +100,7 @@ class JAWSConfigParser(configparser.ConfigParser):
     not a nest dictionary, then the contents of _vars will be passed in the vars param as is.
     """
 
-    def __init__(self,  env_override=None, **kwargs):
+    def __init__(self, env_override=None, **kwargs):
         if env_override is not None:
             # Dictionary to be used as vars param in get(), populated from env vars by looking
             # for the prefix env_override in the name, and then strip off the prefix for the

@@ -1,42 +1,56 @@
-[tool.poetry]
-name = "jaws_site"
-version = "2.7.1"
-description = ""
-authors = ["Your Name <you@example.com>"]
-
-[tool.poetry.dependencies]
-python = "^3.7"
-AMQPStorm = "2.9.0"
-cffi = "1.14.6"
-click = "7.1.2"
-cryptography = "3.4.7"
-deepdiff = "5.5.0"
-globus-sdk = "2.0.1"
-greenlet = "1.1.0"
-importlib-metadata = "4.6.1"
-mysql-connector-python = "8.0.26"
-pamqp = "2.3.0"
-pycparser = "2.20"
-python-dateutil = "2.8.2"
-requests = "2.26.0"
-requests-mock = "1.9.3"
-schedule = "1.1.0"
-shortuuid = "1.0.1"
-SQLAlchemy = "1.4.22"
-typing-extensions = "3.10.0.0"
-zipp = "3.5.0"
-boto3 = "1.20.49"
-matplotlib = "3.6.2"
-psutil = "5.8.0"
-jaws-rpc = "^2.7.1"
-
-[[tool.poetry.source]]
-name = "gitlab"
-url = "https://code.jgi.doe.gov/api/v4/projects/5/packages/pypi/simple"
-secondary = true
-
-[tool.poetry.dev-dependencies]
-
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools_scm>=6.2", "wheel", "setuptools>=45"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jaws_site"
+dynamic = ["version"]
+description = "JAWS Site Server"
+authors = [
+{name = "Edward Kirton", email = "ekirton@lbl.gov"},
+{name = "Mario Melara", email = "mamelara@lbl.gov"},
+{name = "Georg Rath", email = "grath@lbl.gov"},
+{name = "Seung-Jin Sul", email = "ssul@lbl.gov"},
+{name = "Stephan Trong", email = "strong@lbl.gov"},
+{name = "Kelly Rowland", email = "kellyrowland@lbl.gov"},
+{name = "Nick Tyler", email = "tylern@lbl.gov"},
+{name = "Jeff Froula", email = "jlfroula@lbl.gov"},
+{name = "Ramani Kothadia", email = "ramanik@lbl.gov"}
+]
+requires-python = ">=3.11,<3.12"
+
+dependencies = [
+    "AMQPStorm",
+    "boto3",
+    "click",
+    "deepdiff",
+    "mysql-connector-python",
+    "requests",
+    "schedule",
+    "shortuuid",
+    "SQLAlchemy",
+    "typing_extensions",
+    "zipp",
+    "numpy",
+    "pandas",
+    "pika",
+    "moto",
+    "matplotlib",
+    "psutil"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "requests-mock", "pytest-cov", "flake8"]
+
+[project.urls]
+repository = "https://code.jgi.doe.gov/advanced-analysis/jaws-site"
+changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws-site/-/blob/main/CHANGELOG.md"
+documentation = "https://jaws-docs.readthedocs.io/en/latest/"
+
+[project.scripts]
+jaws-site = "jaws_site.cli:jaws"
+pagarus = "jaws_site.pagarus:main"
+
+[tool.setuptools]
+zip-safe = false
+packages = ["jaws_site"]

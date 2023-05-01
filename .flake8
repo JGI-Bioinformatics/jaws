@@ -1,3 +1,16 @@
 [flake8]
-
-max-line-length = 120
+ignore = E501, E701, E126, W292, E128, E123
+extend-ignore = E203, W503, W504
+exclude =
+    .git
+    .gitlab
+    __pycache__
+    docs
+    test
+    build
+    dist
+    src
+    site/tests
+count = true
+show-source = false
+max-line-length = 88

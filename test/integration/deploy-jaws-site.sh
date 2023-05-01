@@ -126,10 +126,11 @@ else
   [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
   $JAWS_PYTHON -m venv "$JAWS_VENV_DIR" && \
     . "$JAWS_VENV_DIR/bin/activate" && \
+    pip install build && \
     pip install wheel && \
     make pkg && \
-    pip install rpc/dist/* && \
-    pip install site/dist/* && \
+    pip install rpc/dist/*.whl && \
+    pip install site/dist/*.whl && \
     deactivate
 
     envsubst < "./test/integration/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"

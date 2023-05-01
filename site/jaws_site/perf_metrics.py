@@ -197,7 +197,7 @@ class PerformanceMetrics:
             # Get file size
             file_size_bytes = done_file.stat().st_size
             # Calculate running time
-            running_time = end_time-start_time
+            running_time = end_time - start_time
 
             # Move csv file to processed folder
             processed_file = proc_path / done_file.name

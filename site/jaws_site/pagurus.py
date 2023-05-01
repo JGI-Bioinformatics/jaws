@@ -285,13 +285,13 @@ def runner(
         killer = GracefulKiller(old_prefix=f"{path}/running",
                                 new_prefix=f"{path}/done",
                                 filename=filename)
-        running = out_dir/"running"
+        running = out_dir / "running"
         running.mkdir(exist_ok=True)
-        (out_dir/"done").mkdir(exist_ok=True)
-        outfile = running/f"{filename}"
+        (out_dir / "done").mkdir(exist_ok=True)
+        outfile = running / f"{filename}"
     else:
         killer = GracefulKiller()
-        outfile = out_dir/f"{filename}"
+        outfile = out_dir / f"{filename}"
 
     header = ["@timestamp", "pid", "ppid", "name", "num_threads", "cpu_num",
               "cpu_user", "cpu_system", "cpu_iowait",
@@ -350,7 +350,7 @@ def runner(
 
         if rolling > 0:
             itteration += 1
-            if itteration % ceil(rolling/pole_rate) == 0:
+            if itteration % ceil(rolling / pole_rate) == 0:
                 stats_file.next_file()
 
     # Finally we close the file.
