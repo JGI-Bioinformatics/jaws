@@ -1,6 +1,6 @@
 export JAWS_INSTALL_BASEDIR="/clusterfs/jgi/groups/dsi/homes/svc-jaws/jaws-install"
-export JAWS_GLOBUS_EP="c23e9780-d81c-48b5-8637-76e03389e921"
-export JAWS_GLOBUS_HOST_PATH="/clusterfs/jgi/scratch/dsi/aa/jaws"
+export JAWS_GLOBUS_EP="e9ffba03-0916-4711-a93f-26c0ba62e67e"
+export JAWS_GLOBUS_HOST_PATH="/"
 export JAWS_LOAD_PYTHON=""
 export JAWS_PYTHON="python"
 export JAWS_GROUP="grp-svc-jaws"
