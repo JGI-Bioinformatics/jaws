@@ -1,0 +1,16 @@
+[Unit]
+Description=${SERVICE} for ${JAWS_DEPLOYMENT_NAME}
+ConditionFileIsExecutable=${JAWS_BIN_DIR}/${SERVICE}
+After=network.target
+ConditionHost=ln010.jgi
+After=syslog.target network.target
+
+[Service]
+Type=forking
+ExecStart=/bin/bash ${JAWS_BIN_DIR}/${SERVICE}
+ExecStop=/bin/apptainer instance stop jaws-${SERVICE}-${JAWS_DEPLOYMENT_NAME}
+PIDFile=${JAWS_LOGS_DIR}/jaws-${SERVICE}-${JAWS_DEPLOYMENT_NAME}.pid
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
