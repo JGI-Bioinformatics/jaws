@@ -1,4 +1,5 @@
 stages:
+  - linter
   - test
   - reports
   - unit-test
@@ -21,47 +22,63 @@ variables:
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
-.only-default: &only-default
+.shell-default: &shell-default
   tags:
     - shared-shell
   rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
+.docker-default: &docker-default
+  image: docker:19.03.12
+  services:
+    - docker:19.03.12-dind
+  tags:
+    - docker-build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+  coverage: '/(?i)TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+
+flake-rpc:
+  <<: *shell-default
+  stage: linter
+  script:
+    - flake8 --show-source --statistics rpc
+
+flake-site:
+  <<: *shell-default
+  stage: linter
+  script:
+    - flake8 --show-source --statistics site
 
 test-rpc:
-  <<: *only-default
+  <<: *docker-default
   stage: unit-test
   script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install -r rpc/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-rpc
+    - docker build -t jaws-site-rpc --target test-rpc .
+    - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
   artifacts:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: rpc/coverage.xml 
-test-site:
-  <<: *only-default
-  stage: unit-test
-  script:
-    - python3.8 -m venv test-venv
-    - source test-venv/bin/activate
-    - pip3.8 install rpc/
-    - pip3.8 install -r site/requirements.txt
-    - pip3.8 install flake8 pytest pytest-cov
-    - make test-site
-  coverage: '/(?i)TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: site/coverage.xml
+        path: rpc/coverage/rpc.xml
 
-.docker-login: &docker-login
-  before_script:
-    - docker login -u "$NERSC_REGISTRY_USER" -p "$NERSC_REGISTRY_PASSWORD" "$NERSC_REGISTRY"
+test-site:
+  <<: *docker-default
+  stage: unit-test
+  script:
+    - docker build -t jaws-site --target test-site .
+    - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: site/coverage/site.xml
 
 build-site:
   image: docker:19.03.12
@@ -433,23 +450,6 @@ deploy-jaws-dori-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
-
-package:
-  tags:
-    - shared-shell
-  stage: package
-  script:
-    - python3.8 -m venv pkg-venv
-    - source pkg-venv/bin/activate 
-    - pip3.8 install poetry wheel
-    - make pkg-poetry
-    - cd rpc && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-    - cd site && poetry config repositories.gitlab "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi" && poetry config http-basic.gitlab gitlab-ci-token "$CI_JOB_TOKEN"
-    - poetry publish --repository gitlab && cd ../
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
-  allow_failure: true
 
 cori-staging-test:
   stage: end-to-end-test

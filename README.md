@@ -69,15 +69,18 @@ cromwell-utils
 ## Local Development
 
 Please see the detailed instructions in the local_development.md file in this repository.
-## Python Wheels and Poetry
-We use [Poetry](https://python-poetry.org/) to build and publish python wheels into our containers. The Gitlab CI/CD pipeline 
-uses poetry in its environment by running `pip install poetry`. A packaging step is triggered by the pipeline upon the creation of a
-release branch. The resulting wheels are then pushed up to a private repository and can get pulled by running the command: 
 
-```shell
-$ pip install --index-url https://<personal_access_token_name>:<personal_access_token>@code.jgi.doe.gov/api/v4/projects/5/packages/pypi/simple --no-deps <package_name>
-```
-For more information please visit the official Gitlab [docs](https://docs.gitlab.com/ee/user/packages/package_registry/index.html).
+## Pip-tools and pyproject.toml
+`pyproject.toml` is the latest standard in configuring Python projects. JAWS has moved over to this over
+`setup.py` but installing this project remains the same. There are two requirements files, `dev-requirements.txt` and
+`requirements.txt`, which contain the pinned versions of JAWS dependencies. These two files were generated using [pip-tools](https://github.com/jazzband/pip-tools) as recommended by the [Python Packaging Guide](https://packaging.python.org/en/latest/guides/tool-recommendations/).
+
+To generate these files you will want to first install pip-tools and then run `pip-compile -o requirements.txt pyproject.toml`.
+The `pip-compile` command will then resolve the dependencies declared in `pyproject.toml` into the output file. You can
+install these dependencies either using `pip install -r requirements.txt` or using `pip-sync`
+
+Since setup.py is removed, you can no longer run `python setup.py install`. These calls have been deprecated in favor
+of installing projects with `pip install .` There is an interesting discussion in this [post](https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html).
 
 
 ## Contributing
