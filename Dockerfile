@@ -1,6 +1,7 @@
 FROM python:3.11 as builder
 ARG JAWS_UID=75388
 ARG JAWS_GID=75388
+RUN apt-get update && apt-get -y install rsync
 RUN groupadd -g ${JAWS_GID} jaws && useradd -u ${JAWS_UID} -g ${JAWS_GID} -c  "JAWS User" --no-create-home jaws
 
 WORKDIR /usr/app
