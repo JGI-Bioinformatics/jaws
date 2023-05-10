@@ -2,6 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 - Update Dockerfile base image to 3.11 and replace setup.py with pyproject.toml (#1635)
+- dori now is now a viable site because globus configuration has been fixed
 
 ## 1.1.0 Summary [04/12/2023]
 - improved support for generating metadata for large runs (>10k tasks)
