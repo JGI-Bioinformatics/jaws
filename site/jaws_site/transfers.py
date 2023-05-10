@@ -13,6 +13,7 @@ import boto3
 from jaws_site import config, models
 import botocore
 import shutil
+import subprocess
 
 
 logger = logging.getLogger(__package__)
@@ -160,22 +161,27 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.copy_folder()
+                self.rsync_folder()
         except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
 
-    def copy_folder(self) -> None:
+    def rsync_folder(self) -> None:
         """
         Recursively copy a folder.
         """
-        params = {
-            "dirmode": 0o0777,
-            "filemode": 0o0666,
-        }
-        copy_folder(self.data.src_base_dir, self.data.dest_base_dir, **params)
+        result = rsync(
+            f"{self.data.src_base_dir}/",
+            f"{self.data.dest_base_dir}/",
+            [
+                "-rLq",
+                "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
+            ],
+        )
+        if result.returncode != 0:
+            raise IOError(f"rsync failed: {result.stdout}; {result.stderr}")
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -411,6 +417,13 @@ def check_queue(session) -> None:
     if len(rows):
         transfer = Transfer(session, rows[0])
         transfer.transfer_files()
+
+
+def rsync(src, dest, options="-rLtq"):
+    """Copy source to destination using rsync."""
+    return subprocess.run(
+        ["rsync", *options, src, dest], capture_output=True, text=True
+    )
 
 
 def copy_folder(root_src_dir, root_dst_dir, **kwargs):
