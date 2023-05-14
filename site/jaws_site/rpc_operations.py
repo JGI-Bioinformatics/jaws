@@ -12,22 +12,6 @@ from jaws_site.transfers import Transfer
 logger = logging.getLogger(__package__)
 
 
-def server_status(params, session):
-    """Return the current status of the Cromwell server.
-
-    :return: Either a success- or failure-formatted JSON-RPC2 response,
-    if Cromwell up or not.
-    :rtype: dict
-    """
-    logger.info("Check server status")
-    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
-    try:
-        status = cromwell.status()
-    except Exception as error:
-        return failure(error)
-    return success(status)
-
-
 def queue_wait(params, session):
     """Return the current queue wait times of the possible
     condor pools (sm, md, lg, xlg).
@@ -175,7 +159,6 @@ def site_config(params, session):
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
-    "server_status": {"function": server_status},
     "queue_wait": {"function": queue_wait},
     "submit_run": {
         "function": submit_run,
