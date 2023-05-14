@@ -710,6 +710,44 @@ class Run:
 
         self.update_run_status("complete")
 
+    def _insert_task_summary(self, contents_json: dict):
+        contents = json.dumps(contents_json)
+        task_summary = models.Task_Summary(
+            run_id=self.data.id,
+            tasks_json=contents,
+        )
+        try:
+            savepoint = self.session.begin_nested()
+            old_task_summary = self.session.get(models.Task_Summary, self.data.id)
+            if old_task_summary is not None:
+                self.session.delete(old_task_summary)
+            self.session.add(task_summary)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            savepoint.rollback()
+            logger.exception(
+                f"Unable to insert task-summary of Run {self.data.id}: {error}"
+            )
+
+    def output_manifest(self) -> list:
+        """
+        Return a list of output files for a completed run.
+        """
+        root = self.data.workflow_root
+        with open(f"{root}/outfiles.json", "r") as fh:
+            files = json.load(fh)
+        files.extend(
+            [
+                f"{root}/metadata.json",
+                f"{root}/errors.json",
+                f"{root}/outputs.json",
+                f"{root}/outfiles.json",
+                f"{root}/task_summary.json",
+            ]
+        )
+        return files
+
+>>>>>>> bdf3d7a2 (add runs.output_manifest method)
     def publish_report(self):
         """
         Save final run metadata and send report document to reports service via RPC.

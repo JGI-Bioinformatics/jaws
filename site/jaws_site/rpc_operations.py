@@ -40,7 +40,7 @@ def output_manifest(params, session):
     complete = True if "complete" in params and params["complete"] is True else False
     try:
         run = Run.from_id(session, params["run_id"])
-        result = run.output_manifest(complete=complete)
+        result = run.output_manifest()
     except Exception as error:
         return failure(error)
     return success(result)
