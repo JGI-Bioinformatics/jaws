@@ -73,7 +73,10 @@ class TaskLog:
                 execution_dirs[execution_dir][1] = timestamp
             elif status == "running":
                 execution_dirs[execution_dir][2] = timestamp
+            elif status == "cancelled":
+                execution_dirs[execution_dir][0] = "cancelled"
             else:
+                # "succeeded" or "failed"
                 execution_dirs[execution_dir][3] = timestamp
             execution_dirs[execution_dir][0] = status
         table = []
@@ -128,16 +131,19 @@ def receive_messages(config, session):
 
     def _insert_task_log(message: str) -> None:
         params = json.loads(message)
-        timestamp = datetime.strptime(params["timestamp"], "%Y-%m-%d %H:%M:%S")
         cromwell_run_id = params.get("cromwell_run_id", None)
         execution_dir = params.get("execution_dir", None)
         status = params.get("status", None)
+        timestamp = params.get("timestamp", None)
+        job_id = params.get("job_id", None)
+        timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         try:
             log_entry = models.Task_Log(
                 cromwell_run_id=cromwell_run_id,
                 execution_dir=execution_dir,
                 status=status,
                 timestamp=timestamp,
+                job_id=job_id,
             )
             session.add(log_entry)
             session.commit()
