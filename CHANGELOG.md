@@ -2,6 +2,8 @@
 
 # Inbound changes not assigned to version # yet
 
+## 1.1.2 Summary [05/15/2023]
+
 ## 1.1.1 Summary [05/10/2023]
 - Update Dockerfile base image to 3.11 and replace setup.py with pyproject.toml (#1635)
 - dori now is now a viable site because globus configuration has been fixed
