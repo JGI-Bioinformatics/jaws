@@ -96,6 +96,7 @@ id = eagle
 deployment = prod
 inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 max_user_active_runs = 10
+max_transfer_threads = 10
 [AWS]
 aws_access_key_id = AAAA
 aws_secret_access_key = BBBB
@@ -1160,3 +1161,15 @@ class MockLogger:
 
     def debug(self, message):
         pass
+
+
+@pytest.fixture
+def setup_files(tmpdir):
+    src_dir = tmpdir.mkdir("src")
+    dst_dir = tmpdir.mkdir("dst")
+
+    for i in range(1000):
+        file = src_dir.join(f"file{i}.txt")
+        file.write("content")
+
+    yield str(src_dir), str(dst_dir)

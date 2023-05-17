@@ -33,7 +33,8 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "max_retries": 3,
         },
         "SITE": {
-            "max_user_active_runs": 0
+            "max_user_active_runs": 0,
+            "max_transfer_threads": 7
         }
     }
     required_params = {
