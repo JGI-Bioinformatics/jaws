@@ -13,8 +13,7 @@ import boto3
 from jaws_site import config, models
 import botocore
 import subprocess
-from subprocess import Popen, PIPE
-from parallel_sync import rsync, local_copy, path_match
+from parallel_sync import rsync
 
 
 logger = logging.getLogger(__package__)
@@ -181,12 +180,10 @@ class Transfer:
         dest = f"{self.data.dest_base_dir}/"
         if len(manifest) == 0:
             logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
-            parallel_rsync(f"{self.data.src_base_dir}/", f"{self.data.dest_base_dir}/")
+            parallel_rsync(src, dest)
         else:
             logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
-            parallel_rsync_files(
-                manifest, f"{self.data.src_base_dir}/", f"{self.data.dest_base_dir}/"
-            )
+            parallel_rsync_files(manifest, src, dest)
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -495,7 +492,7 @@ def parallel_rsync_files(files, src, dest, include=[], exclude=[]):
     for rel_path in files:
         path = os.path.join(src, rel_path)
         root, filename = os.path.split(path)
-        if path_match(path, include, exclude):
+        if rsync.path_match(path, include, exclude):
             x = path[len(src) :]
             if x.startswith("/"):
                 x = x[1:]
