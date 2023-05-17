@@ -736,14 +736,14 @@ class Run:
         root = self.data.workflow_root
         with open(f"{root}/outfiles.json", "r") as fh:
             files = json.load(fh)
-        manifest = list(map(lambda s: s.replace(root,""), files))
+        manifest = list(map(lambda s: s.replace(root, ""), files))
         manifest.extend(
             [
-                f"metadata.json",
-                f"errors.json",
-                f"outputs.json",
-                f"outfiles.json",
-                f"task_summary.json",
+                "metadata.json",
+                "errors.json",
+                "outputs.json",
+                "outfiles.json",
+                "task_summary.json",
             ]
         )
         return manifest
