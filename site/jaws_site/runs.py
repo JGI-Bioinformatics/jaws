@@ -710,25 +710,6 @@ class Run:
 
         self.update_run_status("complete")
 
-    def _insert_task_summary(self, contents_json: dict):
-        contents = json.dumps(contents_json)
-        task_summary = models.Task_Summary(
-            run_id=self.data.id,
-            tasks_json=contents,
-        )
-        try:
-            savepoint = self.session.begin_nested()
-            old_task_summary = self.session.get(models.Task_Summary, self.data.id)
-            if old_task_summary is not None:
-                self.session.delete(old_task_summary)
-            self.session.add(task_summary)
-            self.session.commit()
-        except SQLAlchemyError as error:
-            savepoint.rollback()
-            logger.exception(
-                f"Unable to insert task-summary of Run {self.data.id}: {error}"
-            )
-
     def output_manifest(self) -> list:
         """
         Return a list of the output files for a completed run, as paths relative to the workflow_root.
