@@ -13,7 +13,7 @@ import boto3
 from jaws_site import config, models
 import botocore
 import subprocess
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE
 
 from parallel_sync import rsync
 
