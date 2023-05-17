@@ -475,7 +475,7 @@ def calculate_parallelism(num_files):
 
 
 def parallel_rsync(src, dest):
-    """Copy source to destination using rsync."""
+    """Recursively copy source folder to destination using rsync."""
     num_files = get_number_of_files(src)
     parallelism = calculate_parallelism(num_files)
     rsync.copy(src, dest, parallelism=parallelism, extract=False, validate=False)
@@ -498,6 +498,22 @@ def parallel_chmod(path, mode, parallelism=1):
             for file in files:
                 file_path = os.path.join(src_dir, file)
                 executor.submit(os.chmod, file_path, mode)
+
+
+def parallel_rsync_files(files, dst_dir, include=[], exclude=[]):
+    """Copy list of source files to destination using rsync."""
+    num_files = len(files)
+    parallelism = calculate_parallelism(num_files)
+    paths = []
+    for path in files:
+        root, filename = os.path.split(path)
+        if path_match(path, include, exclude):
+            x = path[len(src_dir) :]
+            if x.startswith("/"):
+                x = x[1:]
+            dst = os.path.join(dst_dir, x)
+            paths.append((path, dst))
+    rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
 def reset_queue(session):
