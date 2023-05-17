@@ -2,7 +2,6 @@ import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
 from jaws_site import queue_wait as slurm_queue_wait
-from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
@@ -40,7 +39,6 @@ def output_manifest(params, session):
     :rtype: list
     """
     logger.info(f"Outfiles for Run {params['run_id']}")
-    complete = True if "complete" in params and params["complete"] is True else False
     try:
         run = Run.from_id(session, params["run_id"])
         result = run.output_manifest()
