@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- Use `parallel_sync` Python package for file transfers 
 
 ## 1.1.2 Summary [05/15/2023]
 

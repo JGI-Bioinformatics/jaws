@@ -15,6 +15,7 @@ from tests.conftest import (
     MockTransfer,
     S3_BUCKET,
 )
+from subprocess import CalledProcessError
 import sqlalchemy
 import jaws_site
 from jaws_site import transfers
@@ -143,6 +144,46 @@ def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
     transfer.transfer_files()
     assert mock_sqlalchemy_session.data.session["commit"] is True
     assert transfer.data.status == "succeeded"
+
+
+def test_calculate_parallelism():
+    max_threads = 10
+    assert 1 == transfers.calculate_parallelism(10000)
+    assert 5 == transfers.calculate_parallelism(50000)
+    assert max_threads == transfers.calculate_parallelism(100000)
+    assert max_threads == transfers.calculate_parallelism(10000000)
+    assert max_threads == transfers.calculate_parallelism(335313)
+
+
+def test_use_find_subprocess_to_get_file_count(setup_files):
+    src, _ = setup_files
+    num_files = transfers.get_number_of_files(src)
+    assert num_files == 1001  # Includes top-level directory
+
+
+def test_parallel_rsync(mock_sqlalchemy_session, setup_files):
+    src_base_dir, dest_base_dir = setup_files
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir=src_base_dir,
+        dest_base_dir=dest_base_dir,
+    )
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.transfer_files()
+
+    for i in range(100):
+        assert os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
+
+
+def test_handles_nonexistent_directory(mock_sqlalchemy_session):
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir="/src",
+        dest_base_dir="/dst",
+    )
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.transfer_files()
+    assert transfer.data.status == "failed"
 
 
 def test_s3_parse_path():

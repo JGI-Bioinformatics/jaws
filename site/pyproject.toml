@@ -36,7 +36,8 @@ dependencies = [
     "pika",
     "moto",
     "matplotlib",
-    "psutil"
+    "psutil",
+    "parallel_sync"
 ]
 
 [project.optional-dependencies]

@@ -1,4 +1,4 @@
-FROM python:3.11 as builder
+FROM python:3.10 as builder
 ARG JAWS_UID=75388
 ARG JAWS_GID=75388
 RUN apt-get update && apt-get -y install rsync

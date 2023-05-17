@@ -15,12 +15,17 @@ import botocore
 import shutil
 import subprocess
 
+from parallel_sync import rsync
+
 
 logger = logging.getLogger(__package__)
 
 
 def mkdir(folder):
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+
+
+FILES_PER_THREAD = 10000
 
 
 class TransferError(Exception):
@@ -168,20 +173,11 @@ class Transfer:
         else:
             self.update_status("succeeded")
 
-    def rsync_folder(self) -> None:
+    def rsync_folder(self):
         """
         Recursively copy a folder.
         """
-        result = rsync(
-            f"{self.data.src_base_dir}/",
-            f"{self.data.dest_base_dir}/",
-            [
-                "-rLq",
-                "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
-            ],
-        )
-        if result.returncode != 0:
-            raise IOError(f"rsync failed: {result.stdout}; {result.stderr}")
+        parallel_rsync(f"{self.data.src_base_dir}/", f"{self.data.dest_base_dir}/")
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -419,11 +415,45 @@ def check_queue(session) -> None:
         transfer.transfer_files()
 
 
-def rsync(src, dest, options="-rLtq"):
+def get_number_of_files(src_dir):
+    """
+    Use find src_dir | wc -l to get the number of files in a directory
+    """
+    find_proc = subprocess.Popen(["find", f"{src_dir}"], stdout=subprocess.PIPE)
+    num_files = int(subprocess.check_output(["wc", "-l"], stdin=find_proc.stdout))
+    find_proc.wait()
+    if find_proc.returncode > 0:
+        raise subprocess.CalledProcessError(find_proc.returncode, f"find {src_dir}")
+    return num_files
+
+
+def calculate_parallelism(num_files):
+    """
+    Calculate the amount of parallelism needed by the parallel_sync process.
+    Each 10k files will require 1 thread with a max number of threads limited at 7.
+    """
+    if num_files < 0:
+        raise ValueError("num_files cannot be negative")
+
+    max_threads = int(config.conf.get("SITE", "max_transfer_threads"))
+
+    if max_threads < 0:
+        raise ValueError("max_threads must be greater than zero")
+
+    upper_limit_files = max_threads * FILES_PER_THREAD
+    min_threads = 1
+
+    if num_files >= upper_limit_files:
+        return max_threads
+    parallelism = num_files // FILES_PER_THREAD
+    return max(parallelism, min_threads)
+
+
+def parallel_rsync(src, dest):
     """Copy source to destination using rsync."""
-    return subprocess.run(
-        ["rsync", *options, src, dest], capture_output=True, text=True
-    )
+    num_files = get_number_of_files(src)
+    parallelism = calculate_parallelism(num_files)
+    rsync.copy(src, dest, parallelism=parallelism, extract=False, validate=False)
 
 
 def copy_folder(root_src_dir, root_dst_dir, **kwargs):
