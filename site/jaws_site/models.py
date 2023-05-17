@@ -4,7 +4,7 @@ SQLAlchemy models for persistent data structures.
 
 from datetime import datetime
 from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
-from sqlalchemy.dialects.mysql import MEDIUMTEXT, LONGTEXT
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from jaws_site.database import Base
 
 
