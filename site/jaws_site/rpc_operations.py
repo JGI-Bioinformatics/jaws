@@ -15,6 +15,7 @@ logger = logging.getLogger(__package__)
 def queue_wait(params, session):
     """Return the current queue wait times of the possible
     condor pools (sm, md, lg, xlg).
+    TODO: send to AMQP queue instead.
 
     :return: returns the estimated queue wait times for each condor pool.
     :rtype: dict
@@ -30,6 +31,8 @@ def queue_wait(params, session):
 
 def output_manifest(params, session):
     """Retrieve a Run's output manifest (files to return to user).
+    This is used by jaws-central for submitting the transfer.
+    TODO: send to AMQP queue instead.
 
     :param run_id: JAWS Run ID
     :type params: dict
@@ -48,6 +51,7 @@ def output_manifest(params, session):
 
 def cancel_run(params, session):
     """Mark a Run to be cancelled.  It will be cancelled by the Run daemon later (asynchronously).
+    TODO: read from AMQP queue instead.
 
     :param run_id: The JAWS run ID
     :type run_id: int
@@ -64,7 +68,10 @@ def cancel_run(params, session):
 
 
 def submit_run(params, session):
-    """Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes."""
+    """
+    Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes.
+    TODO: read from AMQP queue instead.
+    """
     logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
     try:
         run = Run.from_params(session, params)
@@ -75,7 +82,10 @@ def submit_run(params, session):
 
 
 def resubmit_run(params, session):
-    """Resubmit a run"""
+    """
+    Resubmit a run.
+    TODO: read from AMQP queue instead.
+    """
     logger.info(f"User {params['user_id']}: Re-submit Run {params['run_id']}")
     try:
         run = Run.from_id(session, params["run_id"])
@@ -87,7 +97,10 @@ def resubmit_run(params, session):
 
 
 def run_task_log(params, session):
-    """Retrieve task log from Cromwell metadata"""
+    """
+    Retrieve task log from Cromwell metadata.
+    TODO: deprecate; have task-logs sent directly to jaws-central.
+    """
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
         task_log = TaskLog(session, params["cromwell_run_id"], logger)
@@ -102,6 +115,7 @@ def submit_transfer(params, session):
     """
     Direct the Site to transfer files.  The transfer is added to the queue and will be done later.
     The status of the transfer may be queried using the &transfer_status function below.
+    TODO: read from AMQP queue instead.
     """
     logger.info(f"New transfer {params['transfer_id']}")
     try:
@@ -117,6 +131,7 @@ def submit_transfer(params, session):
 def transfer_status(params, session):
     """
     Check the status of a transfer.
+    TODO: deprecate.  jaws-central shall wait until updated via AMQP message.
     """
     try:
         transfer = Transfer.from_id(session, params["transfer_id"])
@@ -131,6 +146,7 @@ def transfer_status(params, session):
 def cancel_transfer(params, session):
     """
     Check the status of a transfer.
+    TODO: read from AMQP queue instead.
     """
     logger.info(f"Cancel transfer {params['transfer_id']}")
     try:
