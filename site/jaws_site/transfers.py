@@ -15,7 +15,7 @@ import botocore
 import subprocess
 from subprocess import Popen, PIPE
 
-from parallel_sync import rsync
+from parallel_sync import rsync, local_copy
 
 
 logger = logging.getLogger(__package__)
