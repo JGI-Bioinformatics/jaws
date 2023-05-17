@@ -90,49 +90,49 @@ def test_transfer_files(monkeypatch):
     def mock_s3_download(self):
         self.S3_DOWNLOAD = True
 
-    def mock_s3_download_folder(self):
-        self.S3_DOWNLOAD_FOLDER = True
-
     def mock_s3_upload(self):
         self.S3_UPLOAD = True
 
+    def mock_rsync(self):
+        self.RSYNC = True
+
     monkeypatch.setattr(Transfer, "s3_download", mock_s3_download)
-    monkeypatch.setattr(Transfer, "s3_download_folder", mock_s3_download_folder)
     monkeypatch.setattr(Transfer, "s3_upload", mock_s3_upload)
+    monkeypatch.setattr(Transfer, "rsync", mock_rsync)
 
     mock_session = MockSession()
-
-    #    # if the src path starts with "s3://" then download from S3
-    #    mock_data = MockTransferModel(
-    #        status="queued",
-    #        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
-    #        dest_base_dir="/scratch/jaws/downloads",
-    #    )
-    #    transfer = Transfer(mock_session, mock_data)
-    #    transfer.transfer_files()
-    #    assert transfer.S3_DOWNLOAD is True
 
     # if the src path starts with "s3://" then download from S3
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="s3://jaws-site/cromwell-executions/AAAA",
+        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
         dest_base_dir="/scratch/jaws/downloads",
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.S3_DOWNLOAD_FOLDER is True
+    assert transfer.S3_DOWNLOAD is True
     assert mock_session.needs_to_be_closed is False
 
-    # if the dest path starts with "s3://" then upload to S3
+    # if the dest path starts with "s3://" then download from S3
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="/scratch/jaws/uploads/A/B/C",
-        dest_base_dir="s3://jaws-site/uploads",
+        src_base_dir="/scratch/jaws/downloads",
+        dest_base_dir="s3://jaws-site/cromwell-executions/AAAA",
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
     assert transfer.S3_UPLOAD is True
     assert mock_session.needs_to_be_closed is False
+
+    # if both src and dest are paths, then rsync
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir="/scratch/jaws/cromwell-executions/A/B/C",
+        dest_base_dir="/scratch/assembly/jaws/outputs/",
+    )
+    transfer = Transfer(mock_session, mock_data)
+    transfer.transfer_files()
+    assert transfer.RSYNC is True
 
 
 def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
