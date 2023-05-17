@@ -93,12 +93,12 @@ def test_transfer_files(monkeypatch):
     def mock_s3_upload(self):
         self.S3_UPLOAD = True
 
-    def mock_rsync(self):
+    def mock_local_rsync(self):
         self.RSYNC = True
 
     monkeypatch.setattr(Transfer, "s3_download", mock_s3_download)
     monkeypatch.setattr(Transfer, "s3_upload", mock_s3_upload)
-    monkeypatch.setattr(Transfer, "rsync", mock_rsync)
+    monkeypatch.setattr(Transfer, "local_rsync", mock_local_rsync)
 
     mock_session = MockSession()
 
@@ -136,10 +136,10 @@ def test_transfer_files(monkeypatch):
 
 
 def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
-    def mock_rsync_folder(self):
+    def mock_local_rsync(self):
         pass
 
-    monkeypatch.setattr(Transfer, "rsync_folder", mock_rsync_folder)
+    monkeypatch.setattr(Transfer, "local_rsync", mock_local_rsync)
     mock_data = MockTransferModel(
         status="queued",
         src_base_dir="/scratch/jaws-site/cromwell-executions/ex/AAAA",
