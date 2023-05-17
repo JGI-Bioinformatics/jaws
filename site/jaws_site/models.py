@@ -73,12 +73,6 @@ class Task_Log(Base):
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
-class Task_Summary(Base):
-    __tablename__ = "task_summaries"
-    run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
-    tasks_json = Column(LONGTEXT, nullable=False)
-
-
 class Transfer(Base):
     """
     Table of transfer tasks (sets of files to transfer).

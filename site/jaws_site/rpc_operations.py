@@ -114,18 +114,6 @@ def run_task_log(params, session):
         return success(result)
 
 
-def run_task_summary(params, session):
-    """Retrieve task summary from Cromwell metadata"""
-    logger.info(f"User {params['user_id']}: Task-summary Run {params['run_id']}")
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.task_summary()
-    except Exception as error:
-        return failure(error)
-    else:
-        return success(result)
-
-
 def submit_transfer(params, session):
     """
     Direct the Site to transfer files.  The transfer is added to the queue and will be done later.
@@ -212,10 +200,6 @@ operations = {
     },
     "run_task_log": {
         "function": run_task_log,
-        "required_params": ["user_id", "run_id"],
-    },
-    "run_task_summary": {
-        "function": run_task_summary,
         "required_params": ["user_id", "run_id"],
     },
     "submit_transfer": {

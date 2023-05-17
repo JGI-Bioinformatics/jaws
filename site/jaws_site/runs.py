@@ -224,22 +224,6 @@ class Run:
         task_log = TaskLog(self.session, self.data.cromwell_run_id)
         return task_log.table()
 
-    def task_summary(self):
-        run_id = self.data.id
-        if self.data.status not in ("complete", "finished"):
-            raise ValueError("Task-summary has not been generated yet")
-        try:
-            data = self.session.query(models.Task_Summary).get(run_id)
-        except IntegrityError as error:
-            logger.warning(f"Run {run_id} Task-Summary not found: {error}")
-            raise RunNotFoundError(f"Run {run_id} Task-Summary not found")
-        except SQLAlchemyError as error:
-            err_msg = f"Unable to select task_summary of run {run_id}: {error}"
-            logger.error(err_msg)
-            raise RunDbError(err_msg)
-        else:
-            return json.loads(data.tasks_json)
-
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
         status = self.data.status
@@ -561,9 +545,6 @@ class Run:
             self.data.cromwell_run_id = None
             self.data.result = None
             self.session.add(log_entry)
-            task_summary = self.session.get(models.Task_Summary, self.data.id)
-            if task_summary is not None:
-                self.session.delete(task_summary)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
@@ -732,35 +713,7 @@ class Run:
         summary_file = f"{self.data.workflow_root}/task_summary.json"
         write_json_file(summary_file, task_summary)
 
-        # the task summary needs to be save in a db so it may be provided (e.g. to the dashboard)
-        # even after the files have been purged
-        try:
-            self._insert_task_summary(task_summary)
-        except Exception as error:
-            logger.error(f"Run {self.data.id}: Unable to insert task-summary: {error}")
-            # do not change state; try again later
-            return
-
         self.update_run_status("complete")
-
-    def _insert_task_summary(self, contents_json: dict):
-        contents = json.dumps(contents_json)
-        task_summary = models.Task_Summary(
-            run_id=self.data.id,
-            tasks_json=contents,
-        )
-        try:
-            savepoint = self.session.begin_nested()
-            old_task_summary = self.session.get(models.Task_Summary, self.data.id)
-            if old_task_summary is not None:
-                self.session.delete(old_task_summary)
-            self.session.add(task_summary)
-            self.session.commit()
-        except SQLAlchemyError as error:
-            savepoint.rollback()
-            logger.exception(
-                f"Unable to insert task-summary of Run {self.data.id}: {error}"
-            )
 
     def publish_report(self):
         """
@@ -774,7 +727,8 @@ class Run:
             return
 
         # read previously generated summary
-        summary = self.task_summary()
+        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        summary = self._read_json_file(summary_file)
 
         # publish and if successful, mark as done, else skip until next time
         try:

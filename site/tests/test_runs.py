@@ -555,7 +555,7 @@ def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
 
 
 def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
-    def mock_task_summary(self):
+    def mock__read_json_file(self, path):
         contents = {
             "run_id": "99",
         }
@@ -568,7 +568,7 @@ def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     def mock_update_run_status(self, new_status):
         assert new_status
 
-    monkeypatch.setattr(Run, "task_summary", mock_task_summary)
+    monkeypatch.setattr(Run, "_read_json_file", mock__read_json_file)
     monkeypatch.setattr(RpcClientBasic, "request", mock_rpc_client_request)
 
     data = initRunModel(status="complete")
