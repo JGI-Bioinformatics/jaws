@@ -149,6 +149,7 @@ class Transfer:
             if reason is not None:
                 self.data.reason = reason
             self.session.commit()
+            self.session.close()
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
