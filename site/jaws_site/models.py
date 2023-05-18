@@ -4,7 +4,7 @@ SQLAlchemy models for persistent data structures.
 
 from datetime import datetime
 from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
-from sqlalchemy.dialects.mysql import MEDIUMTEXT, LONGTEXT
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from jaws_site.database import Base
 
 
@@ -71,12 +71,6 @@ class Task_Log(Base):
     execution_dir = Column(String(1024), nullable=False)
     status = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
-
-
-class Task_Summary(Base):
-    __tablename__ = "task_summaries"
-    run_id = Column(Integer, ForeignKey("runs.id"), primary_key=True)
-    tasks_json = Column(LONGTEXT, nullable=False)
 
 
 class Transfer(Base):
