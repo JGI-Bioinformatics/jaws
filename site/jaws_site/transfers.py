@@ -479,3 +479,20 @@ def copy_folder(root_src_dir, root_dst_dir, **kwargs):
                 os.remove(dst_file)
             shutil.copy(src_file, dst_file)
             os.chmod(dst_file, filemode)
+
+
+def reset_queue(session):
+    rows = []
+    try:
+        rows = (
+            session.query(models.Transfer)
+            .filter(models.Transfer.status == "transferring")
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        transfer = Transfer(session, row)
+        transfer.update_status("queued")
