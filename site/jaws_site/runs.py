@@ -729,7 +729,6 @@ class Run:
         )
         return manifest
 
->>>>>>> bdf3d7a2 (add runs.output_manifest method)
     def publish_report(self):
         """
         Save final run metadata and send report document to reports service via RPC.
