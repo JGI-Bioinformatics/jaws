@@ -90,6 +90,7 @@ class Transfer:
         try:
             session.add(data)
             session.commit()
+            session.close()
         except SQLAlchemyError as error:
             session.rollback()
             raise TransferDbError(error)

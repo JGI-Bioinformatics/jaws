@@ -147,6 +147,7 @@ def receive_messages(config, session):
             )
             session.add(log_entry)
             session.commit()
+            session.close()
         except IntegrityError as error:
             session.rollback()
             logger.error(f"Invalid task-log message, {message}: {error}")

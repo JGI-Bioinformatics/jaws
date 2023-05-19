@@ -93,3 +93,4 @@ def create_all(engine, session):
     """Create all tables if not exist"""
     Base.metadata.create_all(engine)
     session.commit()
+    session.close()
