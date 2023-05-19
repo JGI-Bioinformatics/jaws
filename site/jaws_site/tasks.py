@@ -135,7 +135,6 @@ def receive_messages(config, session):
         execution_dir = params.get("execution_dir", None)
         status = params.get("status", None)
         timestamp = params.get("timestamp", None)
-        job_id = params.get("job_id", None)
         timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         try:
             log_entry = models.Task_Log(
@@ -143,7 +142,6 @@ def receive_messages(config, session):
                 execution_dir=execution_dir,
                 status=status,
                 timestamp=timestamp,
-                job_id=job_id,
             )
             session.add(log_entry)
             session.commit()
