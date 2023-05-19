@@ -1,7 +1,8 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
-- Use `parallel_sync` Python package for file transfers 
+- Use `parallel_sync` Python package for file transfers
+- Add close() in update_status to force use of a fresh connection on the next update
 
 ## 1.1.2 Summary [05/15/2023]
 
