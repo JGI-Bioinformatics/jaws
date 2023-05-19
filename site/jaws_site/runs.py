@@ -130,6 +130,7 @@ class Run:
         try:
             session.add(data)
             session.commit()
+            session.close()
         except SQLAlchemyError as error:
             session.rollback()
             raise RunDbError(error)
@@ -546,6 +547,7 @@ class Run:
             self.data.result = None
             self.session.add(log_entry)
             self.session.commit()
+            self.session.close()
         except SQLAlchemyError as error:
             savepoint.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
@@ -578,6 +580,7 @@ class Run:
             self.data.workflow_name = workflow_name
             self.data.workflow_root = workflow_root
             self.session.commit()
+            self.session.close()
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
@@ -649,6 +652,7 @@ class Run:
                 self.data.result = status_to
             self.session.add(log_entry)
             self.session.commit()
+            self.session.close()
         except SQLAlchemyError as error:
             savepoint.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
@@ -828,6 +832,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         try:
             log.sent = True
             session.commit()
+            session.close()
         except Exception as error:
             session.rollback()
             logger.exception(f"Error updating run_logs as sent: {error}")
