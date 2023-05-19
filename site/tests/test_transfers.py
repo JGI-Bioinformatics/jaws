@@ -56,11 +56,13 @@ def test_cancel(monkeypatch):
     mock_data = MockTransferModel(status="queued")
     transfer = Transfer(mock_session, mock_data)
     assert transfer.cancel() is True
+    assert mock_session.needs_to_be_closed is False
 
     # a transfer that has already begun cannot be cancelled
     mock_data = MockTransferModel(status="transferring")
     transfer = Transfer(mock_session, mock_data)
     assert transfer.cancel() is False
+    assert mock_session.needs_to_be_closed is False
 
 
 def test_manifest():
@@ -118,6 +120,7 @@ def test_transfer_files(monkeypatch):
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
     assert transfer.S3_DOWNLOAD_FOLDER is True
+    assert mock_session.needs_to_be_closed is False
 
     # if the dest path starts with "s3://" then upload to S3
     mock_data = MockTransferModel(
@@ -128,6 +131,7 @@ def test_transfer_files(monkeypatch):
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
     assert transfer.S3_UPLOAD is True
+    assert mock_session.needs_to_be_closed is False
 
 
 def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
@@ -213,7 +217,7 @@ def test_from_params(mock_sqlalchemy_session):
         "add": True,
         "commit": True,
         "query": False,
-        "close": False,
+        "close": True,
         "rollback": False,
     }
     mock_sqlalchemy_session.clear()
@@ -231,7 +235,7 @@ def test_from_params(mock_sqlalchemy_session):
         "add": True,
         "commit": True,
         "query": False,
-        "close": False,
+        "close": True,
         "rollback": False,
     }
     mock_sqlalchemy_session.clear()
