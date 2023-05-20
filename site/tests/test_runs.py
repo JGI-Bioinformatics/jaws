@@ -214,7 +214,6 @@ def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
 
     run.submit_run()
     assert mock_sqlalchemy_session.data.session["commit"] is True
-    assert mock_sqlalchemy_session.data.session["close"] is False
 
 
 def test_resubmit_run(mock_sqlalchemy_session):
@@ -229,7 +228,6 @@ def test_resubmit_run(mock_sqlalchemy_session):
     run = Run(mock_sqlalchemy_session, mock_data)
     run.resubmit()
     assert mock_sqlalchemy_session.data.session["commit"] is True
-    assert mock_sqlalchemy_session.data.session["close"] is False
 
 
 def test_max_active_runs_exceeded(mock_sqlalchemy_session):

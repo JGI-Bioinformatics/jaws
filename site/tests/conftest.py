@@ -546,7 +546,6 @@ def transfer_dirs(tmp_path):
 
 class MockSession:
     def __init__(self):
-        self.needs_to_be_closed = False
         return
 
     def begin(self):
@@ -556,11 +555,9 @@ class MockSession:
         return
 
     def commit(self):
-        self.needs_to_be_closed = True
         return
 
     def close(self):
-        self.needs_to_be_closed = False
         return
 
     def close_all(self):
