@@ -2,6 +2,7 @@ import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
 from jaws_site import queue_wait as slurm_queue_wait
+from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
@@ -9,6 +10,22 @@ from jaws_site.transfers import Transfer
 
 # config and logging must be initialized before importing this module
 logger = logging.getLogger(__package__)
+
+
+def server_status(params, session):
+    """Return the current status of the Cromwell server.
+
+    :return: Either a success- or failure-formatted JSON-RPC2 response,
+    if Cromwell up or not.
+    :rtype: dict
+    """
+    logger.info("Check server status")
+    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+    try:
+        status = cromwell.status()
+    except Exception as error:
+        return failure(error)
+    return success(status)
 
 
 def queue_wait(params, session):
@@ -173,6 +190,7 @@ def site_config(params, session):
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
+    "server_status": {"function": server_status},
     "queue_wait": {"function": queue_wait},
     "submit_run": {
         "function": submit_run,
