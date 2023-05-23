@@ -177,7 +177,7 @@ class Transfer:
             f"{self.data.dest_base_dir}/",
             [
                 "-rLq",
-                "--chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo=",
+                "--chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rwx",
             ],
         )
         if result.returncode != 0:
