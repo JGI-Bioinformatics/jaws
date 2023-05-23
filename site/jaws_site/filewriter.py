@@ -2,11 +2,13 @@
 Filewriter class used by Nick Tyler's Pagarus utility
 """
 
-from typing import Dict, List
 import logging
-import sys
-import signal
+import bz2
+import gzip
 import json
+from pathlib import Path
+from typing import Dict, List
+
 
 class FileWriter:
     compressed = False
