@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import bz2
-import gzip
 from math import ceil
 
 from time import sleep
@@ -10,11 +8,10 @@ import os
 import logging
 import sys
 import signal
-import json
 
 from typing import Dict, List
 from pathlib import Path
-from filewriter import Filewriter
+from filewriter import FileWriter
 
 # This script is a copy of the pagurus script in github: https://github.com/tylern4/pagurus
 
