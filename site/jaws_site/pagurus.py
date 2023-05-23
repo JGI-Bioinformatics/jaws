@@ -11,7 +11,7 @@ import signal
 
 from typing import Dict, List
 from pathlib import Path
-from filewriter import FileWriter
+from jaws_site.filewriter import FileWriter
 
 # This script is a copy of the pagurus script in github: https://github.com/tylern4/pagurus
 
