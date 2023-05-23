@@ -2,7 +2,7 @@ import pytest
 import json
 import os
 
-from jaws_site.filewriter import Filewriter
+from jaws_site.filewriter import FileWriter
 
 def test_FileWriter_csv(tmp_path):
     print("Output file path", tmp_path)
