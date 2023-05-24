@@ -30,15 +30,9 @@ def test_FileWriter_csv_envvar(tmp_path):
     header = ['name1', "name2", "name3"]
     outfile = tmp_path/f"test.csv"
 
-    # Clear out environment variables we will be testing with
-    try:
-        os.environ.pop("testytesty")
-        os.environ.pop("testytoasty")
-    except:
-        pass
-    os.environ['testytesty'] = 'test'
-    os.environ['testytoasty'] = 'test2'
-    fw = FileWriter(outfile=outfile, header=header, write_header=True, env=["testytesty", "testytoasty"])
+    environ = {'testytesty': 'test',
+               'testytoasty':'test2'}
+    fw = FileWriter(outfile=outfile, header=header, write_header=True, env=environ)
     header2 = header + ["testytesty","testytoasty"]
 
     assert fw.header == header2
@@ -81,17 +75,9 @@ def test_FileWriter_json_envvar(tmp_path):
     header = ['name1',"name2","name3"]
     outfile = tmp_path/f"test.json"
 
-    # Clear out environment variables we will be testing with
-    try:
-        os.environ.pop("testytesty")
-        os.environ.pop("testytoasty")
-    except:
-        pass
-    with pytest.raises(KeyError) as e:
-        fw = FileWriter(outfile=outfile, header=header, write_header=True, jsonout=True, env=["testytesty","testytoasty"])
-    os.environ['testytesty'] = 'test'
-    os.environ['testytoasty'] = 'test2'
-    fw = FileWriter(outfile=outfile, header=header, write_header=True, jsonout=True, env=["testytesty","testytoasty"])
+    environ = {'testytesty': 'test',
+               'testytoasty':'test2'}
+    fw = FileWriter(outfile=outfile, header=header, write_header=True, jsonout=True, env=environ)
     header2 = header + ["testytesty", "testytoasty"]
 
     assert fw.header == header2
