@@ -6,6 +6,7 @@ import logging
 import bz2
 import gzip
 import json
+import os
 from pathlib import Path
 from typing import Dict, List
 
@@ -18,18 +19,29 @@ class FileWriter:
                  write_header: bool = True,
                  rolling: bool = False,
                  jsonout: bool = False,
-                 env: Dict = {}) -> None:
+                 env: List[str] = []) -> None:
         self.extensions = {
             'gz': 'csv.gz',
             'bz2': 'csv.bz2',
             'csv': 'csv'
         }
 
-        self.header: List[str] = header
+        # If environment variables are specified they need to be available, warn that they are not available
+        env2 = []
+        if len(env) > 0:
+            for ev in env:
+                if ev not in os.environ:
+                    logging.warning( "Environment variable {} not found".format(ev))
+                else:
+                    env2.append(ev)
+
+        self.header: List[str] = header + env2
         self.number: int = 0
         self.write_header: bool = write_header
         self.rolling: bool = rolling
         self.env: Dict = env
+
+
 
         # Create an appropriate formatting function
         if jsonout:
