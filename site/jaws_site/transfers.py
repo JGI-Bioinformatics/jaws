@@ -12,7 +12,6 @@ import json
 import boto3
 from jaws_site import config, models
 import botocore
-import shutil
 import subprocess
 
 from parallel_sync import rsync
