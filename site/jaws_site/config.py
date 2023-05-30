@@ -35,7 +35,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         "SITE": {
             "max_user_active_runs": 0,
             "max_transfer_threads": 7,
-            "file_permissions": 775
+            "file_permissions": 755
         }
     }
     required_params = {

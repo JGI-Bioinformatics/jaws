@@ -61,11 +61,11 @@ def config_file(tmp_path):
     content = """
 [RMQ]
 host = localhost
-vhost = test
+vhost = jaws_test
 user = jaws
 password = password
 num_threads = 5
-max_retries = 5
+max_retries = 3 
 
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
@@ -82,15 +82,18 @@ host_path = /global/scratch/jaws
 [DB]
 host = localhost
 port = 3306
-user = jaws
-password = jawstest
-db = jaws_eagle
+user = elmer_fudd
+password = hunting
+db = hunting_sites
 dialect = mysql+mysqlconnector
+host2 = ${JAWS_DB_HOST}
+password2 = ${JAWS_DB_PASSWORD}123
+test = 
 
 [SITE]
 id = eagle
 deployment = test
-inputs_dir = /globa/scratch/jaws/inputs
+inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 max_user_active_runs = 1
 max_transfer_threads = 10
 file_permissions = 777
@@ -105,10 +108,6 @@ s3_bucket = CCCC
 """
     cfg.write_text(content)
     yield cfg.as_posix()
-
-@pytest.fixture()
-def configuration():
-    conf = config.Configuration(config_file)
 
 
 @pytest.fixture
