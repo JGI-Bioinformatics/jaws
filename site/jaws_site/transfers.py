@@ -2,7 +2,7 @@
 Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc.)
 Items are stored in a relational database.
 """
-
+import concurrent.futures
 import logging
 import os
 import pathlib
@@ -457,30 +457,24 @@ def parallel_rsync(src, dest):
     parallelism = calculate_parallelism(num_files)
     rsync.copy(src, dest, parallelism=parallelism, extract=False, validate=False)
 
+    mode = config.conf.get("SITE", "file_permissions")
+    parallel_chmod(dest, mode, parallelism=parallelism)
 
-def copy_folder(root_src_dir, root_dst_dir, **kwargs):
+
+def parallel_chmod(path, mode, parallelism=1):
     """
     Recursively copy folder and set permissions.
     """
-    root_src_dir = os.path.abspath(root_src_dir)
-    root_dst_dir = os.path.abspath(root_dst_dir)
-    dirmode = kwargs.get("dirmode", 0o0775)
-    filemode = kwargs.get("filemode", 0o0664)
-    os.chmod(root_src_dir, dirmode)
-    for src_dir, dirs, files in os.walk(root_src_dir):
-        dst_dir = src_dir.replace(root_src_dir, root_dst_dir, 1)
-        for subdir in dirs:
-            dst_subdir = os.path.join(dst_dir, subdir)
-            if not os.path.exists(dst_subdir):
-                os.makedirs(dst_subdir)
-            os.chmod(dst_subdir, dirmode)
-        for file in files:
-            src_file = os.path.join(src_dir, file)
-            dst_file = os.path.join(dst_dir, file)
-            if os.path.exists(dst_file):
-                os.remove(dst_file)
-            shutil.copy(src_file, dst_file)
-            os.chmod(dst_file, filemode)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
+        root_dir = os.path.abspath(path)
+        os.chmod(root_dir, mode)
+        for src_dir, dirs, files in os.walk(root_dir):
+            for subdir in dirs:
+                subdir_path = os.path.join(src_dir, subdir)
+                executor.submit(os.chmod, subdir_path, mode)
+            for file in files:
+                file_path = os.path.join(src_dir, file)
+                executor.submit(os.chmod, file_path, mode)
 
 
 def reset_queue(session):

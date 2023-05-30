@@ -58,53 +58,57 @@ def config_file_wrong(tmp_path):
 @pytest.fixture
 def config_file(tmp_path):
     cfg = tmp_path / "jaws-site.ini"
-    content = """[RMQ]
+    content = """
+[RMQ]
 host = localhost
-vhost = jaws_test
-queue = site_rpc
-user = jaws_eagle
-password = succotash
-password2 = ${LOCAL_RPC_SERVER_PASSWORD}
-password3 = ${LOCAL_RPC_SERVER_PASSWORD}$
+vhost = test
+user = jaws
+password = password
 num_threads = 5
-max_retries = 3
+max_retries = 5
+
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
 processed_dir = /tmp/processed_dir
 running_dir = /tmp/running_dir
 cleanup_time = 10
+
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
-endpoint_id = rooster
+endpoint_id = jaws-testing
 host_path = /global/scratch/jaws
-host_path2 = ${GLOBAL_SCRATCH}/${PROJECT_NAME}
+
 [DB]
+host = localhost
+port = 3306
+user = jaws
+password = jawstest
+db = jaws_eagle
 dialect = mysql+mysqlconnector
-host = myhost
-port = 60032
-user = elmer_fudd
-password = hunting
-db = hunting_sites
-host2 = ${JAWS_DB_HOST}
-password2 = ${JAWS_DB_PASSWORD}123
-test =
-[CROMWELL]
-url = http://localhost:8000
+
 [SITE]
 id = eagle
-deployment = prod
-inputs_dir = /global/scratch/jaws/jaws-dev/inputs
-max_user_active_runs = 10
+deployment = test
+inputs_dir = /globa/scratch/jaws/inputs
+max_user_active_runs = 1
 max_transfer_threads = 10
+file_permissions = 777
+
+[CROMWELL]
+url = http://localhost:8000
+
 [AWS]
 aws_access_key_id = AAAA
 aws_secret_access_key = BBBB
 s3_bucket = CCCC
 """
-
     cfg.write_text(content)
-    return cfg.as_posix()
+    yield cfg.as_posix()
+
+@pytest.fixture()
+def configuration():
+    conf = config.Configuration(config_file)
 
 
 @pytest.fixture
