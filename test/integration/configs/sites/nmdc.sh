@@ -24,3 +24,5 @@ export JAWS_AUTH_PORT_DEV=3004
 export JAWS_REST_PORT_DEV=5004
 export JAWS_CROMWELL_PORT_DEV=50104
 export JAWS_PERLMUTTER=1
+export JAWS_GITLAB_RUNNER="$CFS/m3408/jaws_runner/usr/bin/gitlab-runner"
+export JAWS_GITLAB_RUNNER_CONFIG="$HOME/.gitlab-runner/config.nmjaws.toml"
