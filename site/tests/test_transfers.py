@@ -192,7 +192,7 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
     assert transfer.data.status == "failed"
 
 
-@pytest.mark.parametrize("set_perms, expected_octal_perms", [('775', "0o775"), ('777', "0o777")])
+@pytest.mark.parametrize("set_perms, expected_octal_perms", [('755', '0o755'), ('777', '0o777')])
 def test_correctly_changes_permission(mock_sqlalchemy_session, monkeypatch, set_perms,
                                              config_file, expected_octal_perms, setup_files):
 

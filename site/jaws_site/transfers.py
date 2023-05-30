@@ -457,7 +457,7 @@ def parallel_rsync(src, dest):
     rsync.copy(src, dest, parallelism=parallelism, extract=False, validate=False)
 
     mode = config.conf.get("SITE", "file_permissions")
-    parallel_chmod(dest, mode, parallelism=parallelism)
+    parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
 
 
 def parallel_chmod(path, mode, parallelism=1):
