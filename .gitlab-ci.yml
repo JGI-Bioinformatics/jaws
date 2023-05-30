@@ -314,7 +314,7 @@ deploy-jaws-tahoma-prod:
 deploy-jaws-nmdc-dev:
   stage: deploy-jaws
   tags:
-    - cori21
+    - nmjaws
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "NMDC"
@@ -328,7 +328,7 @@ deploy-jaws-nmdc-dev:
 deploy-jaws-nmdc-staging:
   stage: deploy-jaws
   tags:
-    - cori21
+    - nmjaws
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "NMDC"
@@ -343,7 +343,7 @@ deploy-jaws-nmdc-staging:
 deploy-jaws-nmdc-prod:
   stage: release-jaws
   tags:
-    - cori21
+    - nmjaws
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_NAME: "NMDC"
