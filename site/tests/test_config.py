@@ -8,16 +8,16 @@ from jaws_site.config import ConfigurationError
 expected_rmq_sections = [
     ("host", "localhost"),
     ("vhost", "jaws_test"),
-    ("user", "jaws_eagle"),
-    ("password", "succotash"),
+    ("user", "jaws"),
+    ("password", "password"),
     ("num_threads", "5"),
     ("max_retries", "3"),
 ]
 
 expected_db_sections = [
     ("dialect", "mysql+mysqlconnector"),
-    ("host", "myhost"),
-    ("port", "60032"),
+    ("host", "localhost"),
+    ("port", "3306"),
     ("user", "elmer_fudd"),
     ("password", "hunting"),
     ("db", "hunting_sites"),
@@ -25,8 +25,8 @@ expected_db_sections = [
 
 expected_db_sections_env_override = [
     ("dialect", "mysql+mysqlconnector"),
-    ("host", "myhost"),
-    ("port", "60032"),
+    ("host", "localhost"),
+    ("port", "3306"),
     ("user", "elmer_fudd"),
     ("password", "hunting"),
     ("db", "hunting_sites"),
@@ -37,7 +37,7 @@ expected_db_sections_env_override = [
 expected_db_sections_env_override2 = [
     ("dialect", "mysql+mysqlconnector"),
     ("host", "db-host.foo.com"),
-    ("port", "60032"),
+    ("port", "3306"),
     ("user", "elmer_fudd"),
     ("password", "hunting"),
     ("db", "hunting_sites"),
