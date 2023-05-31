@@ -13,6 +13,7 @@ import boto3
 from jaws_site import config, models
 import botocore
 import subprocess
+from subprocess import Popen, PIPE, STDOUT
 
 from parallel_sync import rsync
 
@@ -161,7 +162,7 @@ class Transfer:
         self.update_status("transferring")
         try:
             if self.data.src_base_dir.startswith("s3://"):
-                self.s3_download_folder()
+                self.s3_download()
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
@@ -172,10 +173,32 @@ class Transfer:
         else:
             self.update_status("succeeded")
 
-    def rsync_folder(self):
+    def rsync(self) -> None:
+        manifest = self.manifest()
+        num_files = len(manifest)
+        if num_files == 0:
+            return self.rsync_folder()
+        logger.debug(f"Transfer {self.data.id} begin rsync of {num_files} files")
+        src = f"{self.data.src_base_dir}/"
+        dest = f"{self.data.dest_base_dir}/"
+        manifest_str = "\n".join(manifest) + "\n"
+        p = Popen(
+            ["rsync", "--files-from=-", src, dest], stdout=PIPE, stdin=PIPE, stderr=PIPE
+        )
+        out, err = p.communicate(input=manifest_str.encode())
+        if p.returncode != 0:
+            output = out.decode()
+            error = err.decode()
+            logger.error(f"Transfer {self.data.id} failed: {output}; {error}")
+            self.update_status("failed", error)
+
+    def rsync_folder(self) -> None:
         """
         Recursively copy a folder.
         """
+        logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
+        src = f"{self.data.src_base_dir}/"
+        dest = f"{self.data.dest_base_dir}/"
         parallel_rsync(f"{self.data.src_base_dir}/", f"{self.data.dest_base_dir}/")
 
     def aws_s3_resource(self):
@@ -318,6 +341,9 @@ class Transfer:
     def s3_download(self):
         manifest = self.manifest()
         num_files = len(manifest)
+        if num_files == 0:
+            # transfer entire folder, recursively
+            return self.s3_download_folder()
         logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
         aws_s3_resource = self.aws_s3_resource()
         s3_bucket, src_base_dir = self.s3_parse_path(self.data.src_base_dir)

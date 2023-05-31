@@ -731,21 +731,22 @@ class Run:
 
     def output_manifest(self) -> list:
         """
-        Return a list of output files for a completed run.
+        Return a list of the output files for a completed run, as paths relative to the workflow_root.
         """
         root = self.data.workflow_root
         with open(f"{root}/outfiles.json", "r") as fh:
             files = json.load(fh)
-        files.extend(
+        manifest = list(map(lambda s: s.replace(root,""), files))
+        manifest.extend(
             [
-                f"{root}/metadata.json",
-                f"{root}/errors.json",
-                f"{root}/outputs.json",
-                f"{root}/outfiles.json",
-                f"{root}/task_summary.json",
+                f"metadata.json",
+                f"errors.json",
+                f"outputs.json",
+                f"outfiles.json",
+                f"task_summary.json",
             ]
         )
-        return files
+        return manifest
 
 >>>>>>> bdf3d7a2 (add runs.output_manifest method)
     def publish_report(self):
