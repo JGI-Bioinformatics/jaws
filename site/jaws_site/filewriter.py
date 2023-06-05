@@ -51,7 +51,7 @@ class FileWriter:
             # Make formatter function based on number of metrics in header
             fmt = ",".join(["{}" for _ in range(len(self.header))])
             fmt_writer = fmt + "\n"
-            self.fmt_func = lambda *args: fmt_writer.format(*args + list(env.values()))
+            self.fmt_func = lambda *args: fmt_writer.format(*args + tuple(env.values()))
         self.outfile: Path = outfile
         self.next_file()
 
