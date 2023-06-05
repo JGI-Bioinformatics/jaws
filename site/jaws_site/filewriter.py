@@ -25,7 +25,7 @@ class FileWriter:
             'csv': 'csv'
         }
 
-        self.header: List[str] = header + env.keys()
+        self.header: List[str] = header + list(env.keys())
         self.number: int = 0
         self.write_header: bool = write_header
         self.rolling: bool = rolling
@@ -51,7 +51,7 @@ class FileWriter:
             # Make formatter function based on number of metrics in header
             fmt = ",".join(["{}" for _ in range(len(self.header))])
             fmt_writer = fmt + "\n"
-            self.fmt_func = lambda *args: fmt_writer.format(*args + env.values())
+            self.fmt_func = lambda *args: fmt_writer.format(*args + list(env.values()))
         self.outfile: Path = outfile
         self.next_file()
 
