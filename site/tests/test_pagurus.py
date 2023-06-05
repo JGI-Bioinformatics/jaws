@@ -139,6 +139,7 @@ def test_FileWriter_json_envvar(tmp_path):
         jsonout=True,
         env={"testytesty": "testytoasty"},
     )
+    header = header + list(env.keys())
     assert fw.header == header
     assert fw.write_header is False
     assert fw.outfile == outfile
