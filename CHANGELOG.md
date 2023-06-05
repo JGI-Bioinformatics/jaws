@@ -4,6 +4,7 @@
 - Use `parallel_sync` Python package for file transfers
 - Add close() in update_status to force use of a fresh connection on the next update
 - chmod's the output files using concurrent.futures
+- get the Pagurus filewriter tests working again, also disentangle filewriter class from script.
 
 ## 1.1.2 Summary [05/15/2023]
 
