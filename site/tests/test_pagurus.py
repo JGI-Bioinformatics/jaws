@@ -130,8 +130,6 @@ def test_FileWriter_json_envvar(tmp_path):
     header = ["name1", "name2", "name3"]
     outfile = tmp_path / "test.json"
     env={"testytesty": "testytoasty"}
-    
-    print(f"Output file={outfile}")
 
     fw = pagurus.FileWriter(
         outfile=outfile,

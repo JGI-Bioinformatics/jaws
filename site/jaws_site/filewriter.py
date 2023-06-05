@@ -25,10 +25,7 @@ class FileWriter:
             'csv': 'csv'
         }
 
-        print("Header = ", header)
-        print("env = ", env)
         self.header: List[str] = header + list(env.keys())
-        print("self.header = ", self.header)
         self.number: int = 0
         self.write_header: bool = write_header
         self.rolling: bool = rolling
