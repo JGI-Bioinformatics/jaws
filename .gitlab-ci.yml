@@ -314,7 +314,7 @@ deploy-jaws-tahoma-prod:
 deploy-jaws-nmdc-dev:
   stage: deploy-jaws
   tags:
-    - cori21
+    - nmjaws
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "NMDC"
@@ -328,7 +328,7 @@ deploy-jaws-nmdc-dev:
 deploy-jaws-nmdc-staging:
   stage: deploy-jaws
   tags:
-    - cori21
+    - nmjaws
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "NMDC"
@@ -343,7 +343,7 @@ deploy-jaws-nmdc-staging:
 deploy-jaws-nmdc-prod:
   stage: release-jaws
   tags:
-    - cori21
+    - nmjaws
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_NAME: "NMDC"
@@ -398,6 +398,7 @@ deploy-jaws-perlmutter-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+  allow_failure: true
 
 deploy-jaws-dori-dev:
   stage: deploy-jaws
@@ -432,7 +433,6 @@ deploy-jaws-dori-staging:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       when: manual
-  allow_failure: true
 
 deploy-jaws-dori-prod:
   stage: release-jaws
@@ -451,11 +451,11 @@ deploy-jaws-dori-prod:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
-cori-staging-test:
+dori-staging-test:
   stage: end-to-end-test
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "cori"
+    JAWS_SITE_NAME: "dori"
     RUN_END_TO_END: "true"
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'

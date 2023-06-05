@@ -1,5 +1,7 @@
 import pytest
+import os
 import os.path
+import stat
 from jaws_site.transfers import (
     Transfer,
     mkdir,
@@ -188,6 +190,33 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.transfer_files()
     assert transfer.data.status == "failed"
+
+
+@pytest.mark.parametrize("set_perms, expected_octal_perms", [('755', '0o755'), ('777', '0o777')])
+def test_correctly_changes_permission(mock_sqlalchemy_session, monkeypatch, set_perms,
+                                             config_file, expected_octal_perms, setup_files):
+
+    monkeypatch.setenv("ENV_OVERRIDE_PREFIX", "ENV__")
+    monkeypatch.setenv("ENV__SITE_file_permissions", set_perms)
+    jaws_site.config.Configuration._destructor()
+    conf = jaws_site.config.Configuration(config_file, env_prefix="ENV__")  # recreate the config so we can override
+
+    def get_permissions(path):
+        return oct(stat.S_IMODE(os.stat(path).st_mode))
+
+    src, dst = setup_files
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir=src,
+        dest_base_dir=dst
+    )
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.transfer_files()
+
+    assert get_permissions(dst) == expected_octal_perms
+
+    for i in range(100):
+        assert get_permissions(os.path.join(dst, f"file{i}.txt")) == expected_octal_perms
 
 
 def test_s3_parse_path():
