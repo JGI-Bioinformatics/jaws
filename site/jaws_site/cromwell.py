@@ -24,7 +24,9 @@ elsewhere in JAWS, as clarified below:
 """
 
 
+import urllib3
 import requests
+import requests.adapters
 import logging
 import os
 import glob
@@ -39,6 +41,8 @@ import botocore
 
 
 REQUEST_TIMEOUT = 120
+NUMBER_OF_RETRIES = 5
+BACKOFF_FACTOR = 5
 
 
 logger = logging.getLogger(__package__)
@@ -46,6 +50,12 @@ logger = logging.getLogger(__package__)
 aws_access_key_id = os.environ.get("AWS_ACCESS_KEY_ID", None)
 aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY", None)
 aws_region_name = os.environ.get("AWS_REGION_NAME", None)
+
+session = requests.Session()
+retries = urllib3.Retry(total=NUMBER_OF_RETRIES, backoff_factor=BACKOFF_FACTOR,
+                        status_forcelist=[500, 502, 503, 504])
+
+session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
 
 
 def s3_parse_uri(full_uri):
@@ -811,9 +821,12 @@ class Cromwell:
         """
         url = f"{self.workflows_url}/{workflow_id}/{output_type}"
         try:
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = session.get(url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+        except requests.exceptions.RetryError:
+            logger.exception("Reached max retries to Cromwell server. Check cromwell server status")
+            raise CromwellServiceError("Max retries for Cromwell server reached")
         if response.status_code == 404:
             raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
         elif response.status_code >= 400:
@@ -839,7 +852,7 @@ class Cromwell:
     def status(self):
         """Check if Cromwell is available"""
         try:
-            response = requests.get(self.engine_url, timeout=REQUEST_TIMEOUT)
+            response = session.get(self.engine_url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
@@ -852,7 +865,7 @@ class Cromwell:
         """Abort a run.  Raise upon error."""
         url = f"{self.workflows_url}/{workflow_id}/abort"
         try:
-            response = requests.post(url, timeout=REQUEST_TIMEOUT)
+            response = session.post(url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         sc = response.status_code
@@ -923,7 +936,7 @@ class Cromwell:
             "application/json",
         )
         try:
-            response = requests.post(
+            response = session.post(
                 self.workflows_url, files=files, timeout=REQUEST_TIMEOUT
             )
         except requests.exceptions.ConnectionError as error:
