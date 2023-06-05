@@ -97,7 +97,7 @@ def test_FileWriter_csv_envvar(tmp_path):
         contents = f.read()
         print(contents)
         lines = contents.splitlines()
-        assert lines[0] == ",".join(header++ list(env.keys())
+        assert lines[0] == ",".join(header + list(env.keys()))
         assert lines[1] == "0,1,2,testytoasty"
     fw.outfile.unlink()
 
