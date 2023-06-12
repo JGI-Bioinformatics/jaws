@@ -96,7 +96,20 @@ class TaskLog:
             # add execution dir
             row = (execution_dir, *execution_dirs[execution_dir])
             table.append(row)
-        return table
+        header = [
+            "TASK",
+            "STATUS",
+            "QUEUED",
+            "RUNNING",
+            "FINISHED",
+            "QUEUE_DUR",
+            "RUN_DUR",
+        ]
+        result = {
+            "header": header,
+            "table": table,
+        }
+        return result
 
     def did_run_start(self):
         """
