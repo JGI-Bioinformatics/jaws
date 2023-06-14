@@ -107,7 +107,7 @@ class TaskLog:
         ]
         result = {
             "header": header,
-            "table": table,
+            "data": table,
         }
         return result
 
