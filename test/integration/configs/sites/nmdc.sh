@@ -22,3 +22,7 @@ export JAWS_SUPERVISOR_PORT_DEV=64104
 export JAWS_AUTH_PORT_DEV=3004
 export JAWS_REST_PORT_DEV=5004
 export JAWS_CROMWELL_PORT_DEV=50104
+export JAWS_PERLMUTTER=1
+export TSIGPATH="/global/u2/n/nmjaws/.ssh/jaws_TSIG_key"
+export JAWS_GITLAB_RUNNER="/global/cfs/cdirs/m3408/jaws_runner/usr/bin/gitlab-runner"
+export JAWS_GITLAB_RUNNER_CONFIG="/global/homes/n/nmjaws/.gitlab-runner/config.nmjaws.toml"

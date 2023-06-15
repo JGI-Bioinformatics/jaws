@@ -26,3 +26,4 @@ export JAWS_REST_PORT_DEV=5001
 export JAWS_CROMWELL_PORT_DEV=50101
 export JAWS_QUEUE_WAIT_MEDIUM="sbatch --test-only -A m342 --mem 5G -N 1 --qos regular -C cpu -t 12:00:00 --wrap 'sleep 30' 2>&1"
 export JAWS_QUEUE_WAIT_XLARGE="sbatch --test-only -A fungalp --mem 5G -N 1 --qos jgi_exvivo -C skylake -t 12:00:00 --wrap 'sleep 30' 2>&1"
+export TSIGPATH="/global/u2/j/jaws/.ssh/jaws_TSIG_key"
