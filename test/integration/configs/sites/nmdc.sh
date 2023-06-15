@@ -24,3 +24,4 @@ export JAWS_AUTH_PORT_DEV=3004
 export JAWS_REST_PORT_DEV=5004
 export JAWS_CROMWELL_PORT_DEV=50104
 export JAWS_PERLMUTTER=1
+export TSIGPATH="/global/u2/n/nmjaws/.ssh/jaws_TSIG_key"
