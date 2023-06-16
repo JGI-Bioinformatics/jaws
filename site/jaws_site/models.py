@@ -87,10 +87,3 @@ class Transfer(Base):
     dest_base_dir = Column(String(1024), nullable=False)
     manifest_json = Column(MEDIUMTEXT, nullable=False)
     reason = Column(String(256), nullable=True)
-
-
-def create_all(engine, session):
-    """Create all tables if not exist"""
-    Base.metadata.create_all(engine)
-    session.commit()
-    session.close()

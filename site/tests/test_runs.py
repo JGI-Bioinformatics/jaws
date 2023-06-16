@@ -66,21 +66,18 @@ def test_mark_to_cancel(monkeypatch):
     run = Run(mock_session, mock_data)
     run.mark_to_cancel()
     assert run.status() == "cancel"
-    assert mock_session.needs_to_be_closed is False
 
     # test2: run was already marked to be cancelled
     mock_data = MockRunModel(status="cancel", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.mark_to_cancel()
     assert run.status() == "cancel"
-    assert mock_session.needs_to_be_closed is False
 
     # test3: run was already cancelled
     mock_data = MockRunModel(status="cancelled", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.mark_to_cancel()
     assert run.status() == "cancelled"
-    assert mock_session.needs_to_be_closed is False
 
 
 def test_cancel(monkeypatch):
@@ -102,14 +99,12 @@ def test_cancel(monkeypatch):
     run = Run(mock_session, mock_data)
     run.cancel()
     assert run.status() == "cancelled"
-    assert mock_session.needs_to_be_closed is False
 
     # test 2: run doesn't have cromwell_run_id
     mock_data = MockRunModel(status="queued", cromwell_run_id=None)
     run = Run(mock_session, mock_data)
     run.cancel()
     assert run.status() == "cancelled"
-    assert mock_session.needs_to_be_closed is False
 
 
 def test_s3_parse_path():
@@ -218,7 +213,8 @@ def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
     )
 
     run.submit_run()
-    assert mock_sqlalchemy_session.data.session["close"] is True
+    assert mock_sqlalchemy_session.data.session["commit"] is True
+    assert mock_sqlalchemy_session.data.session["close"] is False
 
 
 def test_resubmit_run(mock_sqlalchemy_session):
@@ -227,13 +223,13 @@ def test_resubmit_run(mock_sqlalchemy_session):
     run = Run(mock_sqlalchemy_session, mock_data)
     with pytest.raises(RunInputError):
         run.resubmit()
-    mock_session = MockSession()
 
     # test 2: success for finished run
     mock_data = MockRunModel(status="finished")
     run = Run(mock_sqlalchemy_session, mock_data)
     run.resubmit()
-    assert mock_sqlalchemy_session.data.session["close"] is True
+    assert mock_sqlalchemy_session.data.session["commit"] is True
+    assert mock_sqlalchemy_session.data.session["close"] is False
 
 
 def test_max_active_runs_exceeded(mock_sqlalchemy_session):
@@ -293,7 +289,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_false)
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
-    assert mock_session.needs_to_be_closed is False
 
     # test: queued -> queued
     mock_data = MockRunModel(status="queued", workflow_root="/x")
@@ -303,7 +298,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     )
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
-    assert mock_session.needs_to_be_closed is False
 
     # test: queued -> running
     mock_data = MockRunModel(status="queued", workflow_root="/x")
@@ -314,7 +308,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     monkeypatch.setattr(jaws_site.runs.Run, "did_run_start", mock_did_run_start_true)
     run.check_cromwell_run_status()
     assert run.data.status == "running"
-    assert mock_session.needs_to_be_closed is False
 
     # test: queued -> succeeded
     mock_data = MockRunModel(status="queued", workflow_root="/x")
@@ -324,7 +317,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     )
     run.check_cromwell_run_status()
     assert run.data.status == "succeeded"
-    assert mock_session.needs_to_be_closed is False
 
     # test: queued -> failed
     mock_data = MockRunModel(status="queued", workflow_root="/x")
@@ -334,7 +326,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     )
     run.check_cromwell_run_status()
     assert run.data.status == "failed"
-    assert mock_session.needs_to_be_closed is False
 
     # test: running -> succeeded
     mock_data = MockRunModel(status="running", workflow_root="/x")
@@ -344,7 +335,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     )
     run.check_cromwell_run_status()
     assert run.data.status == "succeeded"
-    assert mock_session.needs_to_be_closed is False
 
     # test: running -> failed
     mock_data = MockRunModel(status="running", workflow_root="/x")
@@ -354,7 +344,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     )
     run.check_cromwell_run_status()
     assert run.data.status == "failed"
-    assert mock_session.needs_to_be_closed is False
 
     # test get metadata, workflow_root
     mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD")
@@ -363,7 +352,6 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     assert run.data.status == "queued"
     assert run.data.workflow_name == "unknown"
     assert run.data.workflow_root == "/data/cromwell-executions/example/ABCD"
-    assert mock_session.needs_to_be_closed is False
 
 
 def test_run_log(monkeypatch):
@@ -429,7 +417,7 @@ def test_from_params(mock_sqlalchemy_session):
 
     assert mock_sqlalchemy_session.data.session["add"] is True
     assert mock_sqlalchemy_session.data.session["commit"] is True
-    assert mock_sqlalchemy_session.data.session["close"] is True
+    assert mock_sqlalchemy_session.data.session["close"] is False
     mock_sqlalchemy_session.clear()
 
     # Test add exception
