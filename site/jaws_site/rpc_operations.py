@@ -88,7 +88,7 @@ def submit_run(params, session, logger):
     except Exception as error:
         return failure(error)
     else:
-        return success()
+        return success(True)
 
 
 def resubmit_run(params, session, logger):

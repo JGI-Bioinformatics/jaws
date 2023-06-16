@@ -40,7 +40,7 @@ def test_submit_run(monkeypatch):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
     ret = jaws_site.rpc_operations.submit_run(p, mock_session, logger)
-    assert ret == {"jsonrpc": "2.0", "result": "running"}
+    assert ret == {"jsonrpc": "2.0", "result": True}
 
     def mock_from_params(session, logger, transfer_id):
         raise Exception
