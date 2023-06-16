@@ -30,7 +30,7 @@ except Exception as error:
     logger.exception(error)
     raise
 
-session_factory = sessionmaker(bind=engine, autobegin=True, autocommit=False)
+session_factory = sessionmaker(bind=engine, autobegin=True, autocommit=False, expire_on_commit=False)
 
 mapper_registry = registry()
 Base = mapper_registry.generate_base()
