@@ -783,7 +783,7 @@ class Metadata:
         # change full paths to relative paths
         for myfile in matches:
             relpath = myfile.replace(workflow_root, ".")
-            relpath = re.sub(r'[\"\}\],]', "", relpath)
+            relpath = re.sub(r"[\"\}\],]", "", relpath)
             relpath_outputs.append(relpath)
 
         return relpath_outputs

@@ -18,7 +18,6 @@
 
 
 import os
-import logging
 import json
 import io
 from datetime import datetime
@@ -38,8 +37,6 @@ from jaws_site.cromwell import (
 from jaws_site.tasks import TaskLog
 from jaws_site.utils import write_json_file
 
-
-logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 
@@ -63,7 +60,7 @@ class RunInputError(Exception):
 class Run:
     """Class representing a single Run"""
 
-    def __init__(self, session, data, **kwargs):
+    def __init__(self, session, logger, data, **kwargs):
         self.session = session
         self.data = data
         self.operations = {
@@ -105,11 +102,11 @@ class Run:
                 ),
             }
         except Exception as error:
-            logger.error(f"Error loading config: {error}")
+            self.logger.error(f"Error loading config: {error}")
 
     @classmethod
     def from_params(
-        cls, session, params, central_rpc_client=None, reports_rpc_client=None
+        cls, session, logger, params, central_rpc_client=None, reports_rpc_client=None
     ):
         """Insert new Run into RDb.  Site only receives Runs in the "upload complete" state."""
         try:
@@ -136,13 +133,16 @@ class Run:
         else:
             return cls(
                 session,
+                logger,
                 data,
                 central_rpc_client=central_rpc_client,
                 reports_rpc_client=reports_rpc_client,
             )
 
     @classmethod
-    def from_id(cls, session, run_id, central_rpc_client=None, reports_rpc_client=None):
+    def from_id(
+        cls, session, logger, run_id, central_rpc_client=None, reports_rpc_client=None
+    ):
         """Select Run record from RDb given primary key"""
         try:
             data = session.query(models.Run).get(run_id)
@@ -156,6 +156,7 @@ class Run:
         else:
             return cls(
                 session,
+                logger,
                 data,
                 central_rpc_client=central_rpc_client,
                 reports_rpc_client=reports_rpc_client,
@@ -163,7 +164,12 @@ class Run:
 
     @classmethod
     def from_cromwell_run_id(
-        cls, session, cromwell_run_id, central_rpc_client=None, reports_rpc_client=None
+        cls,
+        session,
+        logger,
+        cromwell_run_id,
+        central_rpc_client=None,
+        reports_rpc_client=None,
     ):
         """Select Run record from RDb given Cromwell Run ID"""
         try:
@@ -182,6 +188,7 @@ class Run:
         else:
             return cls(
                 session,
+                logger,
                 data,
                 central_rpc_client=central_rpc_client,
                 reports_rpc_client=reports_rpc_client,
@@ -215,7 +222,7 @@ class Run:
         if not self.data.cromwell_run_id:
             return False
         else:
-            task_log = TaskLog(self.session, self.data.cromwell_run_id, logger)
+            task_log = TaskLog(self.session, self.data.cromwell_run_id, self.logger)
             return task_log.did_run_start()
 
     def task_log(self):
@@ -227,7 +234,7 @@ class Run:
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
         status = self.data.status
-        logger.debug(f"Run {self.data.id} is {self.data.status}")
+        self.logger.debug(f"Run {self.data.id} is {self.data.status}")
         if status in self.operations:
             return self.operations[status]()
 
@@ -240,7 +247,9 @@ class Run:
         try:
             self.update_run_status("cancel")
         except Exception as error:
-            logger.error(f"Failed to mark Run {self.data.id} to be cancelled: {error}")
+            self.logger.error(
+                f"Failed to mark Run {self.data.id} to be cancelled: {error}"
+            )
             raise RunDbError(
                 f"Change Run {self.data.id} status to 'cancel' failed: {error}"
             )
@@ -259,17 +268,17 @@ class Run:
             try:
                 cromwell.abort(self.data.cromwell_run_id)
             except CromwellRunNotFoundError as error:
-                logger.error(
+                self.logger.error(
                     f"Cromwell couldn't cancel unknown Run {self.data.id}: {error}"
                 )
                 # do not return; future attempts will similarly fail; proceed to mark as cancelled
             except CromwellServiceError as error:
-                logger.warning(
+                self.logger.warning(
                     f"Could not cancel Run {self.data.id} as Cromwell unavailable: {error}"
                 )
                 return  # try again later
             except CromwellError as error:
-                logger.error(
+                self.logger.error(
                     f"Unknown Cromwell error cancelling Run {self.data.id}: {error}"
                 )
                 # unknown error; don't bother trying again later, just proceed to mark as cancelled
@@ -277,7 +286,7 @@ class Run:
         try:
             self.update_run_status("cancelled")
         except Exception as error:
-            logger.error(f"Failed to cancel Run {self.data.id}: {error}")
+            self.logger.error(f"Failed to cancel Run {self.data.id}: {error}")
             raise RunDbError(
                 f"Change Run {self.data.id} status to cancelled failed: {error}"
             )
@@ -295,7 +304,7 @@ class Run:
         Read the contents of a file from S3 into RAM and return a file handle object.
         """
         s3_bucket, src_path = self.s3_parse_path(path)
-        logger.debug(f"Read from s3://{s3_bucket} obj {src_path}")
+        self.logger.debug(f"Read from s3://{s3_bucket} obj {src_path}")
 
         aws_session = boto3.Session(
             aws_access_key_id=self.config["aws_access_key_id"],
@@ -487,14 +496,17 @@ class Run:
         Submit a run to Cromwell.
         """
 
-        logger.debug(f"Run {self.data.id}: Submit to Cromwell")
+        self.logger.debug(f"Run {self.data.id}: Submit to Cromwell")
 
         # If this user has too many concurrent runs, don't submit any more at this time.
         # This is to enforce fair-sharing; the limit is a configuration parameter.
         if max_active_runs_exceeded(
-            self.session, self.data.user_id, self.config["max_user_active_runs"]
+            self.session,
+            self.logger,
+            self.data.user_id,
+            self.config["max_user_active_runs"],
         ):
-            logger.debug(
+            self.logger.debug(
                 f"Run {self.data.id}: User reached concurrent runs limit; skipping."
             )
             return
@@ -510,7 +522,7 @@ class Run:
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:
-            logger.error(f"Run {self.data.id} submission failed: {error}")
+            self.logger.error(f"Run {self.data.id} submission failed: {error}")
             # self.update_run_status("submission failed", f"{error}")
             return  # try again later
         else:
@@ -527,7 +539,7 @@ class Run:
                 "Cannot resubmit run while previous run is still active."
             )
 
-        logger.info(f"Run {self.data.id}: Resubmit run")
+        self.logger.info(f"Run {self.data.id}: Resubmit run")
         timestamp = datetime.utcnow()
         log_entry = models.Run_Log(
             run_id=self.data.id,
@@ -548,7 +560,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
+            self.logger.exception(f"Unable to update Run {self.data.id}: {error}")
         return {self.data.id: "ready"}
 
     def check_cromwell_metadata(self) -> str:
@@ -559,11 +571,13 @@ class Run:
         :return: status; may be None if unavailable
         :rtype: str
         """
-        logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
+        self.logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
         except CromwellError as error:
-            logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
+            self.logger.error(
+                f"Run {self.data.id} failed to get Cromwell metadata: {error}"
+            )
             return None
         cromwell_status = metadata.get("status")
         workflow_name = metadata.get("workflowName")
@@ -571,7 +585,7 @@ class Run:
         if workflow_name is None or workflow_root is None:
             # setting these fields is a requirement to transition past this state
             return None
-        logger.debug(
+        self.logger.debug(
             f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
         )
         try:
@@ -580,7 +594,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
+            self.logger.exception(f"Unable to update Run {self.data.id}: {error}")
             return None
         return cromwell_status
 
@@ -592,11 +606,11 @@ class Run:
         if self.data.status == "submitted":
             cromwell_status = self.check_cromwell_metadata()
         else:
-            logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
+            self.logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
             try:
                 cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
             except CromwellError as error:
-                logger.error(
+                self.logger.error(
                     f"Unable to check Cromwell status of Run {self.data.id}: {error}"
                 )
                 return
@@ -604,7 +618,7 @@ class Run:
             return
 
         # check if state has changed.
-        logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
+        self.logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
@@ -632,7 +646,7 @@ class Run:
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
         status_from = self.data.status
-        logger.info(f"Run {self.data.id}: now {status_to}")
+        self.logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
         log_entry = models.Run_Log(
             run_id=self.data.id,
@@ -651,7 +665,7 @@ class Run:
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
+            self.logger.exception(f"Unable to update Run {self.data.id}: {error}")
 
     def write_supplement(self):
         """
@@ -665,12 +679,17 @@ class Run:
             self.update_run_status("finished")
             return
 
-        logger.info(f"Run {self.data.id}: Write supplementary files")
+        self.logger.info(f"Run {self.data.id}: Write supplementary files")
 
         # get Cromwell metadata
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-        except CromwellServiceError:
+        except Exception as error:
+            # TODO CHANGE EXCEPTIONS TO DISTINGUISH BETWEEN CONNECTION AND REJECTION ERRORS
+            self.logger.warn(
+                f"Run {self.data.id}: Unable to retrieve Cromwell metadata: {error}"
+            )
+            # TODO retry for x hrs before giving up and transitioning to finished
             self.update_run_status(
                 "failed", "supplementary files could not be generated"
             )
@@ -734,7 +753,7 @@ class Run:
         Save final run metadata and send report document to reports service via RPC.
         We currently record resource metrics for successful and failed, but not cancelled Runs.
         """
-        logger.info(f"Publish report for run {self.data.id}")
+        self.logger.info(f"Publish report for run {self.data.id}")
 
         if self.data.result == "cancelled":
             self.update_run_status("finished")
@@ -748,10 +767,10 @@ class Run:
         try:
             response = self.reports_rpc_client.request(summary)
         except Exception as error:
-            logger.exception(f"RPC save_run_report error: {error}")
+            self.logger.exception(f"RPC save_run_report error: {error}")
             return
         if "error" in response:
-            logger.warning(
+            self.logger.warning(
                 f"RPC save_run_report failed: {response['error']['message']}"
             )
             # do not change state; try again next time
@@ -759,7 +778,7 @@ class Run:
             self.update_run_status("finished")
 
 
-def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
+def check_active_runs(session, logger, central_rpc_client, reports_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
@@ -798,7 +817,7 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
         run.check_status()
 
 
-def send_run_status_logs(session, central_rpc_client) -> None:
+def send_run_status_logs(session, logger, central_rpc_client) -> None:
     """Send run logs to Central"""
 
     # get updates from datbase
@@ -848,7 +867,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
 
 
 def max_active_runs_exceeded(
-    session: sessionmaker, user_id: str, max_active_runs: int
+    session: sessionmaker, logger, user_id: str, max_active_runs: int
 ) -> bool:
     """
     Get active runs from db and have each check and update their status.
@@ -898,8 +917,7 @@ class RunLog:
                 .all()
             )
         except SQLAlchemyError as error:
-            logger.error(f"Unable to select from run_logs: {error}")
-            raise RunDbError(error)
+            raise RunDbError(f"Unable to select from run_logs: {error}")
         return rows
 
     def logs_table(self):

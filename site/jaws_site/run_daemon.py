@@ -49,6 +49,6 @@ class RunDaemon:
         """
         with database.session_factory() as session:
             runs.check_active_runs(
-                session, self.central_rpc_client, self.report_rpc_client
+                session, logger, self.central_rpc_client, self.report_rpc_client
             )
-            runs.send_run_status_logs(session, self.central_rpc_client)
+            runs.send_run_status_logs(session, logger, self.central_rpc_client)

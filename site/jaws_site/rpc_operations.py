@@ -57,7 +57,7 @@ def output_manifest(params, session):
     """
     logger.info(f"Outfiles for Run {params['run_id']}")
     try:
-        run = Run.from_id(session, params["run_id"])
+        run = Run.from_id(session, logger, params["run_id"])
         result = run.output_manifest()
     except Exception as error:
         return failure(error)
@@ -75,7 +75,7 @@ def cancel_run(params, session):
     """
     logger.info(f"User {params['user_id']}: Cancel Run {params['run_id']}")
     try:
-        run = Run.from_id(session, params["run_id"])
+        run = Run.from_id(session, logger, params["run_id"])
         result = run.mark_to_cancel()
     except Exception as error:
         return failure(error)
@@ -89,7 +89,7 @@ def submit_run(params, session):
     """
     logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
     try:
-        run = Run.from_params(session, params)
+        run = Run.from_params(session, logger, params)
     except Exception as error:
         return failure(error)
     else:
@@ -103,7 +103,7 @@ def resubmit_run(params, session):
     """
     logger.info(f"User {params['user_id']}: Re-submit Run {params['run_id']}")
     try:
-        run = Run.from_id(session, params["run_id"])
+        run = Run.from_id(session, logger, params["run_id"])
         result = run.resubmit()
     except Exception as error:
         return failure(error)

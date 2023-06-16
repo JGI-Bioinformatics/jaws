@@ -30,7 +30,7 @@ class PerformanceMetrics:
     def get_run_id(self, cromwell_run_id: str) -> int:
         """Given a cromwell run id, return the jaws run id."""
         try:
-            run = runs.Run.from_cromwell_run_id(self.session, cromwell_run_id)
+            run = runs.Run.from_cromwell_run_id(self.session, logger, cromwell_run_id)
         except runs.RunNotFoundError or runs.RunDbError as err:
             msg = f"Failed to get run_id from {cromwell_run_id=}: {err}"
             logger.warning(msg)
@@ -55,14 +55,16 @@ class PerformanceMetrics:
 
         # Get filename without extentions, could also look into Path.stem but,
         # this works for .csv and .csv.bz2 files
-        name_noext = csv_file.name.split('.')[0]
+        name_noext = csv_file.name.split(".")[0]
         try:
-            _, node_name, slurm_id = name_noext.split('_')
+            _, node_name, slurm_id = name_noext.split("_")
             # add the two new columns to the dataframe
             csv_data["node_name"] = node_name
             csv_data["slurm_id"] = int(slurm_id)
         except ValueError:
-            logger.error(f"{name_noext=} cannot be split to get node name and slurm run number")
+            logger.error(
+                f"{name_noext=} cannot be split to get node name and slurm run number"
+            )
 
         # Change current_dir type to string before processing
         csv_data["current_dir"] = csv_data.current_dir.astype(str)
@@ -93,7 +95,9 @@ class PerformanceMetrics:
         try:
             csv_data["@timestamp"] = csv_data.index.map(lambda x: x.isoformat())
         except Exception as err:
-            logger.warning(f"Failed to create @timestamp field for file {csv_file.name}: {err}")
+            logger.warning(
+                f"Failed to create @timestamp field for file {csv_file.name}: {err}"
+            )
             raise FileParseError
 
         csv_data["mem_total"] = csv_data["mem_rss"] + csv_data["mem_vms"]
