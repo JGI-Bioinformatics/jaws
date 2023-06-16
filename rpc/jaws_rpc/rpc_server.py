@@ -125,7 +125,7 @@ class Consumer(object):
         if self.scoped_session_factory:
             session = self.scoped_session_factory()
         try:
-            response = proc(params, session)
+            response = proc(params, session, self.logger)
         except Exception as error:
             self.logger.warning(f"RPC function error: {error}; params={params}")
             response = {

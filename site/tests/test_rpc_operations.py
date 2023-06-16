@@ -20,14 +20,14 @@ def test_server_status(monkeypatch):
     monkeypatch.setattr(jaws_site.rpc_operations, "Cromwell", MockCromwell)
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
-    ret = jaws_site.rpc_operations.server_status(p, mock_session)
+    ret = jaws_site.rpc_operations.server_status(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": True}
     """
 
     monkeypatch.setattr(jaws_site.rpc_operations, "Cromwell", MockCromwellException)
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
-    ret = jaws_site.rpc_operations.server_status(p, mock_session)
+    ret = jaws_site.rpc_operations.server_status(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
 
@@ -39,7 +39,7 @@ def test_submit_run(monkeypatch):
 
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
-    ret = jaws_site.rpc_operations.submit_run(p, mock_session)
+    ret = jaws_site.rpc_operations.submit_run(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": "running"}
 
     def mock_from_params(session, logger, transfer_id):
@@ -47,7 +47,7 @@ def test_submit_run(monkeypatch):
 
     monkeypatch.setattr(runs.Run, "from_params", mock_from_params)
 
-    ret = jaws_site.rpc_operations.submit_run(p, mock_session)
+    ret = jaws_site.rpc_operations.submit_run(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
 
@@ -79,10 +79,10 @@ def test_run_all_functions(mock_run_from_id):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99, "cromwell_run_id": "ABCD"}
 
-    ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
+    ret = jaws_site.rpc_operations.output_manifest(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": {"test": "success"}}
 
-    ret = jaws_site.rpc_operations.cancel_run(p, mock_session)
+    ret = jaws_site.rpc_operations.cancel_run(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": {"test": "success"}}
 
 
@@ -90,10 +90,10 @@ def test_run_all_functions_exception(mock_run_from_id_exception):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
 
-    ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
+    ret = jaws_site.rpc_operations.output_manifest(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
-    ret = jaws_site.rpc_operations.cancel_run(p, mock_session)
+    ret = jaws_site.rpc_operations.cancel_run(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
 
@@ -101,7 +101,7 @@ def test_run_all_functions_runnotfound(mock_run_from_id_runnotfound):
     mock_session = MockSession()
     p = {"user_id": "user", "run_id": 99}
 
-    ret = jaws_site.rpc_operations.output_manifest(p, mock_session)
+    ret = jaws_site.rpc_operations.output_manifest(p, mock_session, logger)
     assert "error" in ret
 
 
@@ -151,10 +151,10 @@ def test_transfer_from_id_functions(mock_transfer_from_id):
         "dest_base_dir": "/test",
     }
 
-    ret = jaws_site.rpc_operations.transfer_status(p, mock_session)
+    ret = jaws_site.rpc_operations.transfer_status(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": {"status": "queued", "reason": None}}
 
-    ret = jaws_site.rpc_operations.cancel_transfer(p, mock_session)
+    ret = jaws_site.rpc_operations.cancel_transfer(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": {"status": "canceled"}}
 
 
@@ -168,10 +168,10 @@ def test_transfer_from_id_functions_exception(mock_transfer_from_id_exception):
         "dest_base_dir": "/test",
     }
 
-    ret = jaws_site.rpc_operations.transfer_status(p, mock_session)
+    ret = jaws_site.rpc_operations.transfer_status(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
-    ret = jaws_site.rpc_operations.cancel_transfer(p, mock_session)
+    ret = jaws_site.rpc_operations.cancel_transfer(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
 
@@ -185,7 +185,7 @@ def test_transfer_from_param_functions(mock_transfer_from_params):
         "dest_base_dir": "/test",
     }
 
-    ret = jaws_site.rpc_operations.submit_transfer(p, mock_session)
+    ret = jaws_site.rpc_operations.submit_transfer(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "result": {"status": "queued"}}
 
 
@@ -199,5 +199,5 @@ def test_transfer_from_param_functions_exception(mock_transfer_from_params_excep
         "dest_base_dir": "/test",
     }
 
-    ret = jaws_site.rpc_operations.submit_transfer(p, mock_session)
+    ret = jaws_site.rpc_operations.submit_transfer(p, mock_session, logger)
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}

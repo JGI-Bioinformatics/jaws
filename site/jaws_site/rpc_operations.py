@@ -1,4 +1,3 @@
-import logging
 from jaws_rpc.responses import success, failure
 from jaws_site import config
 from jaws_site import queue_wait as slurm_queue_wait
@@ -8,11 +7,7 @@ from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
 
 
-# config and logging must be initialized before importing this module
-logger = logging.getLogger(__package__)
-
-
-def server_status(params, session):
+def server_status(params, session, logger):
     """Return the current status of the Cromwell server.
 
     :return: Either a success- or failure-formatted JSON-RPC2 response,
@@ -28,7 +23,7 @@ def server_status(params, session):
     return success(status)
 
 
-def queue_wait(params, session):
+def queue_wait(params, session, logger):
     """Return the current queue wait times of the possible
     condor pools (sm, md, lg, xlg).
     TODO: send to AMQP queue instead.
@@ -45,7 +40,7 @@ def queue_wait(params, session):
     return success(result)
 
 
-def output_manifest(params, session):
+def output_manifest(params, session, logger):
     """Retrieve a Run's output manifest (files to return to user).
     This is used by jaws-central for submitting the transfer.
     TODO: send to AMQP queue instead.
@@ -64,7 +59,7 @@ def output_manifest(params, session):
     return success(result)
 
 
-def cancel_run(params, session):
+def cancel_run(params, session, logger):
     """Mark a Run to be cancelled.  It will be cancelled by the Run daemon later (asynchronously).
     TODO: read from AMQP queue instead.
 
@@ -82,7 +77,7 @@ def cancel_run(params, session):
     return success(result)
 
 
-def submit_run(params, session):
+def submit_run(params, session, logger):
     """
     Save new run submission in database.  The daemon shall submit to Cromwell after Globus tranfer completes.
     TODO: read from AMQP queue instead.
@@ -96,7 +91,7 @@ def submit_run(params, session):
         return success(run.data.status)
 
 
-def resubmit_run(params, session):
+def resubmit_run(params, session, logger):
     """
     Resubmit a run.
     TODO: read from AMQP queue instead.
@@ -111,7 +106,7 @@ def resubmit_run(params, session):
         return success(result)
 
 
-def run_task_log(params, session):
+def run_task_log(params, session, logger):
     """
     Retrieve task log from Cromwell metadata.
     TODO: deprecate; have task-logs sent directly to jaws-central.
@@ -126,7 +121,7 @@ def run_task_log(params, session):
         return success(result)
 
 
-def submit_transfer(params, session):
+def submit_transfer(params, session, logger):
     """
     Direct the Site to transfer files.  The transfer is added to the queue and will be done later.
     The status of the transfer may be queried using the &transfer_status function below.
@@ -143,7 +138,7 @@ def submit_transfer(params, session):
         return success(result)
 
 
-def transfer_status(params, session):
+def transfer_status(params, session, logger):
     """
     Check the status of a transfer.
     TODO: deprecate.  jaws-central shall wait until updated via AMQP message.
@@ -158,7 +153,7 @@ def transfer_status(params, session):
         return success(result)
 
 
-def cancel_transfer(params, session):
+def cancel_transfer(params, session, logger):
     """
     Check the status of a transfer.
     TODO: read from AMQP queue instead.
@@ -175,7 +170,7 @@ def cancel_transfer(params, session):
         return success(result)
 
 
-def site_config(params, session):
+def site_config(params, session, logger):
     """
     Return site parameters to central.
     """
