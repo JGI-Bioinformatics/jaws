@@ -17,7 +17,7 @@ include:
 variables:
   GIT_STRATEGY: clone
 
-  JAWS_SITE_NAMES: "CORI JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER DORI"
+  JAWS_SITE_NAMES: "JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER DORI"
   JAWS_SITE_VERSION: "1.1.2"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
@@ -142,52 +142,6 @@ deploy-jaws-assembly-prod:
     JAWS_SITE_NAME: "ASSEMBLY"
   environment:
     name: "assembly/prod"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
-
-deploy-jaws-cori-dev:
-  stage: deploy-jaws
-  tags:
-    - cori20
-  variables:
-    JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "CORI"
-  environment:
-    name: "cori/dev"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
-
-deploy-jaws-cori-staging:
-  stage: deploy-jaws
-  tags:
-    - cori20
-  variables:
-    JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "CORI"
-  environment:
-    name: "cori/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
-  allow_failure: true
-
-deploy-jaws-cori-prod:
-  stage: release-jaws
-  tags:
-    - cori20
-  variables:
-    JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "CORI"
-  environment:
-    name: "cori/production"
   script:
     - ./test/integration/deploy-jaws-site.sh
   rules:
