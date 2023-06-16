@@ -41,7 +41,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "requests-mock", "pytest-cov", "flake8"]
+dev = ["pytest", "requests-mock", "pytest-cov", "flake8", "deepdiff"]
 
 [project.urls]
 repository = "https://code.jgi.doe.gov/advanced-analysis/jaws-site"

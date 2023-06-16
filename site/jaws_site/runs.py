@@ -674,14 +674,9 @@ class Run:
         # get Cromwell metadata
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-        except Exception as error:
-            # TODO CHANGE EXCEPTIONS TO DISTINGUISH BETWEEN CONNECTION AND REJECTION ERRORS
-            logger.warn(
-                f"Run {self.data.id}: Unable to retrieve Cromwell metadata: {error}"
-            )
-            # TODO retry for x hrs before giving up and transitioning to finished
+        except CromwellServiceError:
             self.update_run_status(
-                "finished", "supplementary files could not be generated"
+                "failed", "supplementary files could not be generated"
             )
             return
 
