@@ -84,7 +84,7 @@ def submit_run(params, session, logger):
     """
     logger.info(f"User {params['user_id']}: Submit Run {params['run_id']}")
     try:
-        run = Run.from_params(session, logger, params)
+        _ = Run.from_params(session, logger, params)
     except Exception as error:
         return failure(error)
     else:
