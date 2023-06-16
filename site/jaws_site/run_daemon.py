@@ -30,7 +30,9 @@ class RunDaemon:
         self.central_rpc_client = rpc_client.RpcClient(central_rpc_params, logger)
         report_rpc_params = config.conf.get_section("RMQ")
         report_rpc_params["queue"] = "RUNS_ES_RPC_CLIENT"
-        self.report_rpc_client = rpc_client_basic.RpcClientBasic(report_rpc_params, logger)
+        self.report_rpc_client = rpc_client_basic.RpcClientBasic(
+            report_rpc_params, logger
+        )
 
     def start_daemon(self):
         """
@@ -45,9 +47,8 @@ class RunDaemon:
         """
         Check for runs in particular states.
         """
-        session = database.session_factory()
-        runs.check_active_runs(
-            session, self.central_rpc_client, self.report_rpc_client
-        )
-        runs.send_run_status_logs(session, self.central_rpc_client)
-        session.close()
+        with database.session_factory() as session:
+            runs.check_active_runs(
+                session, self.central_rpc_client, self.report_rpc_client
+            )
+            runs.send_run_status_logs(session, self.central_rpc_client)
