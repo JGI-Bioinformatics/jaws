@@ -27,7 +27,9 @@ class PerformanceMetricsDaemon:
         self.done_dir = config.conf.get("PERFORMANCE_METRICS", "done_dir")
         self.proc_dir = config.conf.get("PERFORMANCE_METRICS", "processed_dir")
         self.error_dir = config.conf.get("PERFORMANCE_METRICS", "error_dir")
-        self.perf_cleanup_time = int(config.conf.get("PERFORMANCE_METRICS", "cleanup_time"))
+        self.perf_cleanup_time = int(
+            config.conf.get("PERFORMANCE_METRICS", "cleanup_time")
+        )
 
         # Create csv dirs if not exists
         done_path = Path(self.done_dir)
@@ -63,11 +65,13 @@ class PerformanceMetricsDaemon:
         """
         Check for newly completed Runs.
         """
-        session = database.session_factory()
-        performance_metrics = perf_metrics.PerformanceMetrics(session, self.rpc_client)
-        performance_metrics.process_metrics(done_dir=self.done_dir, proc_dir=self.proc_dir,
-                                            error_dir=self.error_dir)
-        session.close()
+        with database.session_factory() as session:
+            performance_metrics = perf_metrics.PerformanceMetrics(
+                session, self.rpc_client
+            )
+            performance_metrics.process_metrics(
+                done_dir=self.done_dir, proc_dir=self.proc_dir, error_dir=self.error_dir
+            )
 
     def cleanup(self):
         """
@@ -128,7 +132,5 @@ class PerformanceMetricsDaemon:
                     )
                     continue
                 except Exception as ex:
-                    logger.warning(
-                        f"Error moving file {type(ex).__name__} : {ex}"
-                    )
+                    logger.warning(f"Error moving file {type(ex).__name__} : {ex}")
                     continue
