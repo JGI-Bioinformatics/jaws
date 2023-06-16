@@ -47,9 +47,8 @@ class RunDaemon:
         """
         Check for runs in particular states.
         """
-        session = database.session_factory()
-        runs.check_active_runs(
-            session, self.central_rpc_client, self.report_rpc_client
-        )
-        runs.send_run_status_logs(session, self.central_rpc_client)
-        session.close()
+        with database.session_factory() as session:
+            runs.check_active_runs(
+                session, self.central_rpc_client, self.report_rpc_client
+            )
+            runs.send_run_status_logs(session, self.central_rpc_client)
