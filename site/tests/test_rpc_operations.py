@@ -1,3 +1,4 @@
+import logging
 import pytest
 import jaws_site.rpc_operations
 from jaws_site.runs import RunNotFoundError
@@ -9,6 +10,9 @@ from tests.conftest import (
     MockTransferModel,
     MockTransfer,
 )
+
+
+logger = logging.getLogger(__package__)
 
 
 def test_server_status(monkeypatch):
@@ -28,7 +32,7 @@ def test_server_status(monkeypatch):
 
 
 def test_submit_run(monkeypatch):
-    def mock_from_params(session, transfer_id):
+    def mock_from_params(session, logger, transfer_id):
         return MockRun()
 
     monkeypatch.setattr(runs.Run, "from_params", mock_from_params)
@@ -38,7 +42,7 @@ def test_submit_run(monkeypatch):
     ret = jaws_site.rpc_operations.submit_run(p, mock_session)
     assert ret == {"jsonrpc": "2.0", "result": "running"}
 
-    def mock_from_params(session, transfer_id):
+    def mock_from_params(session, logger, transfer_id):
         raise Exception
 
     monkeypatch.setattr(runs.Run, "from_params", mock_from_params)
@@ -49,7 +53,7 @@ def test_submit_run(monkeypatch):
 
 @pytest.fixture()
 def mock_run_from_id(monkeypatch):
-    def mock_from_id(session, transfer_id):
+    def mock_from_id(session, logger, transfer_id):
         return MockRun()
 
     monkeypatch.setattr(runs.Run, "from_id", mock_from_id)
@@ -57,7 +61,7 @@ def mock_run_from_id(monkeypatch):
 
 @pytest.fixture()
 def mock_run_from_id_exception(monkeypatch):
-    def mock_from_id(session, transfer_id):
+    def mock_from_id(session, logger, transfer_id):
         raise Exception
 
     monkeypatch.setattr(runs.Run, "from_id", mock_from_id)
@@ -65,7 +69,7 @@ def mock_run_from_id_exception(monkeypatch):
 
 @pytest.fixture()
 def mock_run_from_id_runnotfound(monkeypatch):
-    def mock_from_id(session, transfer_id):
+    def mock_from_id(session, logger, transfer_id):
         raise RunNotFoundError
 
     monkeypatch.setattr(runs.Run, "from_id", mock_from_id)
@@ -103,7 +107,7 @@ def test_run_all_functions_runnotfound(mock_run_from_id_runnotfound):
 
 @pytest.fixture()
 def mock_transfer_from_id(monkeypatch):
-    def mock_from_id(session, transfer_id):
+    def mock_from_id(session, logger, transfer_id):
         mock_session = MockSession()
         mock_data = MockTransferModel()
         return MockTransfer(mock_session, mock_data)
@@ -113,7 +117,7 @@ def mock_transfer_from_id(monkeypatch):
 
 @pytest.fixture()
 def mock_transfer_from_id_exception(monkeypatch):
-    def mock_from_id(session, transfer_id):
+    def mock_from_id(session, logger, transfer_id):
         raise Exception
 
     monkeypatch.setattr(transfers.Transfer, "from_id", mock_from_id)
@@ -121,7 +125,7 @@ def mock_transfer_from_id_exception(monkeypatch):
 
 @pytest.fixture()
 def mock_transfer_from_params(monkeypatch):
-    def mock_from_params(session, transfer_id):
+    def mock_from_params(session, logger, transfer_id):
         mock_session = MockSession()
         mock_data = MockTransferModel()
         return MockTransfer(mock_session, mock_data)
@@ -131,7 +135,7 @@ def mock_transfer_from_params(monkeypatch):
 
 @pytest.fixture()
 def mock_transfer_from_params_exception(monkeypatch):
-    def mock_from_params(session, transfer_id):
+    def mock_from_params(session, logger, transfer_id):
         raise Exception
 
     monkeypatch.setattr(transfers.Transfer, "from_params", mock_from_params)

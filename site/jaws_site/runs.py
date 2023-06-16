@@ -62,6 +62,7 @@ class Run:
 
     def __init__(self, session, logger, data, **kwargs):
         self.session = session
+        self.logger = logger
         self.data = data
         self.operations = {
             "ready": self.submit_run,

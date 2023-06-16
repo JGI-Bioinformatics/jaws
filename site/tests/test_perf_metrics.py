@@ -1,3 +1,4 @@
+import logging
 import pytest
 import os
 from jaws_site import perf_metrics
@@ -8,6 +9,9 @@ from tests.conftest import (
 )
 from jaws_site import runs
 from jaws_site.runs import RunNotFoundError
+
+
+logger = logging.getLogger(__package__)
 
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,10 +37,10 @@ def test__init(mock_sqlalchemy_session, monkeypatch):
 
 
 def test_get_run_id(monkeypatch, mock_sqlalchemy_session):
-    def mock_from_cromwell_run_id(session, cromwell_run_id):
+    def mock_from_cromwell_run_id(session, logger, cromwell_run_id):
         session = MockSession()
         data = MockRunModel(cromwell_run_id="xxx-xxx")
-        run = runs.Run(session, data)
+        run = runs.Run(session, logger, data)
         return run
 
     monkeypatch.setattr(
@@ -49,7 +53,7 @@ def test_get_run_id(monkeypatch, mock_sqlalchemy_session):
     assert ret == "99"
 
     # Test Exception
-    def mock_from_cromwell_run_id(session, cromwell_run_id):
+    def mock_from_cromwell_run_id(session, logger, cromwell_run_id):
         raise RunNotFoundError
 
     monkeypatch.setattr(

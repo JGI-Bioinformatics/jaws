@@ -1,3 +1,4 @@
+import logging
 import pytest
 import json
 from deepdiff import DeepDiff
@@ -16,17 +17,20 @@ from jaws_rpc.rpc_client_basic import RpcClientBasic
 import io
 
 
+logger = logging.getLogger(__package__)
+
+
 def test_constructor():
     mock_session = MockSession()
     mock_data = MockRunModel()
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     assert run
 
 
 def test_status():
     mock_session = MockSession()
     mock_data = MockRunModel(status="queued")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     assert run.status() == "queued"
 
 
@@ -45,7 +49,7 @@ def test_check_operations_table(status):
     """Check one of the many possible entries in the operations table, which should return a method."""
     mock_session = MockSession()
     mock_data = MockRunModel()
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     proc = run.operations.get(status, None)
     assert callable(proc)
 
@@ -63,19 +67,19 @@ def test_mark_to_cancel(monkeypatch):
 
     # test1: run hasn't been cancelled yet
     mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.mark_to_cancel()
     assert run.status() == "cancel"
 
     # test2: run was already marked to be cancelled
     mock_data = MockRunModel(status="cancel", cromwell_run_id="ABCD")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.mark_to_cancel()
     assert run.status() == "cancel"
 
     # test3: run was already cancelled
     mock_data = MockRunModel(status="cancelled", cromwell_run_id="ABCD")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.mark_to_cancel()
     assert run.status() == "cancelled"
 
@@ -96,13 +100,13 @@ def test_cancel(monkeypatch):
 
     # test 1: run has cromwell_run_id
     mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.cancel()
     assert run.status() == "cancelled"
 
     # test 2: run doesn't have cromwell_run_id
     mock_data = MockRunModel(status="queued", cromwell_run_id=None)
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.cancel()
     assert run.status() == "cancelled"
 
@@ -110,7 +114,7 @@ def test_cancel(monkeypatch):
 def test_s3_parse_path():
     mock_session = MockSession()
     mock_data = MockRunModel()
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
 
     test_path = "s3://jaws-bucket/a/b/c/d.txt"
     expected_bucket = "jaws-bucket"
@@ -130,7 +134,7 @@ def test_inputs(monkeypatch):
 
     mock_session = MockSession()
     mock_data = MockRunModel(input_site_id="CORI")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.config["inputs_dir"] = "/inputs"
     inputs = run.inputs()
 
@@ -148,7 +152,7 @@ def test_inputs_fh(monkeypatch):
 
     mock_session = MockSession()
     mock_data = MockRunModel()
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     fh = run.inputs_fh()
     inputs = json.load(fh)
     assert inputs["KEY"] == "VALUE"
@@ -204,7 +208,7 @@ def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
         return False
 
     mock_data = MockRunModel(status="upload complete")
-    run = Run(mock_sqlalchemy_session, mock_data)
+    run = Run(mock_sqlalchemy_session, logger, mock_data)
 
     monkeypatch.setattr(jaws_site.cromwell.Cromwell, "submit", mock_cromwell_submit)
     monkeypatch.setattr(Run, "get_run_inputs", mock_get_run_inputs)
@@ -219,13 +223,13 @@ def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
 def test_resubmit_run(mock_sqlalchemy_session):
     # test 1: fail active run
     mock_data = MockRunModel(status="running")
-    run = Run(mock_sqlalchemy_session, mock_data)
+    run = Run(mock_sqlalchemy_session, logger, mock_data)
     with pytest.raises(RunInputError):
         run.resubmit()
 
     # test 2: success for finished run
     mock_data = MockRunModel(status="finished")
-    run = Run(mock_sqlalchemy_session, mock_data)
+    run = Run(mock_sqlalchemy_session, logger, mock_data)
     run.resubmit()
     assert mock_sqlalchemy_session.data.session["commit"] is True
 
@@ -234,20 +238,20 @@ def test_max_active_runs_exceeded(mock_sqlalchemy_session):
     # test user has active run but under exceeded threshold
     mock_sqlalchemy_session.output([{"run_id": 123}, {"run_id": 456}])
     obs_result = jaws_site.runs.max_active_runs_exceeded(
-        mock_sqlalchemy_session, 123, 10
+        mock_sqlalchemy_session, logger, 123, 10
     )
     assert obs_result is False
 
     # test user has active run and exceeds threshold
     obs_result = jaws_site.runs.max_active_runs_exceeded(
-        mock_sqlalchemy_session, 123, 1
+        mock_sqlalchemy_session, logger, 123, 1
     )
     assert obs_result is True
 
     # test user does not have any active run
     mock_sqlalchemy_session.clear()
     obs_result = jaws_site.runs.max_active_runs_exceeded(
-        mock_sqlalchemy_session, 123, 1
+        mock_sqlalchemy_session, logger, 123, 1
     )
     assert obs_result is False
 
@@ -280,7 +284,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: submitted -> queued
     mock_data = MockRunModel(status="queued", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
@@ -290,7 +294,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: queued -> queued
     mock_data = MockRunModel(status="queued", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
@@ -299,7 +303,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: queued -> running
     mock_data = MockRunModel(status="queued", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
     )
@@ -309,7 +313,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: queued -> succeeded
     mock_data = MockRunModel(status="queued", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
     )
@@ -318,7 +322,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: queued -> failed
     mock_data = MockRunModel(status="queued", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
@@ -327,7 +331,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: running -> succeeded
     mock_data = MockRunModel(status="running", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_succeeded
     )
@@ -336,7 +340,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test: running -> failed
     mock_data = MockRunModel(status="running", workflow_root="/x")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     monkeypatch.setattr(
         jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
     )
@@ -345,7 +349,7 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
 
     # test get metadata, workflow_root
     mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD")
-    run = Run(mock_session, mock_data)
+    run = Run(mock_session, logger, mock_data)
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
     assert run.data.workflow_name == "unknown"
@@ -409,9 +413,7 @@ def test_from_params(mock_sqlalchemy_session):
         "manifest_json": "test.json",
         "run_id": 123,
     }
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    run.from_params(mock_sqlalchemy_session, params)
+    run = Run.from_params(mock_sqlalchemy_session, logger, params)
 
     assert mock_sqlalchemy_session.data.session["add"] is True
     assert mock_sqlalchemy_session.data.session["commit"] is True
@@ -421,7 +423,7 @@ def test_from_params(mock_sqlalchemy_session):
     # Test add exception
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
     with pytest.raises(RunDbError):
-        run.from_params(mock_sqlalchemy_session, params)
+        run = Run.from_params(mock_sqlalchemy_session, logger, params)
 
     assert mock_sqlalchemy_session.data.session["rollback"] is True
     mock_sqlalchemy_session.clear()
@@ -429,7 +431,7 @@ def test_from_params(mock_sqlalchemy_session):
     # Test general Exception
     mock_sqlalchemy_session.data.raise_exception = True
     with pytest.raises(Exception):
-        run.from_params(mock_sqlalchemy_session, params)
+        run = Run.from_params(mock_sqlalchemy_session, logger, params)
 
     assert mock_sqlalchemy_session.data.session["rollback"] is True
     mock_sqlalchemy_session.clear()
@@ -442,65 +444,61 @@ def test_from_params(mock_sqlalchemy_session):
         "caching": 123,
     }
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
     with pytest.raises(RunDbError):
-        run.from_params(mock_sqlalchemy_session, params)
+        run = Run.from_params(mock_sqlalchemy_session, logger, params)
 
 
 def test_from_id(mock_sqlalchemy_session):
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    run.from_id(mock_sqlalchemy_session, 123)
+    run = Run.from_id(mock_sqlalchemy_session, logger, 123)
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test raising Exception
     mock_sqlalchemy_session.data.raise_exception = True
     with pytest.raises(Exception):
-        run.from_id(mock_sqlalchemy_session, 123)
+        run = Run.from_id(mock_sqlalchemy_session, logger, 123)
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test raising SQLAlchemyError
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
     with pytest.raises(RunDbError):
-        run.from_id(mock_sqlalchemy_session, 123)
+        run = Run.from_id(mock_sqlalchemy_session, logger, 123)
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
 
 def test_from_cromwell_run_id(mock_sqlalchemy_session):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+    run = Run.from_cromwell_run_id(mock_sqlalchemy_session, logger, "myid")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test raising Exception
     mock_sqlalchemy_session.data.raise_exception = True
     with pytest.raises(Exception):
-        run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+        run = Run.from_cromwell_run_id(mock_sqlalchemy_session, logger, "myid")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test raising SQLAlchemyError
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
     with pytest.raises(RunDbError):
-        run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+        run = Run.from_cromwell_run_id(mock_sqlalchemy_session, logger, "myid")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test RunNotFound
     mock_sqlalchemy_session.data.raise_exception_noresultfound = True
     with pytest.raises(RunNotFoundError):
-        run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+        run = Run.from_cromwell_run_id(mock_sqlalchemy_session, logger, "myid")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
 
 def test_summary2(mock_sqlalchemy_session):
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.summary()
     assert ret["run_id"] == "99"
     assert ret["user_id"] == "test_user"
@@ -511,14 +509,14 @@ def test_summary2(mock_sqlalchemy_session):
 def test_did_run_start(mock_metadata, mock_sqlalchemy_session):
 
     data = initRunModel(cromwell_run_id=None)
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.did_run_start()
     assert ret is False
 
 
 def test_task_log(mock_metadata, mock_sqlalchemy_session):
     data = initRunModel(cromwell_run_id=None)
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.task_log()
     assert len(ret) == 0
 
@@ -526,7 +524,7 @@ def test_task_log(mock_metadata, mock_sqlalchemy_session):
 def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
 
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.summary()
     ret == {
         "run_id": "99",
@@ -581,13 +579,13 @@ def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     monkeypatch.setattr(RpcClientBasic, "request", mock_rpc_client_request)
 
     data = initRunModel(status="complete")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     run.publish_report()
 
 
 def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.cancel()
     assert ret is None
 
@@ -597,7 +595,7 @@ def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     monkeypatch.setattr(Cromwell, "abort", mock_cromwell_abort)
 
     data = initRunModel(status="submitted")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.cancel()
     assert ret is None
 
@@ -608,7 +606,7 @@ def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     monkeypatch.setattr(Cromwell, "abort", mock_cromwell_abort)
 
     data = initRunModel(status="submitted")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     run.cancel()
 
     # Test RunDbError
@@ -629,7 +627,7 @@ def test__read_file_nfs(
     mock_sqlalchemy_session,
 ):
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run._read_file_nfs(config_file)
     assert isinstance(ret, io.StringIO)
 
@@ -644,7 +642,7 @@ def test__read_file_nfs(
 
 def test__read_file(config_file, monkeypatch, mock_sqlalchemy_session):
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
 
     def mock__read_file_s3(self, path, binary):
         return "s3"
@@ -678,7 +676,7 @@ def test_read_inputs(monkeypatch, mock_sqlalchemy_session):
     monkeypatch.setattr(Run, "_read_file", mock__read_file)
 
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
     ret = run.read_inputs()
     assert ret == {
         "main_wdl.fastq": "/global/JAWS/data/veryshort.fastq.bz2",
@@ -695,7 +693,7 @@ def test_get_run_inputs(monkeypatch, mock_sqlalchemy_session):
     input_file = "inputs.json"
 
     data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
+    run = Run(mock_sqlalchemy_session, logger, data)
 
     # Test RunFileNotFoundError
     with pytest.raises(RunFileNotFoundError):

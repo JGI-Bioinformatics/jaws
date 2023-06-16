@@ -16,7 +16,7 @@ class TransferDaemon:
     def __init__(self):
         logger.info("Initializing transfer daemon")
         with database.session_factory() as session:
-            transfers.reset_queue(session)
+            transfers.reset_queue(session, logger)
 
     def start_daemon(self):
         """
@@ -32,4 +32,4 @@ class TransferDaemon:
         Do any queued transfers now.
         """
         with database.session_factory() as session:
-            transfers.check_queue(session)
+            transfers.check_queue(session, logger)

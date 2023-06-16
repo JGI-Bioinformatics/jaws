@@ -1,3 +1,4 @@
+import logging
 import pytest
 import os
 import os.path
@@ -24,6 +25,9 @@ import botocore
 import boto3
 
 
+logger = logging.getLogger(__package__)
+
+
 def test_mkdir(tmp_path):
     mkdir(tmp_path)
     assert os.path.exists(tmp_path)
@@ -33,14 +37,14 @@ def test_mkdir(tmp_path):
 def test_constructor():
     mock_session = MockSession()
     mock_data = MockTransferModel()
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer
 
 
 def test_status():
     mock_session = MockSession()
     mock_data = MockTransferModel(status="queued")
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer.status() == "queued"
 
 
@@ -55,12 +59,12 @@ def test_cancel(monkeypatch):
 
     # a queued transfer may be cancelled
     mock_data = MockTransferModel(status="queued")
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer.cancel() is True
 
     # a transfer that has already begun cannot be cancelled
     mock_data = MockTransferModel(status="transferring")
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     assert transfer.cancel() is False
 
 
@@ -68,7 +72,7 @@ def test_manifest():
     EXAMPLE_MANIFEST = ["file1", "file2", "file3"]
     mock_session = MockSession()
     mock_data = MockTransferModel(manifest=EXAMPLE_MANIFEST)
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
 
     assert type(transfer.data.manifest_json) == str
     manifest = transfer.manifest()
@@ -106,7 +110,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
         dest_base_dir="/scratch/jaws/downloads",
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.S3_DOWNLOAD is True
 
@@ -116,7 +120,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="/scratch/jaws/downloads",
         dest_base_dir="s3://jaws-site/cromwell-executions/AAAA",
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.S3_UPLOAD is True
 
@@ -126,7 +130,7 @@ def test_transfer_files(monkeypatch):
         src_base_dir="/scratch/jaws/cromwell-executions/A/B/C",
         dest_base_dir="/scratch/assembly/jaws/outputs/",
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.RSYNC is True
 
@@ -141,7 +145,7 @@ def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
         src_base_dir="/scratch/jaws-site/cromwell-executions/ex/AAAA",
         dest_base_dir="/scratch/jaws-site/uploads/AAAA",
     )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     transfer.transfer_files()
     assert mock_sqlalchemy_session.data.session["commit"] is True
     assert transfer.data.status == "succeeded"
@@ -169,7 +173,7 @@ def test_parallel_rsync(mock_sqlalchemy_session, setup_files):
         src_base_dir=src_base_dir,
         dest_base_dir=dest_base_dir,
     )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     transfer.transfer_files()
 
     for i in range(100):
@@ -182,7 +186,7 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
         src_base_dir="/src",
         dest_base_dir="/dst",
     )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     transfer.transfer_files()
     assert transfer.data.status == "failed"
 
@@ -212,7 +216,7 @@ def test_correctly_changes_permission(
 
     src, dst = setup_files
     mock_data = MockTransferModel(status="queued", src_base_dir=src, dest_base_dir=dst)
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     transfer.transfer_files()
 
     assert get_permissions(dst) == expected_octal_perms
@@ -226,7 +230,7 @@ def test_correctly_changes_permission(
 def test_s3_parse_path():
     mock_session = MockSession()
     mock_data = MockTransferModel()
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_session, logger, mock_data)
 
     test_path = "s3://jaws-site/dev/uploads/Pfam-A.hmm"
     actual_bucket, actual_path = transfer.s3_parse_path(test_path)
@@ -236,7 +240,7 @@ def test_s3_parse_path():
 
 def test_from_params(mock_sqlalchemy_session):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     params = {
         "transfer_id": 99,
         "src_site_id": "NERSC",
@@ -245,7 +249,7 @@ def test_from_params(mock_sqlalchemy_session):
         "dest_base_dir": "s3://jaws-site/jaws-dev/inputs",
         "manifest": [],
     }
-    transfer.from_params(mock_sqlalchemy_session, params)
+    transfer.from_params(mock_sqlalchemy_session, logger, params)
     assert mock_sqlalchemy_session.data.session == {
         "add": True,
         "commit": True,
@@ -263,7 +267,7 @@ def test_from_params(mock_sqlalchemy_session):
         "dest_base_dir": "s3://jaws-site/jaws-dev/inputs",
         "manifest_json": "test",
     }
-    transfer.from_params(mock_sqlalchemy_session, params)
+    transfer.from_params(mock_sqlalchemy_session, logger, params)
     assert mock_sqlalchemy_session.data.session == {
         "add": True,
         "commit": True,
@@ -276,7 +280,7 @@ def test_from_params(mock_sqlalchemy_session):
     # Test SQLAlchemyError
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
     with pytest.raises(TransferDbError):
-        transfer.from_params(mock_sqlalchemy_session, params)
+        transfer.from_params(mock_sqlalchemy_session, logger, params)
     assert mock_sqlalchemy_session.data.session["rollback"] is True
     mock_sqlalchemy_session.clear()
 
@@ -287,7 +291,7 @@ def test_from_params(mock_sqlalchemy_session):
         "manifest_json": "test",
     }
     with pytest.raises(TransferValueError):
-        transfer.from_params(mock_sqlalchemy_session, params)
+        transfer.from_params(mock_sqlalchemy_session, logger, params)
 
     # Test wrong params
     params = {
@@ -296,14 +300,14 @@ def test_from_params(mock_sqlalchemy_session):
         "manifest": [],
     }
     with pytest.raises(KeyError):
-        transfer.from_params(mock_sqlalchemy_session, params)
+        transfer.from_params(mock_sqlalchemy_session, logger, params)
     assert mock_sqlalchemy_session.data.session["rollback"] is True
     mock_sqlalchemy_session.clear()
 
 
 def test_from_id(mock_sqlalchemy_session):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     mock_sqlalchemy_session.output(
         [
             {"src_site_id": "NERSC"},
@@ -312,47 +316,47 @@ def test_from_id(mock_sqlalchemy_session):
             {"dest_base_dir": "s3://jaws-site/jaws-dev/inputs"},
         ]
     )
-    transfer.from_id(mock_sqlalchemy_session, 99)
+    transfer.from_id(mock_sqlalchemy_session, logger, 99)
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test Exception
     mock_sqlalchemy_session.data.raise_exception = True
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     with pytest.raises(Exception):
-        transfer.from_id(mock_sqlalchemy_session, 99)
+        transfer.from_id(mock_sqlalchemy_session, logger, 99)
     mock_sqlalchemy_session.clear()
 
     # Test SQLAlchemyError
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     with pytest.raises(TransferDbError):
-        transfer.from_id(mock_sqlalchemy_session, 99)
+        transfer.from_id(mock_sqlalchemy_session, logger, 99)
     mock_sqlalchemy_session.clear()
 
     # None result from one_or_none()
     mock_sqlalchemy_session.output([])
     with pytest.raises(TransferNotFoundError):
-        transfer.from_id(mock_sqlalchemy_session, 99)
+        transfer.from_id(mock_sqlalchemy_session, logger, 99)
 
 
 def test_reason(mock_sqlalchemy_session):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     ret = transfer.reason()
     assert ret == "reason"
 
 
 def test_update_status(mock_sqlalchemy_session):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     transfer.update_status("queued", "")
     assert mock_sqlalchemy_session.data.session["commit"] is True
     mock_sqlalchemy_session.clear()
 
     # Test TransferDbError
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     with pytest.raises(sqlalchemy.exc.SQLAlchemyError):
         transfer.update_status("queued", "")
     assert mock_sqlalchemy_session.data.session["rollback"] is True
@@ -369,7 +373,7 @@ def test_check_queue(mock_sqlalchemy_session, monkeypatch):
             {"dest_base_dir": "s3://jaws-site/jaws-dev/inputs"},
         ]
     )
-    check_queue(mock_sqlalchemy_session)
+    check_queue(mock_sqlalchemy_session, logger)
     assert mock_sqlalchemy_session.data.session["query"] is True
 
     monkeypatch.setattr(jaws_site.transfers, "Transfer", MockTransfer)
@@ -377,12 +381,12 @@ def test_check_queue(mock_sqlalchemy_session, monkeypatch):
     # Test SQLAlchemyError
     mock_sqlalchemy_session.clear()
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
-    check_queue(mock_sqlalchemy_session)
+    check_queue(mock_sqlalchemy_session, logger)
 
 
 def test_aws_s3_resource(s3, mock_sqlalchemy_session):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     s3_resource = transfer.aws_s3_resource()
     assert s3_resource is not None
 
@@ -394,7 +398,7 @@ def test_get_does_not_exist(s3, mock_sqlalchemy_session, monkeypatch):
     monkeypatch.setattr(boto3, "Session", mock_boto3_session)
 
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
 
     with pytest.raises(Exception):
         transfer.aws_s3_resource()
@@ -414,13 +418,13 @@ def test_aws_session_resource_exception(s3, mock_sqlalchemy_session, monkeypatch
 
     with pytest.raises(Exception):
         mock_data = initTransferModel()
-        transfer = Transfer(mock_sqlalchemy_session, mock_data)
+        transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
         transfer.aws_s3_resource()
 
 
 def test_aws_s3_client(s3, mock_sqlalchemy_session):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     cl = transfer.aws_s3_client()
     assert cl is not None
 
@@ -431,7 +435,7 @@ def test_aws_s3_client(s3, mock_sqlalchemy_session):
 
 def test_s3_file_size(s3, mock_sqlalchemy_session, monkeypatch):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
     transfer.s3_file_size(S3_BUCKET, "file_key")
 
     # Test list_objects_v2 ClientError exception
@@ -533,7 +537,7 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
     monkeypatch.setattr(os.path, "getsize", mock_get_size)
 
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
 
     with pytest.raises(ValueError):
         transfer.s3_upload()
@@ -546,7 +550,7 @@ def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
     monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
 
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
 
     with pytest.raises(OSError):
         transfer.s3_download()
@@ -554,7 +558,7 @@ def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
 
 def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
     mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, logger, mock_data)
 
     with pytest.raises(botocore.exceptions.ParamValidationError):
         transfer.s3_download_folder()

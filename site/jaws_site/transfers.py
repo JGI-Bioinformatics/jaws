@@ -3,7 +3,6 @@ Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc
 Items are stored in a relational database.
 """
 import concurrent.futures
-import logging
 import os
 import pathlib
 from datetime import datetime
@@ -14,9 +13,6 @@ from jaws_site import config, models
 import botocore
 import subprocess
 from parallel_sync import rsync
-
-
-logger = logging.getLogger(__package__)
 
 
 def mkdir(folder):
@@ -46,7 +42,7 @@ class TransferValueError(TransferError):
 class Transfer:
     """Class representing a transfer (set of files to transfer) associated with one Run."""
 
-    def __init__(self, session, data):
+    def __init__(self, session, logger, data):
         """
         Initialize transfer object.
         :param session: database handle
@@ -55,10 +51,11 @@ class Transfer:
         :ptype: sqlalchemy.ext.declarative.declarative_base
         """
         self.session = session
+        self.logger = logger
         self.data = data
 
     @classmethod
-    def from_params(cls, session, params):
+    def from_params(cls, session, logger, params):
         """Create new transfer from parameter values and save in RDb."""
         manifest_json = "[]"
         if "manifest" in params:
@@ -92,10 +89,10 @@ class Transfer:
             session.rollback()
             raise TransferDbError(error)
         else:
-            return cls(session, data)
+            return cls(session, logger, data)
 
     @classmethod
-    def from_id(cls, session, transfer_id: int):
+    def from_id(cls, session, logger, transfer_id: int):
         """Select existing Transfers record from RDb by primary key"""
         try:
             data = (
@@ -111,7 +108,7 @@ class Transfer:
             if data is None:
                 raise TransferNotFoundError(f"Transfer {transfer_id} not found")
             else:
-                return cls(session, data)
+                return cls(session, logger, data)
 
     def status(self) -> str:
         """Return the current state of the transfer."""
@@ -139,7 +136,7 @@ class Transfer:
         """
         Update Transfers' status.
         """
-        logger.info(f"Transfers {self.data.id}: now {new_status}")
+        self.logger.info(f"Transfers {self.data.id}: now {new_status}")
         timestamp = datetime.utcnow()
         try:
             self.data.status = new_status
@@ -149,14 +146,14 @@ class Transfer:
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
-            logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
+            self.logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
             raise (error)
 
     def transfer_files(self) -> None:
         """
         Do the transfer and return when done -- the operation is blocking.
         """
-        logger.debug(f"Begin transfer {self.data.id}")
+        self.logger.debug(f"Begin transfer {self.data.id}")
         self.update_status("transferring")
         try:
             if self.data.src_base_dir.startswith("s3://"):
@@ -166,7 +163,7 @@ class Transfer:
             else:
                 self.local_rsync()
         except Exception as error:
-            logger.error(f"Transfer {self.data.id} failed: {error}")
+            self.logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
@@ -179,10 +176,10 @@ class Transfer:
         src = f"{self.data.src_base_dir}/"
         dest = f"{self.data.dest_base_dir}/"
         if len(manifest) == 0:
-            logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
+            self.logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
             parallel_rsync(src, dest)
         else:
-            logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
+            self.logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
             parallel_rsync_files(manifest, src, dest)
 
     def aws_s3_resource(self):
@@ -244,14 +241,14 @@ class Transfer:
         try:
             result = aws_s3_client.list_objects_v2(Bucket=bucket, Prefix=file_key)
         except botocore.exceptions.ClientError as error:
-            logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
+            self.logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
         except botocore.exceptions.ParamValidationError as error:
             raise ValueError(
                 "The parameters you provided are incorrect: {}".format(error)
             )
         except Exception as error:
-            logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
+            self.logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
             raise
         size = None
         if "Contents" in result:
@@ -273,31 +270,33 @@ class Transfer:
         """
         manifest = self.manifest()
         num_files = len(manifest)
-        logger.debug(f"Transfer {self.data.id} begin s3 upload of {num_files} files")
+        self.logger.debug(
+            f"Transfer {self.data.id} begin s3 upload of {num_files} files"
+        )
         try:
             aws_client = self.aws_s3_client()
         except Exception as error:
             # do not fail, retry later
-            logger.error(f"{error}")
+            self.logger.error(f"{error}")
             return
         try:
             aws_s3_resource = self.aws_s3_resource()
         except Exception as error:
             # do not fail, retry later
-            logger.error(f"{error}")
+            self.logger.error(f"{error}")
             return
         try:
             s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
         except Exception as error:
             msg = f"Error parsing s3 uri, {self.data.dest_base_dir}: {error}"
-            logger.error(msg)
+            self.logger.error(msg)
             self.update_status("upload failed", msg)
             raise
         try:
             bucket_obj = aws_s3_resource.Bucket(s3_bucket)
         except Exception as error:
             msg = f"Error accessing bucket, {s3_bucket}: {error}"
-            logger.error(msg)
+            self.logger.error(msg)
             self.update_status("upload failed", msg)
             raise
         for rel_path in manifest:
@@ -310,15 +309,17 @@ class Transfer:
                 self.update_status("upload failed", f"{error}")
                 raise
             if dest_file_size is not None and src_file_size == dest_file_size:
-                logger.debug(f"S3 upload: Skipping cached file {dest_path}")
+                self.logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
-                logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
+                self.logger.debug(
+                    f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}"
+                )
                 try:
                     with open(src_path, "rb") as fh:
                         bucket_obj.upload_fileobj(fh, dest_path)
                 except Exception as error:
                     msg = f"Failed to upload to S3, file {src_path} -> {dest_path}: {error}"
-                    logger.error(msg)
+                    self.logger.error(msg)
                     self.update_status("upload failed", msg)
                     raise IOError(error)
 
@@ -328,14 +329,16 @@ class Transfer:
         if num_files == 0:
             # transfer entire folder, recursively
             return self.s3_download_folder()
-        logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
+        self.logger.debug(
+            f"Transfer {self.data.id} begin s3 download of {num_files} files"
+        )
         aws_s3_resource = self.aws_s3_resource()
         s3_bucket, src_base_dir = self.s3_parse_path(self.data.src_base_dir)
         try:
             bucket_obj = aws_s3_resource.Bucket(s3_bucket)
         except Exception as error:
             msg = f"Error accessing bucket, {s3_bucket}: {error}"
-            logger.error(msg)
+            self.logger.error(msg)
             self.update_status("download failed", msg)
             raise
         for rel_path in manifest:
@@ -343,7 +346,7 @@ class Transfer:
             dest_path = os.path.normpath(
                 os.path.join(self.data.dest_base_dir, rel_path)
             )
-            logger.debug(
+            self.logger.debug(
                 f"S3 download from {s3_bucket}: {rel_path} as {src_path} -> {dest_path}"
             )
             dest_folder = os.path.dirname(dest_path)
@@ -351,14 +354,14 @@ class Transfer:
                 mkdir(dest_folder)
             except IOError as error:
                 msg = f"Unable to make download dir, {dest_folder}: {error}"
-                logger.error(msg)
+                self.logger.error(msg)
                 self.update_status("download failed", msg)
             try:
                 with open(dest_path, "wb") as fh:
                     bucket_obj.download_fileobj(src_path, fh)
             except Exception as error:
                 msg = f"Failed to download s3 file, {src_path}: {error}"
-                logger.error(msg)
+                self.logger.error(msg)
                 self.update_status("download failed", msg)
                 raise IOError(error)
 
@@ -374,13 +377,13 @@ class Transfer:
                 dest_path = os.path.normpath(
                     os.path.join(self.data.dest_base_dir, f"./{dest_rel_path}")
                 )
-                logger.debug(f"S3 download {rel_path} -> {dest_path}")
+                self.logger.debug(f"S3 download {rel_path} -> {dest_path}")
                 if rel_path.endswith("/") and size == 0:
                     try:
                         mkdir(dest_path)
                     except Exception as error:
                         msg = f"Unable to make download dir, {dest_path}: {error}"
-                        logger.error(msg)
+                        self.logger.error(msg)
                         self.update_status("download failed", msg)
                         raise IOError(msg)
                 else:
@@ -389,19 +392,19 @@ class Transfer:
                         mkdir(basedir)
                     except Exception as error:
                         msg = f"Unable to make download dir, {basedir}: {error}"
-                        logger.error(msg)
+                        self.logger.error(msg)
                         self.update_status("download failed", msg)
                         raise IOError(msg)
                     try:
                         aws_s3_client.download_file(s3_bucket, rel_path, dest_path)
                     except Exception as error:
                         msg = f"S3 download error, {rel_path}: {error}"
-                        logger.error(msg)
+                        self.logger.error(msg)
                         self.update_status("download failed", msg)
                         raise IOError(msg)
 
 
-def check_queue(session) -> None:
+def check_queue(session, logger) -> None:
     """
     Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
     transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
@@ -420,7 +423,7 @@ def check_queue(session) -> None:
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
     if len(rows):
-        transfer = Transfer(session, rows[0])
+        transfer = Transfer(session, logger, rows[0])
         transfer.transfer_files()
 
 
@@ -501,7 +504,7 @@ def parallel_rsync_files(files, src, dest, include=[], exclude=[]):
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
-def reset_queue(session):
+def reset_queue(session, logger):
     rows = []
     try:
         rows = (
