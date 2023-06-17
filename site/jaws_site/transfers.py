@@ -161,7 +161,7 @@ class Transfer:
         self.update_status("transferring")
         try:
             if self.data.src_base_dir.startswith("s3://"):
-                self.s3_download_folder()
+                self.s3_download()
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
@@ -181,16 +181,10 @@ class Transfer:
         dest = f"{self.data.dest_base_dir}/"
         if len(manifest) == 0:
             self.logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
-            parallel_rsync(src, dest)
+            parallel_rsync_folder(src, dest)
         else:
             self.logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
             parallel_rsync_files(manifest, src, dest)
-
-    def rsync_folder(self):
-        """
-        Recursively copy a folder.
-        """
-        parallel_rsync(f"{self.data.src_base_dir}/", f"{self.data.dest_base_dir}/")
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -330,6 +324,9 @@ class Transfer:
                     raise IOError(error)
 
     def s3_download(self):
+        return self.s3_download_files() if len(self.manifest()) else self.s3_download_folder()
+
+    def s3_download_files(self):
         manifest = self.manifest()
         num_files = len(manifest)
         logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
@@ -462,7 +459,7 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_rsync(src, dest):
+def parallel_rsync_folder(src, dest):
     """Copy source to destination using rsync."""
     num_files = get_number_of_files(src)
     parallelism = calculate_parallelism(num_files)

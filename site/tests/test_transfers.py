@@ -88,40 +88,29 @@ def test_transfer_files(monkeypatch):
     # these 3 mocks set a variable in the object so we can see which method was called
 
     def mock_s3_download(self):
-        self.S3_DOWNLOAD = True
-
-    def mock_s3_download_folder(self):
-        self.S3_DOWNLOAD_FOLDER = True
+        self.TRANSFER_TYPE = "s3_download"
 
     def mock_s3_upload(self):
-        self.S3_UPLOAD = True
+        self.TRANSFER_TYPE = "s3_upload"
+
+    def mock_local_rsync(self):
+        self.TRANSFER_TYPE = "local_rsync"
 
     monkeypatch.setattr(Transfer, "s3_download", mock_s3_download)
-    monkeypatch.setattr(Transfer, "s3_download_folder", mock_s3_download_folder)
     monkeypatch.setattr(Transfer, "s3_upload", mock_s3_upload)
+    monkeypatch.setattr(Transfer, "local_rsync", mock_local_rsync)
 
     mock_session = MockSession()
-
-    #    # if the src path starts with "s3://" then download from S3
-    #    mock_data = MockTransferModel(
-    #        status="queued",
-    #        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
-    #        dest_base_dir="/scratch/jaws/downloads",
-    #    )
-    #    transfer = Transfer(mock_session, mock_data)
-    #    transfer.transfer_files()
-    #    assert transfer.S3_DOWNLOAD is True
 
     # if the src path starts with "s3://" then download from S3
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="s3://jaws-site/cromwell-executions/AAAA",
+        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
         dest_base_dir="/scratch/jaws/downloads",
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.S3_DOWNLOAD_FOLDER is True
-    assert mock_session.needs_to_be_closed is False
+    assert transfer.TRANSFER_TYPE == "s3_download"
 
     # if the dest path starts with "s3://" then upload to S3
     mock_data = MockTransferModel(
@@ -131,24 +120,17 @@ def test_transfer_files(monkeypatch):
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.S3_UPLOAD is True
-    assert mock_session.needs_to_be_closed is False
+    assert transfer.TRANSFER_TYPE == "s3_upload"
 
-
-def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
-    def mock_rsync_folder(self):
-        pass
-
-    monkeypatch.setattr(Transfer, "rsync_folder", mock_rsync_folder)
+    # if neither the src or dest path starts with "s3://" then rsync
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="/scratch/jaws-site/cromwell-executions/ex/AAAA",
-        dest_base_dir="/scratch/jaws-site/uploads/AAAA",
+        src_base_dir="/scratch/jaws/cromwell-executions/x",
+        dest_base_dir="/scratch/jaws/downloads/x",
     )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert mock_sqlalchemy_session.data.session["commit"] is True
-    assert transfer.data.status == "succeeded"
+    assert transfer.TRANSFER_TYPE == "local_rsync"
 
 
 def test_calculate_parallelism():
@@ -543,7 +525,53 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
         transfer.s3_upload()
 
 
-def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
+def test_s3_download(mock_sqlalchemy_session, monkeypatch):
+    # TEST1: transfer files
+    def mock_manifest(self):
+        return ["file1", "file2", "file3"]
+
+    def mock_s3_download_files(self):
+        # this should be called
+        pass
+
+    def mock_s3_download_folder(self):
+        # this should not be called
+        assert False
+
+    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
+    monkeypatch.setattr(transfers.Transfer, "s3_download_files", mock_s3_download_files)
+    monkeypatch.setattr(
+        transfers.Transfer, "s3_download_folder", mock_s3_download_folder
+    )
+
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.s3_download()
+
+    # TEST2: transfer folder
+    def mock_manifest(self):
+        return []
+
+    def mock_s3_download_files(self):
+        # this should not be called
+        assert False
+
+    def mock_s3_download_folder(self):
+        # this should be called
+        pass
+
+    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
+    monkeypatch.setattr(transfers.Transfer, "s3_download_files", mock_s3_download_files)
+    monkeypatch.setattr(
+        transfers.Transfer, "s3_download_folder", mock_s3_download_folder
+    )
+
+    mock_data = initTransferModel()
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.s3_download()
+
+
+def test_s3_download_files(s3, mock_sqlalchemy_session, monkeypatch):
     def mock_manifest(self):
         return ["file1", "file2", "file3"]
 
@@ -553,7 +581,7 @@ def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
 
     with pytest.raises(OSError):
-        transfer.s3_download()
+        transfer.s3_download_files()
 
 
 def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
