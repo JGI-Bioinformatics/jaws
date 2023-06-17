@@ -716,7 +716,7 @@ def test_get_run_inputs(monkeypatch, mock_sqlalchemy_session):
 
 def test_output_manifest(monkeypatch, mock_sqlalchemy_session):
     def mock_read_json(path: str) -> list:
-        return [ "/WORKFLOW/ROOT/a.txt", "/WORKFLOW/ROOT/b.txt" ]
+        return ["/WORKFLOW/ROOT/a.txt", "/WORKFLOW/ROOT/b.txt"]
 
     monkeypatch.setattr(jaws_site.runs, "read_json", mock_read_json)
 

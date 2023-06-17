@@ -67,26 +67,37 @@ def __load_example_output_from_file(cromwell_run_id, output_type):
     return output
 
 
-@pytest.mark.parametrize("metadata, expected_response, expected_exception, status_code",
-                         [
-                             (__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
-                              "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2"
-                              "-afdecce2bad3",
-                              None,
-                              200),
-                             ({"status": "fail", "message": "Workflow ID not found"},
-                              None,
-                              CromwellRunNotFoundError,
-                              404),
-                             ({"status": "error", "message": "Connection to the database failed."},
-                                None,
-                              CromwellServiceError,
-                              500)
-                         ])
+@pytest.mark.parametrize(
+    "metadata, expected_response, expected_exception, status_code",
+    [
+        (
+            __load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
+            "/global/cscratch1/sd/jaws/test/cromwell-executions/fq_count/ee30d68f-39d4-4fde-85c2"
+            "-afdecce2bad3",
+            None,
+            200,
+        ),
+        (
+            {"status": "fail", "message": "Workflow ID not found"},
+            None,
+            CromwellRunNotFoundError,
+            404,
+        ),
+        (
+            {"status": "error", "message": "Connection to the database failed."},
+            None,
+            CromwellServiceError,
+            500,
+        ),
+    ],
+)
 def test_get_metadata(metadata, expected_response, expected_exception, status_code):
     with requests_mock.Mocker() as m:
-        m.get(f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
-              json=metadata, status_code=status_code)
+        m.get(
+            f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+            json=metadata,
+            status_code=status_code,
+        )
         if expected_exception:
             with pytest.raises(expected_exception):
                 crom.get_metadata(example_cromwell_run_id_1)
