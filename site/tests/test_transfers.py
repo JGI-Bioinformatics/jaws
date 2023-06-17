@@ -148,15 +148,9 @@ def test_use_find_subprocess_to_get_file_count(setup_files):
     assert num_files == 1001  # Includes top-level directory
 
 
-def test_parallel_rsync(mock_sqlalchemy_session, setup_files):
+def test_parallel_rsync_folder(mock_sqlalchemy_session, setup_files):
     src_base_dir, dest_base_dir = setup_files
-    mock_data = MockTransferModel(
-        status="queued",
-        src_base_dir=src_base_dir,
-        dest_base_dir=dest_base_dir,
-    )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.transfer_files()
+    jaws_site.transfers.parallel_rsync_folder(src_base_dir, dest_base_dir)
 
     for i in range(100):
         assert os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
@@ -526,49 +520,29 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
 
 
 def test_s3_download(mock_sqlalchemy_session, monkeypatch):
-    # TEST1: transfer files
-    def mock_manifest(self):
-        return ["file1", "file2", "file3"]
 
     def mock_s3_download_files(self):
-        # this should be called
-        pass
+        self.TRANSFER_TYPE = "s3_download_files"
 
     def mock_s3_download_folder(self):
-        # this should not be called
-        assert False
+        self.TRANSFER_TYPE = "s3_download_folder"
 
-    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
     monkeypatch.setattr(transfers.Transfer, "s3_download_files", mock_s3_download_files)
     monkeypatch.setattr(
         transfers.Transfer, "s3_download_folder", mock_s3_download_folder
     )
 
-    mock_data = initTransferModel()
+    # TEST1: transfer files
+    mock_data = initTransferModel(manifest_json="[\"file1\"]")
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.s3_download()
+    assert transfer.TRANSFER_TYPE == "s3_download_files"
 
     # TEST2: transfer folder
-    def mock_manifest(self):
-        return []
-
-    def mock_s3_download_files(self):
-        # this should not be called
-        assert False
-
-    def mock_s3_download_folder(self):
-        # this should be called
-        pass
-
-    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
-    monkeypatch.setattr(transfers.Transfer, "s3_download_files", mock_s3_download_files)
-    monkeypatch.setattr(
-        transfers.Transfer, "s3_download_folder", mock_s3_download_folder
-    )
-
-    mock_data = initTransferModel()
+    mock_data = initTransferModel(manifest_json="[]")
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.s3_download()
+    assert transfer.TRANSFER_TYPE == "s3_download_folder"
 
 
 def test_s3_download_files(s3, mock_sqlalchemy_session, monkeypatch):
@@ -590,3 +564,34 @@ def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
 
     with pytest.raises(botocore.exceptions.ParamValidationError):
         transfer.s3_download_folder()
+
+
+def test_local_rsync(mock_sqlalchemy_session, monkeypatch):
+
+    def mock_parallel_rsync_files(manifest, src, dest):
+        pass
+
+    def mock_parallel_rsync_folder(src, dest):
+        assert False
+
+    monkeypatch.setattr(transfers, "parallel_rsync_files", mock_parallel_rsync_files)
+    monkeypatch.setattr(transfers, "parallel_rsync_folder", mock_parallel_rsync_folder)
+
+    # TEST1: transfer files
+    mock_data = initTransferModel(manifest_json="[\"file1\"]")
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.local_rsync()
+
+    def mock_parallel_rsync_files(manifest, src, dest):
+        assert False
+
+    def mock_parallel_rsync_folder(src, dest):
+        pass
+
+    monkeypatch.setattr(transfers, "parallel_rsync_files", mock_parallel_rsync_files)
+    monkeypatch.setattr(transfers, "parallel_rsync_folder", mock_parallel_rsync_folder)
+
+    # TEST2: transfer folder
+    mock_data = initTransferModel(manifest_json="[]")
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.local_rsync()

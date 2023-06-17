@@ -123,7 +123,10 @@ class Transfer:
         return self.data.reason
 
     def manifest(self) -> list:
-        return json.loads(self.data.manifest_json)
+        """
+        Return list of files to transfer -- may be empty list if complete folder is to be transferred.
+        """
+        return [] if self.data.manifest_json is None else json.loads(self.data.manifest_json)
 
     def cancel(self) -> None:
         """Cancel a transfer by changing the status in the db to prevent it from being picked up
@@ -167,7 +170,7 @@ class Transfer:
             else:
                 self.local_rsync()
         except Exception as error:
-            logger.error(f"Transfer {self.data.id} failed: {error}")
+            #logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
@@ -180,10 +183,10 @@ class Transfer:
         src = f"{self.data.src_base_dir}/"
         dest = f"{self.data.dest_base_dir}/"
         if len(manifest) == 0:
-            self.logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
+            logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
             parallel_rsync_folder(src, dest)
         else:
-            self.logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
+            logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
             parallel_rsync_files(manifest, src, dest)
 
     def aws_s3_resource(self):
