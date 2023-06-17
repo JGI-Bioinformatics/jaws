@@ -710,6 +710,25 @@ class Run:
 
         self.update_run_status("complete")
 
+    def output_manifest(self) -> list:
+        """
+        Return a list of the output files for a completed run, as paths relative to the workflow_root.
+        """
+        root = self.data.workflow_root
+        with open(f"{root}/outfiles.json", "r") as fh:
+            files = json.load(fh)
+        manifest = list(map(lambda s: s.replace(root, ""), files))
+        manifest.extend(
+            [
+                "metadata.json",
+                "errors.json",
+                "outputs.json",
+                "outfiles.json",
+                "task_summary.json",
+            ]
+        )
+        return manifest
+
     def publish_report(self):
         """
         Save final run metadata and send report document to reports service via RPC.
