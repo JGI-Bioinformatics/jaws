@@ -62,6 +62,25 @@ def output_manifest(params, session):
     return success(result)
 
 
+def output_manifest(params, session):
+    """Retrieve a Run's output manifest (files to return to user).
+    This is used by jaws-central for submitting the transfer.
+    TODO: send to AMQP queue instead.
+
+    :param run_id: JAWS Run ID
+    :type params: dict
+    :return: The workflow_root and list of output files
+    :rtype: list
+    """
+    logger.info(f"Outfiles for Run {params['run_id']}")
+    try:
+        run = Run.from_id(session, params["run_id"])
+        result = run.output_manifest()
+    except Exception as error:
+        return failure(error)
+    return success(result)
+
+
 def cancel_run(params, session):
     """Mark a Run to be cancelled.  It will be cancelled by the Run daemon later (asynchronously).
 
@@ -193,6 +212,10 @@ operations = {
     "output_manifest": {
         "function": output_manifest,
         "required_params": ["run_id"],
+    },
+    "output_manifest": {
+        "function": output_manifest,
+        "required_params": ["user_id", "run_id"],
     },
     "cancel_run": {
         "function": cancel_run,
