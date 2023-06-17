@@ -474,6 +474,23 @@ def parallel_chmod(path, mode, parallelism=1):
                 executor.submit(os.chmod, file_path, mode)
 
 
+def parallel_rsync_files(files, src, dest, include=[], exclude=[]):
+    """Copy list of source files to destination using rsync."""
+    num_files = len(files)
+    parallelism = calculate_parallelism(num_files)
+    paths = []
+    for rel_path in files:
+        path = os.path.join(src, rel_path)
+        root, filename = os.path.split(path)
+        if rsync.path_match(path, include, exclude):
+            x = path[len(src) :]
+            if x.startswith("/"):
+                x = x[1:]
+            dst = os.path.join(dest, x)
+            paths.append((path, dst))
+    rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
+
+
 def reset_queue(session):
     rows = []
     try:
