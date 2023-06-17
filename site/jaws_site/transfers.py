@@ -165,12 +165,26 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.rsync_folder()
+                self.local_rsync()
         except Exception as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
             self.update_status("failed")
         else:
             self.update_status("succeeded")
+
+    def local_rsync(self) -> None:
+        """
+        Recursively copy a folder.
+        """
+        manifest = self.manifest()
+        src = f"{self.data.src_base_dir}/"
+        dest = f"{self.data.dest_base_dir}/"
+        if len(manifest) == 0:
+            self.logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
+            parallel_rsync(src, dest)
+        else:
+            self.logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
+            parallel_rsync_files(manifest, src, dest)
 
     def rsync_folder(self):
         """
