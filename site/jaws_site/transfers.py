@@ -126,7 +126,11 @@ class Transfer:
         """
         Return list of files to transfer -- may be empty list if complete folder is to be transferred.
         """
-        return [] if self.data.manifest_json is None else json.loads(self.data.manifest_json)
+        return (
+            []
+            if self.data.manifest_json is None
+            else json.loads(self.data.manifest_json)
+        )
 
     def cancel(self) -> None:
         """Cancel a transfer by changing the status in the db to prevent it from being picked up
@@ -170,8 +174,7 @@ class Transfer:
             else:
                 self.local_rsync()
         except Exception as error:
-            #logger.error(f"Transfer {self.data.id} failed: {error}")
-            self.update_status("failed")
+            self.update_status("failed", str(error))
         else:
             self.update_status("succeeded")
 
@@ -327,7 +330,11 @@ class Transfer:
                     raise IOError(error)
 
     def s3_download(self):
-        return self.s3_download_files() if len(self.manifest()) else self.s3_download_folder()
+        return (
+            self.s3_download_files()
+            if len(self.manifest())
+            else self.s3_download_folder()
+        )
 
     def s3_download_files(self):
         manifest = self.manifest()
