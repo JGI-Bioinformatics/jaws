@@ -715,10 +715,15 @@ class Run:
         Return a list of the output files for a completed run, as paths relative to the workflow_root.
         """
         root = self.data.workflow_root
-        with open(f"{root}/outfiles.json", "r") as fh:
-            files = json.load(fh)
-        manifest = list(map(lambda s: s.replace(root, ""), files))
-        manifest.extend(
+        try:
+            files = read_json(f"{root}/outfiles.json")
+        except Exception as error:
+            self.logger.error(f"Unable to read outfiles.json: {error}")
+            files = []
+        else:
+            # generate paths relative to workflow root
+            files = list(map(lambda abs_path: os.path.relpath(abs_path, root), files))
+        files.extend(
             [
                 "metadata.json",
                 "errors.json",
@@ -727,7 +732,7 @@ class Run:
                 "task_summary.json",
             ]
         )
-        return manifest
+        return files
 
     def publish_report(self):
         """
@@ -933,3 +938,9 @@ def s3_parse_uri(full_uri):
     s3_bucket = folders.pop(0)
     obj_key = "/".join(folders)
     return s3_bucket, obj_key
+
+
+def read_json(path) -> any:
+    with open(path, "r") as fh:
+        contents = json.load(fh)
+    return contents
