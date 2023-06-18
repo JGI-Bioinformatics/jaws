@@ -836,6 +836,9 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             run = session.query(models.Run).get(log.run_id)
             data["workflow_root"] = run.workflow_root
             data["workflow_name"] = run.workflow_name
+        elif log.status_to == "complete":
+            run = session.query(models.Run).get(log.run_id)
+            data["output_manifest"] = run.output_manifest()
         try:
             response = central_rpc_client.request("update_run_logs", data)
         except Exception as error:
