@@ -840,9 +840,9 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             run = session.query(models.Run).get(log.run_id)
             data["output_manifest"] = run.output_manifest()
         try:
-            response = central_rpc_client.request("update_run_logs", data)
+            response = central_rpc_client.request("update_run_log", data)
         except Exception as error:
-            logger.exception(f"RPC update_run_logs error: {error}")
+            logger.exception(f"RPC update_run_log error: {error}")
             continue
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
