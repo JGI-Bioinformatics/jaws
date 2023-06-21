@@ -12,7 +12,6 @@ import json
 import boto3
 from jaws_site import config, models
 import botocore
-import subprocess
 
 from parallel_sync import rsync
 
@@ -177,20 +176,6 @@ class Transfer:
             self.update_status("failed", str(error))
         else:
             self.update_status("succeeded")
-
-    def local_rsync(self) -> None:
-        """
-        Recursively copy a folder.
-        """
-        manifest = self.manifest()
-        src = f"{self.data.src_base_dir}/"
-        dest = f"{self.data.dest_base_dir}/"
-        if len(manifest) == 0:
-            logger.debug(f"Transfer {self.data.id} begin rsync of complete folder")
-            parallel_rsync_folder(src, dest)
-        else:
-            logger.debug(f"Transfer {self.data.id} begin rsync of specified files")
-            parallel_rsync_files(manifest, src, dest)
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -411,6 +396,27 @@ class Transfer:
                         self.update_status("download failed", msg)
                         raise IOError(msg)
 
+    def local_rsync(self) -> None:
+        """
+        Copy files and folders (recursively).
+        """
+        manifest = self.manifest()
+        src = f"{self.data.src_base_dir}/"
+        dest = f"{self.data.dest_base_dir}/"
+        rel_paths = abs_to_rel_paths(get_abs_files(src, manifest), src)
+        paths = []
+        for rel_path in rel_paths:
+            s = os.path.join(src, rel_path)
+            d = os.path.joni(dest, rel_path)
+            paths.append((s, d))
+
+        num_files = len(rel_paths)
+        parallelism = calculate_parallelism(num_files)
+        rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
+
+        mode = config.conf.get("SITE", "file_permissions")
+        parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
+
 
 def check_queue(session) -> None:
     """
@@ -435,16 +441,48 @@ def check_queue(session) -> None:
         transfer.transfer_files()
 
 
-def get_number_of_files(src_dir):
+def get_abs_files(root, rel_paths) -> list:
     """
-    Use find src_dir | wc -l to get the number of files in a directory
+    Create list of all source files by recursively expanding any folders.
     """
-    find_proc = subprocess.Popen(["find", f"{src_dir}"], stdout=subprocess.PIPE)
-    num_files = int(subprocess.check_output(["wc", "-l"], stdin=find_proc.stdout))
-    find_proc.wait()
-    if find_proc.returncode > 0:
-        raise subprocess.CalledProcessError(find_proc.returncode, f"find {src_dir}")
-    return num_files
+    abs_files = set()
+    for item in rel_paths:
+        full_path = os.path.join(root, item)
+        if os.path.isfile(full_path):
+            abs_files.add(full_path)
+        elif os.path.isdir(full_path):
+            abs_files.update(list_files(full_path))
+    return list(abs_files)
+
+
+def list_files(root) -> list:
+    """
+    Recursively visit folders, add all files to list.
+    :param root: current folder
+    :ptype root: str
+    :return: all filenames, no folders
+    :rtype: list
+    """
+    files = []
+    for path, dirnames, filenames in os.walk(root):
+        for file in filenames:
+            files.append(os.path.join(path, file))
+        for subdir in dirnames:
+            files.append(list_files(os.path.join(path, subdir)))
+    return files
+
+
+def abs_to_rel_paths(paths: list, root: str) -> list:
+    """
+    Convert a list of paths from absolute to relative, given root dir.
+    :param paths: List of pathnames; all must be under root.
+    :ptype paths: list
+    :param root: All paths shall be relative to this root folder.
+    :ptype root: str
+    :return: List of relative paths
+    :rtype: list
+    """
+    return list(lambda p: os.path.relpath(p, start=root), paths)
 
 
 def calculate_parallelism(num_files):
@@ -469,16 +507,6 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_rsync_folder(src, dest):
-    """Copy source to destination using rsync."""
-    num_files = get_number_of_files(src)
-    parallelism = calculate_parallelism(num_files)
-    rsync.copy(src, dest, parallelism=parallelism, extract=False, validate=False)
-
-    mode = config.conf.get("SITE", "file_permissions")
-    parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
-
-
 def parallel_chmod(path, mode, parallelism=1):
     """
     Recursively copy folder and set permissions.
@@ -493,23 +521,6 @@ def parallel_chmod(path, mode, parallelism=1):
             for file in files:
                 file_path = os.path.join(src_dir, file)
                 executor.submit(os.chmod, file_path, mode)
-
-
-def parallel_rsync_files(files, src, dest, include=[], exclude=[]):
-    """Copy list of source files to destination using rsync."""
-    num_files = len(files)
-    parallelism = calculate_parallelism(num_files)
-    paths = []
-    for rel_path in files:
-        path = os.path.join(src, rel_path)
-        root, filename = os.path.split(path)
-        if rsync.path_match(path, include, exclude):
-            x = path[len(src) :]
-            if x.startswith("/"):
-                x = x[1:]
-            dst = os.path.join(dest, x)
-            paths.append((path, dst))
-    rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
 def reset_queue(session):
