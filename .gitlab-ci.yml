@@ -254,6 +254,8 @@ deploy-jaws-jgi-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "jgi/dev"
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-jgi-staging:
   extends: .jgi-deployment
@@ -374,6 +376,8 @@ deploy-jaws-dori-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "dori/dev"
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-dori-staging:
   extends: .dori-deployment
