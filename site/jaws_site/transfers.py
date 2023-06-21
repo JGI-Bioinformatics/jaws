@@ -444,6 +444,12 @@ def check_queue(session) -> None:
 def get_abs_files(root, rel_paths) -> list:
     """
     Create list of all source files by recursively expanding any folders.
+    :param root: Folder under which all the paths in rel_paths exist
+    :ptype root: str
+    :param rel_paths: list of paths (files/folders) under root dir
+    :ptype rel_paths:
+    :return: Any folders in the input list shall be replaced with all the files under the folder.
+    :rtype: list
     """
     abs_files = set()
     for item in rel_paths:
@@ -451,16 +457,17 @@ def get_abs_files(root, rel_paths) -> list:
         if os.path.isfile(full_path):
             abs_files.add(full_path)
         elif os.path.isdir(full_path):
-            abs_files.update(list_files(full_path))
+            abs_files.update(list_all_files_under_dir(full_path))
+        # else symlink -- we don't use symlinks so they are not supported
     return list(abs_files)
 
 
-def list_files(root) -> list:
+def list_all_files_under_dir(root) -> list:
     """
-    Recursively visit folders, add all files to list.
-    :param root: current folder
+    Recursively visit folders and create a list of all files.
+    :param root: starting folder
     :ptype root: str
-    :return: all filenames, no folders
+    :return: absolute paths of every file contained under root dir
     :rtype: list
     """
     files = []
@@ -468,7 +475,7 @@ def list_files(root) -> list:
         for file in filenames:
             files.append(os.path.join(path, file))
         for subdir in dirnames:
-            files.append(list_files(os.path.join(path, subdir)))
+            files.append(list_all_files_under_dir(os.path.join(path, subdir)))
     return files
 
 
