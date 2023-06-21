@@ -1178,3 +1178,17 @@ def setup_files(tmpdir):
         file.write("content")
 
     yield str(src_dir), str(dst_dir)
+
+
+@pytest.fixture
+def setup_files2(tmpdir):
+    root = tmpdir.mkdir("files2")
+    file0 = root.join("file0.txt")
+    file0.write("content")
+    a = root.mkdir("a")
+    file1 = a.join("file1.txt")
+    file1.write("content")
+    b = a.mkdir("b")
+    file2 = b.join("file2.txt")
+    file2.write("content")
+    yield str(root)

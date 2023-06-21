@@ -404,15 +404,11 @@ class Transfer:
         src = f"{self.data.src_base_dir}/"
         dest = f"{self.data.dest_base_dir}/"
         rel_paths = abs_to_rel_paths(get_abs_files(src, manifest), src)
-        paths = []
-        for rel_path in rel_paths:
-            s = os.path.join(src, rel_path)
-            d = os.path.joni(dest, rel_path)
-            paths.append((s, d))
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-        rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
+
+        parallel_rsync_files(rel_paths, src, dest, parallelism=parallelism)
 
         mode = config.conf.get("SITE", "file_permissions")
         parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
@@ -464,7 +460,7 @@ def get_abs_files(root, rel_paths) -> list:
 
 def list_all_files_under_dir(root) -> list:
     """
-    Recursively visit folders and create a list of all files.
+    Walk down directory tree and return a list of all files therein.
     :param root: starting folder
     :ptype root: str
     :return: absolute paths of every file contained under root dir
@@ -474,8 +470,6 @@ def list_all_files_under_dir(root) -> list:
     for path, dirnames, filenames in os.walk(root):
         for file in filenames:
             files.append(os.path.join(path, file))
-        for subdir in dirnames:
-            files.append(list_all_files_under_dir(os.path.join(path, subdir)))
     return files
 
 
@@ -489,7 +483,10 @@ def abs_to_rel_paths(paths: list, root: str) -> list:
     :return: List of relative paths
     :rtype: list
     """
-    return list(lambda p: os.path.relpath(p, start=root), paths)
+    rel_paths = []
+    for abs_path in paths:
+        rel_paths.append(os.path.relpath(abs_path, start=root))
+    return rel_paths
 
 
 def calculate_parallelism(num_files):
@@ -512,6 +509,16 @@ def calculate_parallelism(num_files):
         return max_threads
     parallelism = num_files // FILES_PER_THREAD
     return max(parallelism, min_threads)
+
+
+def parallel_rsync_files(manifest: list, src: str, dest: str, **kwargs):
+    parallelism = kwargs.get("paralellelism", 1000)
+    paths = []
+    for rel_path in manifest:
+        s = os.path.join(src, rel_path)
+        d = os.path.join(dest, rel_path)
+        paths.append((s, d))
+    rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
 def parallel_chmod(path, mode, parallelism=1):

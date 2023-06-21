@@ -1,4 +1,5 @@
 import pytest
+import json
 import os
 import os.path
 import stat
@@ -9,6 +10,8 @@ from jaws_site.transfers import (
     TransferValueError,
     TransferNotFoundError,
     check_queue,
+    list_all_files_under_dir,
+    abs_to_rel_paths,
 )
 from tests.conftest import (
     MockSession,
@@ -142,21 +145,7 @@ def test_calculate_parallelism():
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_use_find_subprocess_to_get_file_count(setup_files):
-    src, _ = setup_files
-    num_files = transfers.get_number_of_files(src)
-    assert num_files == 1001  # Includes top-level directory
-
-
-def test_parallel_rsync_folder(mock_sqlalchemy_session, setup_files):
-    src_base_dir, dest_base_dir = setup_files
-    jaws_site.transfers.parallel_rsync_folder(src_base_dir, dest_base_dir)
-
-    for i in range(100):
-        assert os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
-
-
-def test_parallel_rsync_files(mock_sqlalchemy_session, setup_files):
+def test_parallel_rsync_files(setup_files):
     src_base_dir, dest_base_dir = setup_files
     manifest = [f"file99.txt"]
     jaws_site.transfers.parallel_rsync_files(manifest, src_base_dir, dest_base_dir)
@@ -201,7 +190,16 @@ def test_correctly_changes_permission(
         return oct(stat.S_IMODE(os.stat(path).st_mode))
 
     src, dst = setup_files
-    mock_data = MockTransferModel(status="queued", src_base_dir=src, dest_base_dir=dst)
+    manifest = []
+    for i in range(100):
+        manifest.append(f"file{i}.txt")
+    manifest_json = json.dumps(manifest)
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir=src,
+        dest_base_dir=dst,
+        manifest_json=manifest_json,
+    )
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.transfer_files()
 
@@ -575,31 +573,24 @@ def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
         transfer.s3_download_folder()
 
 
-def test_local_rsync(mock_sqlalchemy_session, monkeypatch):
-    def mock_parallel_rsync_files(manifest, src, dest):
-        pass
+def test_get_abs_files():
+    pass
 
-    def mock_parallel_rsync_folder(src, dest):
-        assert False
 
-    monkeypatch.setattr(transfers, "parallel_rsync_files", mock_parallel_rsync_files)
-    monkeypatch.setattr(transfers, "parallel_rsync_folder", mock_parallel_rsync_folder)
+def test_list_all_files_under_dir(setup_files2):
+    root = setup_files2
+    actual = list_all_files_under_dir(root)
+    expected = [f"{root}/file0.txt", f"{root}/a/file1.txt", f"{root}/a/b/file2.txt"]
+    assert actual == expected
 
-    # TEST1: transfer files
-    mock_data = initTransferModel(manifest_json='["file1"]')
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.local_rsync()
 
-    def mock_parallel_rsync_files(manifest, src, dest):
-        assert False
-
-    def mock_parallel_rsync_folder(src, dest):
-        pass
-
-    monkeypatch.setattr(transfers, "parallel_rsync_files", mock_parallel_rsync_files)
-    monkeypatch.setattr(transfers, "parallel_rsync_folder", mock_parallel_rsync_folder)
-
-    # TEST2: transfer folder
-    mock_data = initTransferModel(manifest_json="[]")
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.local_rsync()
+def test_abs_to_rel_paths():
+    root_dir = "/some/root"
+    abs_paths = [
+        "/some/root/file1",
+        "/some/root/a/file2",
+        "/some/root/a/b/file3",
+    ]
+    expected = ["file1", "a/file2", "a/b/file3"]
+    actual = abs_to_rel_paths(abs_paths, root_dir)
+    assert actual == expected
