@@ -55,7 +55,7 @@ build_image() {
     version=$2
     env=$3
 
-    GITLAB_REGISTRY="code.jgi.doe.gov:5050/advanced-analysis/jaws"
+    GITLAB_REGISTRY="library.jgi.doe.gov:5050/advanced-analysis/jaws"
 
     if [ ! -z $JAWS_UID ];
     then
