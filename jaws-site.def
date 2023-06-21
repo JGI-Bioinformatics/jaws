@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: python:3.10
+
+%setup
+  mkdir -p /usr/app/rpc
+  mkdir -p /usr/app/site
+
+%files
+  rpc/* /usr/app/rpc/
+  site/* /usr/app/site/
+
+%post
+    pip install --upgrade pip
+    pip install -r /usr/app/rpc/requirements.txt
+    cd /usr/app/rpc/ && pip install .
+    pip install -r /usr/app/site/requirements.txt
+    cd /usr/app/site/ && pip install .
+
+%startscript
+    jaws-site --config /etc/config/site/jaws-site.conf "$@"
+
+%runscript
+    jaws-site --config /etc/config/site/jaws-site.conf "$@"

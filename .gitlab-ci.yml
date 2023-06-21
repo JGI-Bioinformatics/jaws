@@ -22,6 +22,8 @@ variables:
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
+
+############    Begin anchors and extends definitions
 .shell-default: &shell-default
   tags:
     - shared-shell
@@ -44,6 +46,103 @@ variables:
     - if: '$CI_PIPELINE_SOURCE == "push"'
   coverage: '/(?i)TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
+
+.supervisor-stop: &supervisor-stop
+  before_script:
+    - "source ./test/integration/setup_environment.sh"
+    - "./test/integration/deploy_tools/supervisor.sh stop"
+
+
+.systemd-stop: &systemd-stop
+  before_script:
+    - "source ./test/integration/setup_environment.sh"
+    - "./test/integration/deploy_tools/systemd.sh stop"
+
+.scrontab-stop: &scrontab-stop
+  before_script:
+    - "source ./test/integration/setup_environment.sh"
+    - "./test/integration/deploy_tools/scrontab.sh stop"
+
+.aws-deployment: &aws-deploy
+  stage: deploy-jaws
+  tags:
+    - aws-dev
+  variables:
+    JAWS_SITE_NAME: "AWS"
+  <<: *supervisor-stop
+  script:
+    - "./test/integration/deploy.sh supervisor venv"
+
+
+.jgi-deployment: &jgi-deploy
+  stage: deploy-jaws
+  tags:
+    - jgi
+  variables:
+    CONTAINER_RUNTIME: "apptainer"
+    JAWS_SITE_NAME: "JGI"
+  <<: *supervisor-stop
+  script:
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME"
+
+
+.tahoma-deployment: &tahoma-deploy
+  stage: deploy-jaws
+  tags:
+    - tahoma
+    - pnnl
+  variables:
+    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
+    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    http_proxy: "http://proxy.emsl.pnl.gov:3128"
+    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    https_proxy: "http://proxy.emsl.pnl.gov:3128"
+    JAWS_SITE_NAME: "TAHOMA"
+    CONTAINER_RUNTIME: "apptainer"
+  <<: *supervisor-stop
+  script:
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME"
+
+.nmdc-deployment: &nmdc-deploy
+  stage: deploy-jaws
+  tags:
+    - nmjaws
+  variables:
+    JAWS_SITE_NAME: "NMDC"
+  <<: *supervisor-stop
+  script:
+    - "./test/integration/deploy.sh supervisor venv"
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
+
+.perlmutter-deployment: &perlmutter-deploy
+  stage: deploy-jaws
+  tags:
+    - perlmutter
+  variables:
+    JAWS_SITE_NAME: "PERLMUTTER"
+  <<: *scrontab-stop
+  script:
+    - "./test/integration/deploy.sh scrontab venv"
+    - "./test/integration/write_shims.sh perlmutter"
+
+.dori-deployment: &dori-deploy
+  stage: deploy-jaws
+  tags:
+    - dori
+  variables:
+    JAWS_SITE_NAME: "DORI"
+    CONTAINER_RUNTIME: "apptainer"
+  <<: *systemd-stop
+  script:
+    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME"
+    - "./test/integration/deploy_tools/systemd.sh status"
+##### End anchors and extends jobs
+
+
+
+##### Begin jobs definitions
 flake-rpc:
   <<: *shell-default
   stage: linter
@@ -95,40 +194,40 @@ build-site:
     - docker push $GITLAB_IMAGE_TAG
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: "$CI_COMMIT_TAG"
 
-.deploy-apptainer-template: &deploy-apptainer-template
-  variables:
-    CONTAINER_RUNTIME: "apptainer"
+build-apptainer-site:
+  tags:
+    - docker-build
+  image:
+    name: kaczmarj/apptainer:latest
+    entrypoint: [""]
+  stage: image-build
   script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
+    - apptainer build jaws-site-${JAWS_SITE_VERSION}.sif jaws-site.def
+    - echo "$CI_REGISTRY_PASSWORD" | apptainer remote login --username "$CI_REGISTRY_USER" --password-stdin "oras://$CI_REGISTRY"
+    - apptainer push jaws-site-${JAWS_SITE_VERSION}.sif "oras://${CI_REGISTRY_IMAGE}:${JAWS_SITE_VERSION}"
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: "$CI_COMMIT_TAG"
 
 ## integration tests - only run on merge request
 deploy-jaws-aws-dev:
-  stage: deploy-jaws
-  tags:
-    - aws-dev
+  extends: .aws-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "AWS"
   environment:
     name: "aws/dev"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-aws-prod:
+  extends: .aws-deployment
   stage: release-jaws
-  tags:
-    - aws-prod
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "AWS"
   environment:
     name: "aws/prod"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
@@ -142,292 +241,146 @@ deploy-jaws-assembly-prod:
     JAWS_SITE_NAME: "ASSEMBLY"
   environment:
     name: "assembly/prod"
+  <<: *supervisor-stop
   script:
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
-
-deploy-jaws-cori-dev:
-  stage: deploy-jaws
-  tags:
-    - cori20
-  variables:
-    JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "CORI"
-  environment:
-    name: "cori/dev"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
-
-deploy-jaws-cori-staging:
-  stage: deploy-jaws
-  tags:
-    - cori20
-  variables:
-    JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "CORI"
-  environment:
-    name: "cori/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
-  allow_failure: true
-
-deploy-jaws-cori-prod:
-  stage: release-jaws
-  tags:
-    - cori20
-  variables:
-    JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "CORI"
-  environment:
-    name: "cori/production"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
+    - "./test/integration/deploy.sh supervisor venv"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
 deploy-jaws-jgi-dev:
-  stage: deploy-jaws
-  tags:
-    - jgi
+  extends: .jgi-deployment
   variables:
-    CONTAINER_RUNTIME: "apptainer"
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "JGI"
   environment:
     name: "jgi/dev"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-jgi-staging:
-  stage: deploy-jaws
-  tags:
-    - jgi
+  extends: .jgi-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "JGI"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "jgi/staging"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
   allow_failure: true
 
 deploy-jaws-jgi-prod:
+  extends: .jgi-deployment
   stage: release-jaws
-  tags:
-    - jgi
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "JGI"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "jgi/production"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
 deploy-jaws-tahoma-dev:
-  stage: deploy-jaws
-  tags:
-    - tahoma
-    - pnnl
+  extends: .tahoma-deployment
   variables:
-    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
-    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
-    http_proxy: "http://proxy.emsl.pnl.gov:3128"
-    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
-    https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "TAHOMA"
-    CONTAINER_RUNTIME: "apptainer"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
+  environment:
+    name: "tahoma/dev"
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-tahoma-staging:
-  stage: deploy-jaws
-  tags:
-    - tahoma
-    - pnnl
+  extends: .tahoma-deployment
   variables:
-    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
-    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
-    http_proxy: "http://proxy.emsl.pnl.gov:3128"
-    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
-    https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "TAHOMA"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "tahoma/staging"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
       allow_failure: true
   allow_failure: true
 
 deploy-jaws-tahoma-prod:
+  extends: .tahoma-deployment
   stage: release-jaws
-  tags:
-    - tahoma
-    - pnnl
   variables:
-    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
-    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
-    http_proxy: "http://proxy.emsl.pnl.gov:3128"
-    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
-    https_proxy: "http://proxy.emsl.pnl.gov:3128"
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "TAHOMA"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "tahoma/prod"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^release/'
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
 deploy-jaws-nmdc-dev:
-  stage: deploy-jaws
-  tags:
-    - cori21
+  extends: .nmdc-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "NMDC"
   environment:
     name: "nmdc/dev"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-nmdc-staging:
-  stage: deploy-jaws
-  tags:
-    - cori21
+  extends: .nmdc-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "NMDC"
   environment:
     name: "nmdc/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
   allow_failure: true
 
 deploy-jaws-nmdc-prod:
+  extends: .nmdc-deployment
   stage: release-jaws
-  tags:
-    - cori21
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "NMDC"
   environment:
     name: "nmdc/production"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
 deploy-jaws-perlmutter-dev:
-  stage: deploy-jaws
-  tags:
-    - perlmutter
+  extends: .perlmutter-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "PERLMUTTER"
   environment:
     name: "perlmutter/dev"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-perlmutter-staging:
-  stage: deploy-jaws
-  tags:
-    - perlmutter
+  extends: .perlmutter-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "PERLMUTTER"
   environment:
     name: "perlmutter/staging"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
   allow_failure: true
 
 deploy-jaws-perlmutter-prod:
+  extends: .perlmutter-deployment
   stage: release-jaws
-  tags:
-    - perlmutter
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "PERLMUTTER"
   environment:
     name: "perlmutter/production"
-  script:
-    - ./test/integration/deploy-jaws-site.sh
+  allow_failure: true
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
 
 deploy-jaws-dori-dev:
-  stage: deploy-jaws
-  tags:
-    - dori
+  extends: .dori-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_NAME: "DORI"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "dori/dev"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-dori-staging:
-  stage: deploy-jaws
-  tags:
-    - dori
+  extends: .dori-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "DORI"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "dori/staging"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
@@ -435,18 +388,11 @@ deploy-jaws-dori-staging:
   allow_failure: true
 
 deploy-jaws-dori-prod:
-  stage: release-jaws
-  tags:
-    - dori
+  extends: .dori-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "DORI"
-    CONTAINER_RUNTIME: "apptainer"
   environment:
     name: "dori/production"
-  script:
-    - apptainer remote login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "docker://$CI_REGISTRY"
-    - ./test/integration/deploy-jaws-site.sh
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
