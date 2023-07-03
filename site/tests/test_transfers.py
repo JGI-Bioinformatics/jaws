@@ -573,12 +573,24 @@ def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
         transfer.s3_download_folder()
 
 
-def test_get_abs_files():
-    pass
+def test_get_abs_files(setup_dir_tree):
+    root = setup_dir_tree
+    rel_paths = [
+        "./file0.txt",
+        "./a/file1.txt",
+        "./a/b/file2.txt",
+    ]
+    expected = [
+        "{root}/file0.txt",
+        "{root}/a/file1.txt",
+        "{root}/a/b/file2.txt",
+    ]
+    actual = get_abs_files(root, rel_paths)
+    assert actual == expected
 
 
-def test_list_all_files_under_dir(setup_files2):
-    root = setup_files2
+def test_list_all_files_under_dir(setup_dir_tree):
+    root = setup_dir_tree
     actual = list_all_files_under_dir(root)
     expected = [f"{root}/file0.txt", f"{root}/a/file1.txt", f"{root}/a/b/file2.txt"]
     assert actual == expected

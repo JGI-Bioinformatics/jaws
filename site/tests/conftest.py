@@ -1181,7 +1181,7 @@ def setup_files(tmpdir):
 
 
 @pytest.fixture
-def setup_files2(tmpdir):
+def setup_dir_tree(tmpdir):
     root = tmpdir.mkdir("files2")
     file0 = root.join("file0.txt")
     file0.write("content")
