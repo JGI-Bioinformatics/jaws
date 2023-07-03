@@ -12,7 +12,7 @@ from jaws_site.transfers import (
     check_queue,
     list_all_files_under_dir,
     abs_to_rel_paths,
-    get_abs_files
+    get_abs_files,
 )
 from tests.conftest import (
     MockSession,
@@ -137,6 +137,52 @@ def test_transfer_files(monkeypatch):
     assert transfer.TRANSFER_TYPE == "local_rsync"
 
 
+def test_local_rsync(monkeypatch):
+    def mock_get_abs_files(path, perms, parallelism=1):
+        assert type(path) == str
+        assert type(perms) == int
+        return ["/some/src/dir/file0.txt"]
+
+    def mock_abs_to_rel_paths(path, manifest):
+        assert type(path) == str
+        assert type(manifest) == list
+        for item in manifest:
+            assert type(item) == str
+        file = manifest[0]
+        assert file == "/some/src/dir/file0.txt"
+        return ["./file0.txt"]
+
+    def mock_calculate_parallelism(num_files):
+        assert type(num_files) == int
+        return 1
+
+    def mock_parallel_rsync_files_only(rel_paths, src, dest, parallelism=1000):
+        assert type(rel_paths) == list
+        assert type(src) == str
+        assert type(dest) == str
+
+    def mock_parallel_chmod(path, perms, parallelism=1):
+        assert type(path) == str
+        assert type(perms) == int
+
+    monkeypatch.setattr(Transfer, "get_abs_files", mock_get_abs_files)
+    monkeypatch.setattr(Transfer, "abs_to_rel_paths", mock_abs_to_rel_paths)
+    monkeypatch.setattr(Transfer, "calculate_parallelism", mock_calculate_parallelism)
+    monkeypatch.setattr(
+        Transfer, "parallel_rsync_files_only", mock_parallel_rsync_files_only
+    )
+    monkeypatch.setattr(Transfer, "parallel_chmod", mock_parallel_chmod)
+
+    mock_session = MockSession()
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir="/some/src/dir",
+        dest_base_dir="/some/dest/dir",
+    )
+    transfer = Transfer(mock_session, mock_data)
+    transfer.local_rsync()
+
+
 def test_calculate_parallelism():
     max_threads = 10
     assert 1 == transfers.calculate_parallelism(10000)
@@ -178,7 +224,6 @@ def test_correctly_changes_permission(
     expected_octal_perms,
     setup_files,
 ):
-
     monkeypatch.setenv("ENV_OVERRIDE_PREFIX", "ENV__")
     monkeypatch.setenv("ENV__SITE_file_permissions", set_perms)
     jaws_site.config.Configuration._destructor()
@@ -398,7 +443,6 @@ class MockS3Session:
 
 
 def test_aws_session_resource_exception(s3, mock_sqlalchemy_session, monkeypatch):
-
     monkeypatch.setattr(transfers.boto3, "Session", MockS3Session)
 
     with pytest.raises(Exception):
