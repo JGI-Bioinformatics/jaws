@@ -12,6 +12,7 @@ from jaws_site.transfers import (
     check_queue,
     list_all_files_under_dir,
     abs_to_rel_paths,
+    get_abs_files
 )
 from tests.conftest import (
     MockSession,
@@ -145,10 +146,10 @@ def test_calculate_parallelism():
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_parallel_rsync_files(setup_files):
+def test_parallel_rsync_files_only(setup_files):
     src_base_dir, dest_base_dir = setup_files
-    manifest = [f"file99.txt"]
-    jaws_site.transfers.parallel_rsync_files(manifest, src_base_dir, dest_base_dir)
+    manifest = ["file99.txt"]
+    jaws_site.transfers.parallel_rsync_files_only(manifest, src_base_dir, dest_base_dir)
 
     assert os.path.exists(os.path.join(dest_base_dir, "file99.txt"))
     for i in range(99):

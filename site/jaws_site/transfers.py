@@ -408,7 +408,7 @@ class Transfer:
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
 
-        parallel_rsync_files(rel_paths, src, dest, parallelism=parallelism)
+        parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         mode = config.conf.get("SITE", "file_permissions")
         parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
@@ -511,11 +511,22 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_rsync_files(manifest: list, src: str, dest: str, **kwargs):
+def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
+    """
+    Given list of files, copy them in parallel using rsync.  There should not be any folders in the list.
+    :param manifest: list of file relative paths
+    :ptype manifest: list
+    :param src: source root directory
+    :ptype src: str
+    :param dest: destination root directory
+    :ptype dest: str
+    """
     parallelism = kwargs.get("paralellelism", 1000)
     paths = []
     for rel_path in manifest:
         s = os.path.join(src, rel_path)
+        if os.path.isdir(s):
+            raise ValueError("parallel_rsync_files_only does not support folders")
         d = os.path.join(dest, rel_path)
         paths.append((s, d))
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
