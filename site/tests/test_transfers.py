@@ -26,6 +26,7 @@ import jaws_site
 from jaws_site import transfers
 import botocore
 import boto3
+from deepdiff import DeepDiff
 
 
 def test_mkdir(tmp_path):
@@ -138,9 +139,9 @@ def test_transfer_files(monkeypatch):
 
 
 def test_local_rsync(monkeypatch):
-    def mock_get_abs_files(path, perms, parallelism=1):
-        assert type(path) == str
-        assert type(perms) == int
+    def mock_get_abs_files(root, rel_paths):
+        assert type(root) == str
+        assert type(rel_paths) == list
         return ["/some/src/dir/file0.txt"]
 
     def mock_abs_to_rel_paths(path, manifest):
@@ -165,13 +166,13 @@ def test_local_rsync(monkeypatch):
         assert type(path) == str
         assert type(perms) == int
 
-    monkeypatch.setattr(Transfer, "get_abs_files", mock_get_abs_files)
-    monkeypatch.setattr(Transfer, "abs_to_rel_paths", mock_abs_to_rel_paths)
-    monkeypatch.setattr(Transfer, "calculate_parallelism", mock_calculate_parallelism)
+    monkeypatch.setattr(jaws_site.transfers, "get_abs_files", mock_get_abs_files)
+    monkeypatch.setattr(jaws_site.transfers, "abs_to_rel_paths", mock_abs_to_rel_paths)
+    monkeypatch.setattr(jaws_site.transfers, "calculate_parallelism", mock_calculate_parallelism)
     monkeypatch.setattr(
-        Transfer, "parallel_rsync_files_only", mock_parallel_rsync_files_only
+        jaws_site.transfers, "parallel_rsync_files_only", mock_parallel_rsync_files_only
     )
-    monkeypatch.setattr(Transfer, "parallel_chmod", mock_parallel_chmod)
+    monkeypatch.setattr(jaws_site.transfers, "parallel_chmod", mock_parallel_chmod)
 
     mock_session = MockSession()
     mock_data = MockTransferModel(
@@ -626,12 +627,12 @@ def test_get_abs_files(setup_dir_tree):
         "./a/b/file2.txt",
     ]
     expected = [
-        "{root}/file0.txt",
-        "{root}/a/file1.txt",
-        "{root}/a/b/file2.txt",
+        f"{root}/file0.txt",
+        f"{root}/a/file1.txt",
+        f"{root}/a/b/file2.txt",
     ]
     actual = get_abs_files(root, rel_paths)
-    assert actual == expected
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
 def test_list_all_files_under_dir(setup_dir_tree):
@@ -649,5 +650,5 @@ def test_abs_to_rel_paths():
         "/some/root/a/b/file3",
     ]
     expected = ["file1", "a/file2", "a/b/file3"]
-    actual = abs_to_rel_paths(abs_paths, root_dir)
+    actual = abs_to_rel_paths(root_dir, abs_paths)
     assert actual == expected

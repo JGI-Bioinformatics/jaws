@@ -88,11 +88,6 @@ def test_run_all_functions_exception(mock_run_from_id_exception):
     assert ret == {"jsonrpc": "2.0", "error": {"code": 500, "message": ""}}
 
 
-def test_run_all_functions_runnotfound(mock_run_from_id_runnotfound):
-    mock_session = MockSession()
-    p = {"user_id": "user", "run_id": 99}
-
-
 @pytest.fixture()
 def mock_transfer_from_id(monkeypatch):
     def mock_from_id(session, transfer_id):

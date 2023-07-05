@@ -403,7 +403,7 @@ class Transfer:
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         dest = f"{self.data.dest_base_dir}/"
-        rel_paths = abs_to_rel_paths(get_abs_files(src, manifest), src)
+        rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
@@ -449,7 +449,7 @@ def get_abs_files(root, rel_paths) -> list:
     """
     abs_files = set()
     for item in rel_paths:
-        full_path = os.path.join(root, item)
+        full_path = os.path.normpath(os.path.join(root, item))
         if os.path.isfile(full_path):
             abs_files.add(full_path)
         elif os.path.isdir(full_path):
@@ -473,13 +473,13 @@ def list_all_files_under_dir(root) -> list:
     return files
 
 
-def abs_to_rel_paths(paths: list, root: str) -> list:
+def abs_to_rel_paths(root: str, paths: list) -> list:
     """
     Convert a list of paths from absolute to relative, given root dir.
-    :param paths: List of pathnames; all must be under root.
-    :ptype paths: list
     :param root: All paths shall be relative to this root folder.
     :ptype root: str
+    :param paths: List of pathnames; all must be under root.
+    :ptype paths: list
     :return: List of relative paths
     :rtype: list
     """
