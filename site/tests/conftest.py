@@ -65,7 +65,7 @@ vhost = jaws_test
 user = jaws
 password = password
 num_threads = 5
-max_retries = 3 
+max_retries = 3
 
 [PERFORMANCE_METRICS]
 done_dir = /tmp/done_dir
@@ -88,7 +88,7 @@ db = hunting_sites
 dialect = mysql+mysqlconnector
 host2 = ${JAWS_DB_HOST}
 password2 = ${JAWS_DB_PASSWORD}123
-test = 
+test =
 
 [SITE]
 id = eagle
@@ -319,20 +319,19 @@ class MockTransferModel:
     """Mock Transfer sqlalchemy orm model object with useable defaults."""
 
     def __init__(self, **kwargs):
-        manifest_json = "[]"
+        self.manifest_json = "[]"
         if "manifest" in kwargs:
             assert type(kwargs["manifest"]) == list
-            manifest_json = json.dumps(kwargs.get("manifest", []))
+            self.manifest_json = json.dumps(kwargs.get("manifest", []))
         elif "manifest_json" in kwargs:
             assert type(kwargs["manifest_json"]) == str
-            manifest_json = manifest_json
+            self.manifest_json = kwargs.get("manifest_json", "[]")
         self.id = kwargs.get("id", "12")
         self.status = kwargs.get("status", "queued")
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
         self.src_base_dir = kwargs.get("src_base_dir", "/inputs")
         self.dest_base_dir = kwargs.get("dest_base_dir", "/inputs")
-        self.manifest_json = manifest_json
         self.src_site_id = kwargs.get("src_site_id", "NERSC")
         self.dest_site_id = kwargs.get("dest_site_id", "JGI")
         self.globus_transfer_id = kwargs.get("globus_transfer_id", None)
@@ -1179,3 +1178,17 @@ def setup_files(tmpdir):
         file.write("content")
 
     yield str(src_dir), str(dst_dir)
+
+
+@pytest.fixture
+def setup_dir_tree(tmpdir):
+    root = tmpdir.mkdir("files2")
+    file0 = root.join("file0.txt")
+    file0.write("content")
+    a = root.mkdir("a")
+    file1 = a.join("file1.txt")
+    file1.write("content")
+    b = a.mkdir("b")
+    file2 = b.join("file2.txt")
+    file2.write("content")
+    yield str(root)

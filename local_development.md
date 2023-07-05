@@ -3,7 +3,7 @@
 The new local development model uses docker images for all services, these images can be built/stored locally for local development, and they are also built/stored in the gitlab registry. Because the gitlab container registry is a new dependency, acquiring and configuring local access to the gitlab repository is needed.
 
 * Gitlab Container Registry general info: https://docs.gitlab.com/ee/user/packages/
-* Our Gitlab Registry: https://code.jgi.doe.gov/groups/advanced-analysis/-/packages
+* Our Gitlab Registry: https://library.jgi.doe.gov/groups/advanced-analysis/-/packages
 * Background info on docker registries: https://docs.docker.com/registry/introduction/
 
 To build any images, you will need to have a Gitlab personal access token (or comparable) and use that to
@@ -19,8 +19,8 @@ This diagram (from [Microsoft](https://docs.microsoft.com/en-us/dotnet/architect
 You will need to do the following steps to use this workflow:
 
 1. Make sure you have a functioning docker environment on your computer
-2. Authenticate to the container registry on code.jgi.doe.gov
-3. Use the build.sh script to build local copies of your images (this can result in pulling in dependencies from code.jgi.doe.gov)
+2. Authenticate to the container registry on library.jgi.doe.gov
+3. Use the build.sh script to build local copies of your images (this can result in pulling in dependencies from library.jgi.doe.gov)
    1. The site, central and dashboard images all depend on the rpc docker image, so it needs to be built before attempting to build site, central or dashboard
 4. Use the docker-compose.yml file to start up a local environment using the docker images built in the previous step
 5. Test your services locally

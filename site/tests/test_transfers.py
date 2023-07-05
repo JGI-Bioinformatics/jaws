@@ -1,4 +1,5 @@
 import pytest
+import json
 import os
 import os.path
 import stat
@@ -9,6 +10,9 @@ from jaws_site.transfers import (
     TransferValueError,
     TransferNotFoundError,
     check_queue,
+    list_all_files_under_dir,
+    abs_to_rel_paths,
+    get_abs_files,
 )
 from tests.conftest import (
     MockSession,
@@ -22,6 +26,7 @@ import jaws_site
 from jaws_site import transfers
 import botocore
 import boto3
+from deepdiff import DeepDiff
 
 
 def test_mkdir(tmp_path):
@@ -88,40 +93,29 @@ def test_transfer_files(monkeypatch):
     # these 3 mocks set a variable in the object so we can see which method was called
 
     def mock_s3_download(self):
-        self.S3_DOWNLOAD = True
-
-    def mock_s3_download_folder(self):
-        self.S3_DOWNLOAD_FOLDER = True
+        self.TRANSFER_TYPE = "s3_download"
 
     def mock_s3_upload(self):
-        self.S3_UPLOAD = True
+        self.TRANSFER_TYPE = "s3_upload"
+
+    def mock_local_rsync(self):
+        self.TRANSFER_TYPE = "local_rsync"
 
     monkeypatch.setattr(Transfer, "s3_download", mock_s3_download)
-    monkeypatch.setattr(Transfer, "s3_download_folder", mock_s3_download_folder)
     monkeypatch.setattr(Transfer, "s3_upload", mock_s3_upload)
+    monkeypatch.setattr(Transfer, "local_rsync", mock_local_rsync)
 
     mock_session = MockSession()
-
-    #    # if the src path starts with "s3://" then download from S3
-    #    mock_data = MockTransferModel(
-    #        status="queued",
-    #        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
-    #        dest_base_dir="/scratch/jaws/downloads",
-    #    )
-    #    transfer = Transfer(mock_session, mock_data)
-    #    transfer.transfer_files()
-    #    assert transfer.S3_DOWNLOAD is True
 
     # if the src path starts with "s3://" then download from S3
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="s3://jaws-site/cromwell-executions/AAAA",
+        src_base_dir="s3://jaws-site/cromwell-executions/X/Y",
         dest_base_dir="/scratch/jaws/downloads",
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.S3_DOWNLOAD_FOLDER is True
-    assert mock_session.needs_to_be_closed is False
+    assert transfer.TRANSFER_TYPE == "s3_download"
 
     # if the dest path starts with "s3://" then upload to S3
     mock_data = MockTransferModel(
@@ -131,24 +125,63 @@ def test_transfer_files(monkeypatch):
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.S3_UPLOAD is True
-    assert mock_session.needs_to_be_closed is False
+    assert transfer.TRANSFER_TYPE == "s3_upload"
 
-
-def test_transfer_files2(mock_sqlalchemy_session, monkeypatch):
-    def mock_rsync_folder(self):
-        pass
-
-    monkeypatch.setattr(Transfer, "rsync_folder", mock_rsync_folder)
+    # if neither the src or dest path starts with "s3://" then rsync
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="/scratch/jaws-site/cromwell-executions/ex/AAAA",
-        dest_base_dir="/scratch/jaws-site/uploads/AAAA",
+        src_base_dir="/scratch/jaws/cromwell-executions/x",
+        dest_base_dir="/scratch/jaws/downloads/x",
     )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert mock_sqlalchemy_session.data.session["commit"] is True
-    assert transfer.data.status == "succeeded"
+    assert transfer.TRANSFER_TYPE == "local_rsync"
+
+
+def test_local_rsync(monkeypatch):
+    def mock_get_abs_files(root, rel_paths):
+        assert type(root) == str
+        assert type(rel_paths) == list
+        return ["/some/src/dir/file0.txt"]
+
+    def mock_abs_to_rel_paths(path, manifest):
+        assert type(path) == str
+        assert type(manifest) == list
+        for item in manifest:
+            assert type(item) == str
+        file = manifest[0]
+        assert file == "/some/src/dir/file0.txt"
+        return ["./file0.txt"]
+
+    def mock_calculate_parallelism(num_files):
+        assert type(num_files) == int
+        return 1
+
+    def mock_parallel_rsync_files_only(rel_paths, src, dest, parallelism=1000):
+        assert type(rel_paths) == list
+        assert type(src) == str
+        assert type(dest) == str
+
+    def mock_parallel_chmod(path, perms, parallelism=1):
+        assert type(path) == str
+        assert type(perms) == int
+
+    monkeypatch.setattr(jaws_site.transfers, "get_abs_files", mock_get_abs_files)
+    monkeypatch.setattr(jaws_site.transfers, "abs_to_rel_paths", mock_abs_to_rel_paths)
+    monkeypatch.setattr(jaws_site.transfers, "calculate_parallelism", mock_calculate_parallelism)
+    monkeypatch.setattr(
+        jaws_site.transfers, "parallel_rsync_files_only", mock_parallel_rsync_files_only
+    )
+    monkeypatch.setattr(jaws_site.transfers, "parallel_chmod", mock_parallel_chmod)
+
+    mock_session = MockSession()
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir="/some/src/dir",
+        dest_base_dir="/some/dest/dir",
+    )
+    transfer = Transfer(mock_session, mock_data)
+    transfer.local_rsync()
 
 
 def test_calculate_parallelism():
@@ -160,24 +193,14 @@ def test_calculate_parallelism():
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_use_find_subprocess_to_get_file_count(setup_files):
-    src, _ = setup_files
-    num_files = transfers.get_number_of_files(src)
-    assert num_files == 1001  # Includes top-level directory
-
-
-def test_parallel_rsync(mock_sqlalchemy_session, setup_files):
+def test_parallel_rsync_files_only(setup_files):
     src_base_dir, dest_base_dir = setup_files
-    mock_data = MockTransferModel(
-        status="queued",
-        src_base_dir=src_base_dir,
-        dest_base_dir=dest_base_dir,
-    )
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.transfer_files()
+    manifest = ["file99.txt"]
+    jaws_site.transfers.parallel_rsync_files_only(manifest, src_base_dir, dest_base_dir)
 
-    for i in range(100):
-        assert os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
+    assert os.path.exists(os.path.join(dest_base_dir, "file99.txt"))
+    for i in range(99):
+        assert not os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
 
 
 def test_handles_nonexistent_directory(mock_sqlalchemy_session):
@@ -202,7 +225,6 @@ def test_correctly_changes_permission(
     expected_octal_perms,
     setup_files,
 ):
-
     monkeypatch.setenv("ENV_OVERRIDE_PREFIX", "ENV__")
     monkeypatch.setenv("ENV__SITE_file_permissions", set_perms)
     jaws_site.config.Configuration._destructor()
@@ -215,7 +237,16 @@ def test_correctly_changes_permission(
         return oct(stat.S_IMODE(os.stat(path).st_mode))
 
     src, dst = setup_files
-    mock_data = MockTransferModel(status="queued", src_base_dir=src, dest_base_dir=dst)
+    manifest = []
+    for i in range(100):
+        manifest.append(f"file{i}.txt")
+    manifest_json = json.dumps(manifest)
+    mock_data = MockTransferModel(
+        status="queued",
+        src_base_dir=src,
+        dest_base_dir=dst,
+        manifest_json=manifest_json,
+    )
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.transfer_files()
 
@@ -413,7 +444,6 @@ class MockS3Session:
 
 
 def test_aws_session_resource_exception(s3, mock_sqlalchemy_session, monkeypatch):
-
     monkeypatch.setattr(transfers.boto3, "Session", MockS3Session)
 
     with pytest.raises(Exception):
@@ -543,7 +573,32 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
         transfer.s3_upload()
 
 
-def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
+def test_s3_download(mock_sqlalchemy_session, monkeypatch):
+    def mock_s3_download_files(self):
+        self.TRANSFER_TYPE = "s3_download_files"
+
+    def mock_s3_download_folder(self):
+        self.TRANSFER_TYPE = "s3_download_folder"
+
+    monkeypatch.setattr(transfers.Transfer, "s3_download_files", mock_s3_download_files)
+    monkeypatch.setattr(
+        transfers.Transfer, "s3_download_folder", mock_s3_download_folder
+    )
+
+    # TEST1: transfer files
+    mock_data = initTransferModel(manifest_json='["file1"]')
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.s3_download()
+    assert transfer.TRANSFER_TYPE == "s3_download_files"
+
+    # TEST2: transfer folder
+    mock_data = initTransferModel(manifest_json="[]")
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
+    transfer.s3_download()
+    assert transfer.TRANSFER_TYPE == "s3_download_folder"
+
+
+def test_s3_download_files(s3, mock_sqlalchemy_session, monkeypatch):
     def mock_manifest(self):
         return ["file1", "file2", "file3"]
 
@@ -553,7 +608,7 @@ def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
 
     with pytest.raises(OSError):
-        transfer.s3_download()
+        transfer.s3_download_files()
 
 
 def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
@@ -562,3 +617,38 @@ def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
 
     with pytest.raises(botocore.exceptions.ParamValidationError):
         transfer.s3_download_folder()
+
+
+def test_get_abs_files(setup_dir_tree):
+    root = setup_dir_tree
+    rel_paths = [
+        "./file0.txt",
+        "./a/file1.txt",
+        "./a/b/file2.txt",
+    ]
+    expected = [
+        f"{root}/file0.txt",
+        f"{root}/a/file1.txt",
+        f"{root}/a/b/file2.txt",
+    ]
+    actual = get_abs_files(root, rel_paths)
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+def test_list_all_files_under_dir(setup_dir_tree):
+    root = setup_dir_tree
+    actual = list_all_files_under_dir(root)
+    expected = [f"{root}/file0.txt", f"{root}/a/file1.txt", f"{root}/a/b/file2.txt"]
+    assert actual == expected
+
+
+def test_abs_to_rel_paths():
+    root_dir = "/some/root"
+    abs_paths = [
+        "/some/root/file1",
+        "/some/root/a/file2",
+        "/some/root/a/b/file3",
+    ]
+    expected = ["file1", "a/file2", "a/b/file3"]
+    actual = abs_to_rel_paths(root_dir, abs_paths)
+    assert actual == expected
