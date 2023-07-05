@@ -44,7 +44,7 @@ dependencies = [
 dev = ["pytest", "requests-mock", "pytest-cov", "flake8", "deepdiff"]
 
 [project.urls]
-repository = "https://code.jgi.doe.gov/advanced-analysis/jaws-site"
+repository = "https://library.jgi.doe.gov/advanced-analysis/jaws-site"
 changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws-site/-/blob/main/CHANGELOG.md"
 documentation = "https://jaws-docs.readthedocs.io/en/latest/"
 

@@ -12,7 +12,6 @@ import json
 import boto3
 from jaws_site import config, models
 import botocore
-import subprocess
 
 from parallel_sync import rsync
 
@@ -123,7 +122,14 @@ class Transfer:
         return self.data.reason
 
     def manifest(self) -> list:
-        return json.loads(self.data.manifest_json)
+        """
+        Return list of files to transfer -- may be empty list if complete folder is to be transferred.
+        """
+        return (
+            []
+            if self.data.manifest_json is None
+            else json.loads(self.data.manifest_json)
+        )
 
     def cancel(self) -> None:
         """Cancel a transfer by changing the status in the db to prevent it from being picked up
@@ -161,22 +167,15 @@ class Transfer:
         self.update_status("transferring")
         try:
             if self.data.src_base_dir.startswith("s3://"):
-                self.s3_download_folder()
+                self.s3_download()
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.rsync_folder()
+                self.local_rsync()
         except Exception as error:
-            logger.error(f"Transfer {self.data.id} failed: {error}")
-            self.update_status("failed")
+            self.update_status("failed", str(error))
         else:
             self.update_status("succeeded")
-
-    def rsync_folder(self):
-        """
-        Recursively copy a folder.
-        """
-        parallel_rsync(f"{self.data.src_base_dir}/", f"{self.data.dest_base_dir}/")
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -316,6 +315,13 @@ class Transfer:
                     raise IOError(error)
 
     def s3_download(self):
+        return (
+            self.s3_download_files()
+            if len(self.manifest())
+            else self.s3_download_folder()
+        )
+
+    def s3_download_files(self):
         manifest = self.manifest()
         num_files = len(manifest)
         logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
@@ -390,6 +396,23 @@ class Transfer:
                         self.update_status("download failed", msg)
                         raise IOError(msg)
 
+    def local_rsync(self) -> None:
+        """
+        Copy files and folders (recursively).
+        """
+        manifest = self.manifest()
+        src = f"{self.data.src_base_dir}/"
+        dest = f"{self.data.dest_base_dir}/"
+        rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
+
+        num_files = len(rel_paths)
+        parallelism = calculate_parallelism(num_files)
+
+        parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
+
+        mode = config.conf.get("SITE", "file_permissions")
+        parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
+
 
 def check_queue(session) -> None:
     """
@@ -414,16 +437,56 @@ def check_queue(session) -> None:
         transfer.transfer_files()
 
 
-def get_number_of_files(src_dir):
+def get_abs_files(root, rel_paths) -> list:
     """
-    Use find src_dir | wc -l to get the number of files in a directory
+    Create list of all source files by recursively expanding any folders.
+    :param root: Folder under which all the paths in rel_paths exist
+    :ptype root: str
+    :param rel_paths: list of paths (files/folders) under root dir
+    :ptype rel_paths:
+    :return: Any folders in the input list shall be replaced with all the files under the folder.
+    :rtype: list
     """
-    find_proc = subprocess.Popen(["find", f"{src_dir}"], stdout=subprocess.PIPE)
-    num_files = int(subprocess.check_output(["wc", "-l"], stdin=find_proc.stdout))
-    find_proc.wait()
-    if find_proc.returncode > 0:
-        raise subprocess.CalledProcessError(find_proc.returncode, f"find {src_dir}")
-    return num_files
+    abs_files = set()
+    for item in rel_paths:
+        full_path = os.path.normpath(os.path.join(root, item))
+        if os.path.isfile(full_path):
+            abs_files.add(full_path)
+        elif os.path.isdir(full_path):
+            abs_files.update(list_all_files_under_dir(full_path))
+        # else symlink -- we don't use symlinks so they are not supported
+    return list(abs_files)
+
+
+def list_all_files_under_dir(root) -> list:
+    """
+    Walk down directory tree and return a list of all files therein.
+    :param root: starting folder
+    :ptype root: str
+    :return: absolute paths of every file contained under root dir
+    :rtype: list
+    """
+    files = []
+    for path, dirnames, filenames in os.walk(root):
+        for file in filenames:
+            files.append(os.path.join(path, file))
+    return files
+
+
+def abs_to_rel_paths(root: str, paths: list) -> list:
+    """
+    Convert a list of paths from absolute to relative, given root dir.
+    :param root: All paths shall be relative to this root folder.
+    :ptype root: str
+    :param paths: List of pathnames; all must be under root.
+    :ptype paths: list
+    :return: List of relative paths
+    :rtype: list
+    """
+    rel_paths = []
+    for abs_path in paths:
+        rel_paths.append(os.path.relpath(abs_path, start=root))
+    return rel_paths
 
 
 def calculate_parallelism(num_files):
@@ -448,14 +511,25 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_rsync(src, dest):
-    """Copy source to destination using rsync."""
-    num_files = get_number_of_files(src)
-    parallelism = calculate_parallelism(num_files)
-    rsync.copy(src, dest, parallelism=parallelism, extract=False, validate=False)
-
-    mode = config.conf.get("SITE", "file_permissions")
-    parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
+def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
+    """
+    Given list of files, copy them in parallel using rsync.  There should not be any folders in the list.
+    :param manifest: list of file relative paths
+    :ptype manifest: list
+    :param src: source root directory
+    :ptype src: str
+    :param dest: destination root directory
+    :ptype dest: str
+    """
+    parallelism = kwargs.get("paralellelism", 1000)
+    paths = []
+    for rel_path in manifest:
+        s = os.path.join(src, rel_path)
+        if os.path.isdir(s):
+            raise ValueError("parallel_rsync_files_only does not support folders")
+        d = os.path.join(dest, rel_path)
+        paths.append((s, d))
+    rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
 def parallel_chmod(path, mode, parallelism=1):

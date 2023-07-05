@@ -76,13 +76,8 @@ def test_FileWriter_csv_envvar(tmp_path):
     print(f"Output file={outfile}")
 
     # Clear out environment variables we will be testing with
-    env={"testytesty": "testytoasty"}
-    fw = pagurus.FileWriter(
-        outfile=outfile,
-        header=header,
-        write_header=True,
-        env=env
-    )
+    env = {"testytesty": "testytoasty"}
+    fw = pagurus.FileWriter(outfile=outfile, header=header, write_header=True, env=env)
 
     assert fw.header == header + list(env.keys())
     assert fw.write_header is True
@@ -129,7 +124,7 @@ def test_FileWriter_json(tmp_path):
 def test_FileWriter_json_envvar(tmp_path):
     header = ["name1", "name2", "name3"]
     outfile = tmp_path / "test.json"
-    env={"testytesty": "testytoasty"}
+    env = {"testytesty": "testytoasty"}
 
     fw = pagurus.FileWriter(
         outfile=outfile,

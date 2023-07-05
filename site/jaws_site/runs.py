@@ -710,6 +710,30 @@ class Run:
 
         self.update_run_status("complete")
 
+    def output_manifest(self) -> list:
+        """
+        Return a list of the output files for a completed run, as paths relative to the workflow_root.
+        """
+        root = self.data.workflow_root
+        try:
+            files = read_json(f"{root}/outfiles.json")
+        except Exception as error:
+            self.logger.error(f"Unable to read outfiles.json: {error}")
+            files = []
+        else:
+            # generate paths relative to workflow root
+            files = list(map(lambda abs_path: os.path.relpath(abs_path, root), files))
+        files.extend(
+            [
+                "metadata.json",
+                "errors.json",
+                "outputs.json",
+                "outfiles.json",
+                "task_summary.json",
+            ]
+        )
+        return files
+
     def publish_report(self):
         """
         Save final run metadata and send report document to reports service via RPC.
@@ -812,10 +836,13 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             run = session.query(models.Run).get(log.run_id)
             data["workflow_root"] = run.workflow_root
             data["workflow_name"] = run.workflow_name
+        elif log.status_to == "finished":
+            run = session.query(models.Run).get(log.run_id)
+            data["output_manifest"] = run.output_manifest()
         try:
-            response = central_rpc_client.request("update_run_logs", data)
+            response = central_rpc_client.request("update_run_log", data)
         except Exception as error:
-            logger.exception(f"RPC update_run_logs error: {error}")
+            logger.exception(f"RPC update_run_log error: {error}")
             continue
         if "error" in response:
             logger.info(f"RPC update_run_status failed: {response['error']['message']}")
@@ -914,3 +941,9 @@ def s3_parse_uri(full_uri):
     s3_bucket = folders.pop(0)
     obj_key = "/".join(folders)
     return s3_bucket, obj_key
+
+
+def read_json(path) -> any:
+    with open(path, "r") as fh:
+        contents = json.load(fh)
+    return contents

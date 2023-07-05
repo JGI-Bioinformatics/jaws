@@ -44,24 +44,6 @@ def queue_wait(params, session):
     return success(result)
 
 
-def output_manifest(params, session):
-    """Retrieve a Run's output manifest (files to return to user).
-
-    :param run_id: JAWS Run ID
-    :type params: dict
-    :return: The workflow_root and list of output files
-    :rtype: list
-    """
-    logger.info(f"Outfiles for Run {params['run_id']}")
-    complete = True if "complete" in params and params["complete"] is True else False
-    try:
-        run = Run.from_id(session, params["run_id"])
-        result = run.output_manifest(complete=complete)
-    except Exception as error:
-        return failure(error)
-    return success(result)
-
-
 def cancel_run(params, session):
     """Mark a Run to be cancelled.  It will be cancelled by the Run daemon later (asynchronously).
 
@@ -188,10 +170,6 @@ operations = {
     },
     "resubmit_run": {
         "function": resubmit_run,
-        "required_params": ["run_id"],
-    },
-    "output_manifest": {
-        "function": output_manifest,
         "required_params": ["run_id"],
     },
     "cancel_run": {
