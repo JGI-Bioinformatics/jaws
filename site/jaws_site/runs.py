@@ -709,18 +709,17 @@ class Run:
         summary_file = f"{root}/task_summary.json"
         write_json_file(summary_file, task_summary)
 
-        # write manifest (workflow outfiles, supplementary files, and failed folders)
-        manifest = outfiles
-        manifest.extend(
-            [
-                "metadata.json",
-                "errors.json",
-                "outputs.json",
-                "outmanifest.json",
-                "task_summary.json",
-            ]
-        )
-        manifest.extend(list(map(lambda abs_path: os.path.relpath(abs_path, root), metadata.failed_folders)))
+        # write output manifest (i.e. files to return to user)
+        failed_folders = metadata.failed_folders()
+        manifest = [
+            *outfiles,
+            *failed_folders,
+            "metadata.json",
+            "errors.json",
+            "outputs.json",
+            "outmanifest.json",
+            "task_summary.json",
+        ]
         manifest_file = f"{root}/output_manifest.json"
         write_json_file(manifest_file, manifest)
 
