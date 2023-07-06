@@ -4,6 +4,7 @@
             {
                 "attempt": 1,
                 "shardIndex": -1,
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/fq_count/dfb4bc05-760d-4b0f-8a42-cc2fa3c78b15/call-count_seqs",
                 "failures": [
                     {
                         "causedBy": [],

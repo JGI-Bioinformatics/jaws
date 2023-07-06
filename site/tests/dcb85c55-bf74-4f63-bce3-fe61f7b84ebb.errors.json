@@ -37,6 +37,7 @@
                     "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye/execution/stderr.submit"
                   }
                 ],
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-goodbye",
                 "shardIndex": -1,
                 "attempt": 1,
                 "stdoutContents": null,
@@ -78,6 +79,7 @@
                     "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello/execution/stderr.submit"
                   }
                 ],
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_1/sub.hello_and_goodbye/86deab66-3ead-4565-9c67-bf529b78a073/call-hello",
                 "shardIndex": -1,
                 "attempt": 1,
                 "stdoutContents": null,
@@ -129,6 +131,7 @@
                     "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello/execution/stderr.submit"
                   }
                 ],
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-hello",
                 "shardIndex": -1,
                 "attempt": 1,
                 "stdoutContents": null,
@@ -170,6 +173,7 @@
                     "message": "java.lang.RuntimeException: Could not find job ID from stdout file.Check the stderr file for possible errors: /global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye/execution/stderr.submit"
                   }
                 ],
+                "callRoot": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/dcb85c55-bf74-4f63-bce3-fe61f7b84ebb/call-hello_and_goodbye_2/sub.hello_and_goodbye/0d64de21-a643-4212-a713-d3e666c27108/call-goodbye",
                 "shardIndex": -1,
                 "attempt": 1,
                 "stdoutContents": null,

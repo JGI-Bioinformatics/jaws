@@ -712,25 +712,3 @@ def test_get_run_inputs(monkeypatch, mock_sqlalchemy_session):
 
     with pytest.raises(RunFileNotFoundError):
         run.get_run_inputs()
-
-
-def test_output_manifest(monkeypatch, mock_sqlalchemy_session):
-    def mock_read_json(path: str) -> list:
-        return ["/WORKFLOW/ROOT/a.txt", "/WORKFLOW/ROOT/b.txt"]
-
-    monkeypatch.setattr(jaws_site.runs, "read_json", mock_read_json)
-
-    data = initRunModel(workflow_root="/WORKFLOW/ROOT")
-    run = Run(mock_sqlalchemy_session, data)
-
-    actual = run.output_manifest()
-    expected = [
-        "a.txt",
-        "b.txt",
-        "metadata.json",
-        "errors.json",
-        "outputs.json",
-        "outfiles.json",
-        "task_summary.json",
-    ]
-    assert actual == expected

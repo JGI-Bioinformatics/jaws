@@ -370,6 +370,15 @@ class Call:
         }
         return record
 
+    def failed_folder(self):
+        """
+        Return the 'callRoot' if the attempt failed and the folder is defined; otherwise return None.
+        """
+        if self.execution_status == "Failed" and "callRoot" in self.data:
+            return self.data["callRoot"]
+        else:
+            return None
+
     def error(self):
         """
         Errors report, if failed (else None).
@@ -440,6 +449,7 @@ class Call:
             else:
                 result["stdoutBackgroundContents"] = stdout_background_contents
         if "callRoot" in self.data:
+            result["callRoot"] = self.data["callRoot"]
             # check for existence of any task-specific *.log files.
             # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
             log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
@@ -503,6 +513,25 @@ class Task:
                 if shard_index not in self.calls:
                     self.calls[shard_index] = {}
                 self.calls[shard_index][attempt] = Call(call_data, self.name)
+
+    def failed_folders(self):
+        """
+        Return all 'callRoot' of this task or all child tasks if this is a subworkflow.
+        """
+        folders = []
+        for shard_index in self.calls.keys():
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                folder = call.failed_folder()
+                if folder is not None:
+                    folders.append(folder)
+        for shard_index in self.subworkflows.keys():
+            for attempt in self.subworkflows[shard_index].keys():
+                sub_meta = self.subworkflows[shard_index][attempt]
+                sub_failed_folders = sub_meta.failed_folders()
+                if len(sub_failed_folders) > 0:
+                    folders.extend(sub_failed_folders)
+        return folders
 
     def errors(self):
         """
@@ -713,6 +742,24 @@ class Metadata:
                 filtered_failures.append(failure)
         return filtered_failures
 
+    def failed_folders(self, **kwargs):
+        """
+        Return list of folders of failed tasks (when 'callRoot' exists).
+        """
+        all_folders = []
+        for task_name, task in self.tasks.items():
+            task_folders = task.failed_folders()
+            if len(task_folders) > 0:
+                all_folders.extend(task_folders)
+        if len(all_folders):
+            root = self.workflow_root(**kwargs)
+            if not root:
+                raise ValueError("The workflowRoot could not be determined")
+            for i in range(len(all_folders)):
+                if all_folders[i].startswith(root):
+                    all_folders[i] = os.path.relpath(all_folders[i], root)
+        return all_folders
+
     def errors(self):
         """
         Return JSON errors report.
@@ -761,22 +808,22 @@ class Metadata:
     def outfiles(self, **kwargs):
         """
         Return list of all output files of a run.
-        By default, only include files tagged as outputs for the Run.
-        :return: List of files
+        Requires that the workflow_root can be determined.
+        :return: Relative paths of all output files
         :rtype: list
         """
         workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
 
         if not workflow_root:
-            return outputs
+            raise ValueError("The workflowRoot could not be determined.")
         elif len(outputs.keys()) == 0:
             return []
 
         relpath_outputs = []
 
         # find all the file paths
-        output_str = json.dumps(outputs)
+        output_str = json.dumps(outputs, indent=0)
         regex = f"{workflow_root}\\S+"
         matches = re.findall(regex, output_str)
 
