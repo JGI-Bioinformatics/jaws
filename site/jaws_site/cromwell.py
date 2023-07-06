@@ -742,7 +742,7 @@ class Metadata:
                 filtered_failures.append(failure)
         return filtered_failures
 
-    def failed_folders(self):
+    def failed_folders(self, **kwargs):
         """
         Return list of folders of failed tasks (when 'callRoot' exists).
         """
@@ -751,6 +751,13 @@ class Metadata:
             task_folders = task.failed_folders()
             if len(task_folders) > 0:
                 all_folders.extend(task_folders)
+        if len(all_folders):
+            root = self.workflow_root(**kwargs)
+            if not root:
+                raise ValueError("The workflowRoot could not be determined")
+            for i in range(len(all_folders)):
+                if all_folders[i].startswith(root):
+                    all_folders[i] = os.path.relpath(all_folders[i], root)
         return all_folders
 
     def errors(self):
@@ -801,22 +808,22 @@ class Metadata:
     def outfiles(self, **kwargs):
         """
         Return list of all output files of a run.
-        By default, only include files tagged as outputs for the Run.
-        :return: List of files
+        Requires that the workflow_root can be determined.
+        :return: Relative paths of all output files
         :rtype: list
         """
         workflow_root = self.workflow_root(**kwargs)
         outputs = self.get("outputs", {})
 
         if not workflow_root:
-            return outputs
+            raise ValueError("The workflowRoot could not be determined.")
         elif len(outputs.keys()) == 0:
             return []
 
         relpath_outputs = []
 
         # find all the file paths
-        output_str = json.dumps(outputs)
+        output_str = json.dumps(outputs, indent=0)
         regex = f"{workflow_root}\\S+"
         matches = re.findall(regex, output_str)
 

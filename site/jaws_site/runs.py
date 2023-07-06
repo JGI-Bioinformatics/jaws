@@ -666,6 +666,7 @@ class Run:
             return
 
         logger.info(f"Run {self.data.id}: Write supplementary files")
+        root = self.data.workflow_root
 
         # get Cromwell metadata
         try:
@@ -677,22 +678,22 @@ class Run:
             return
 
         # write metadata
-        metadata_file = f"{self.data.workflow_root}/metadata.json"
+        metadata_file = f"{root}/metadata.json"
         write_json_file(metadata_file, metadata.data)
 
         # write errors report
         errors_report = metadata.errors()
-        errors_file = f"{self.data.workflow_root}/errors.json"
+        errors_file = f"{root}/errors.json"
         write_json_file(errors_file, errors_report)
 
         # write outputs
         outputs = metadata.outputs()
-        outputs_file = f"{self.data.workflow_root}/outputs.json"
+        outputs_file = f"{root}/outputs.json"
         write_json_file(outputs_file, outputs)
 
         # write outfiles
         outfiles = metadata.outfiles()
-        outfiles_file = f"{self.data.workflow_root}/outfiles.json"
+        outfiles_file = f"{root}/outfiles.json"
         write_json_file(outfiles_file, outfiles)
 
         # write task summary
@@ -705,8 +706,23 @@ class Run:
             # rename job_id key to cromwell_job_id
             task["cromwell_job_id"] = task["job_id"]
             task_summary["tasks"].append(task)
-        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        summary_file = f"{root}/task_summary.json"
         write_json_file(summary_file, task_summary)
+
+        # write manifest (workflow outfiles, supplementary files, and failed folders)
+        manifest = outfiles
+        manifest.extend(
+            [
+                "metadata.json",
+                "errors.json",
+                "outputs.json",
+                "outmanifest.json",
+                "task_summary.json",
+            ]
+        )
+        manifest.extend(list(map(lambda abs_path: os.path.relpath(abs_path, root), metadata.failed_folders)))
+        manifest_file = f"{root}/output_manifest.json"
+        write_json_file(manifest_file, manifest)
 
         self.update_run_status("complete")
 
@@ -714,25 +730,14 @@ class Run:
         """
         Return a list of the output files for a completed run, as paths relative to the workflow_root.
         """
-        root = self.data.workflow_root
+        manifest_file = f"{self.data.workflow_root}/output_manifest.json"
         try:
-            files = read_json(f"{root}/outfiles.json")
-        except Exception as error:
-            self.logger.error(f"Unable to read outfiles.json: {error}")
-            files = []
+            manifest = read_json(manifest_file)
+        except IOError as error:
+            logger.error(f"Run {self.data.id}: Failed to read output manifest: {error}")
+            return []
         else:
-            # generate paths relative to workflow root
-            files = list(map(lambda abs_path: os.path.relpath(abs_path, root), files))
-        files.extend(
-            [
-                "metadata.json",
-                "errors.json",
-                "outputs.json",
-                "outfiles.json",
-                "task_summary.json",
-            ]
-        )
-        return files
+            return manifest
 
     def publish_report(self):
         """
@@ -836,7 +841,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             run = session.query(models.Run).get(log.run_id)
             data["workflow_root"] = run.workflow_root
             data["workflow_name"] = run.workflow_name
-        elif log.status_to == "finished":
+        elif log.status_to == "complete":
             run = session.query(models.Run).get(log.run_id)
             data["output_manifest"] = run.output_manifest()
         try:
