@@ -370,6 +370,15 @@ class Call:
         }
         return record
 
+    def failed_folder(self):
+        """
+        Return the 'callRoot' if the attempt failed and the folder is defined; otherwise return None.
+        """
+        if self.execution_status == "Failed" and "callRoot" in self.data:
+            return self.data["callRoot"]
+        else:
+            return None
+
     def error(self):
         """
         Errors report, if failed (else None).
@@ -504,6 +513,25 @@ class Task:
                 if shard_index not in self.calls:
                     self.calls[shard_index] = {}
                 self.calls[shard_index][attempt] = Call(call_data, self.name)
+
+    def failed_folders(self):
+        """
+        Return all 'callRoot' of this task or all child tasks if this is a subworkflow.
+        """
+        folders = []
+        for shard_index in self.calls.keys():
+            for attempt in self.calls[shard_index].keys():
+                call = self.calls[shard_index][attempt]
+                folder = call.failed_folder()
+                if folder is not None:
+                    folders.append(folder)
+        for shard_index in self.subworkflows.keys():
+            for attempt in self.subworkflows[shard_index].keys():
+                sub_meta = self.subworkflows[shard_index][attempt]
+                sub_failed_folders = sub_meta.failed_folders()
+                if len(sub_failed_folders) > 0:
+                    folders.extend(sub_failed_folders)
+        return folders
 
     def errors(self):
         """
@@ -713,6 +741,17 @@ class Metadata:
             if failure["message"].lower() != "workflow failed":
                 filtered_failures.append(failure)
         return filtered_failures
+
+    def failed_folders(self):
+        """
+        Return list of folders of failed tasks (when 'callRoot' exists).
+        """
+        all_folders = []
+        for task_name, task in self.tasks.items():
+            task_folders = task.failed_folders()
+            if len(task_folders) > 0:
+                all_folders.extend(task_folders)
+        return all_folders
 
     def errors(self):
         """

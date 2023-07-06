@@ -841,3 +841,105 @@ def test__get_file_path(config_file):
     file_id = "stderr"
     ret = call._get_file_path(file_id, relpath=True)
     assert "not_none" in ret
+
+
+def test_failed_folders(requests_mock, monkeypatch):
+    def mock_read_file(path):
+        return None
+
+    monkeypatch.setattr(cromwell, "_read_file", mock_read_file)
+
+    # simple workflow with no errors
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_1}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_1, "metadata"),
+    )
+    expected_failed_folders_1 = []
+    metadata_1 = crom.get_metadata(example_cromwell_run_id_1)
+    actual_failed_folders_1 = metadata_1.failed_folders()
+    assert (
+        bool(
+            DeepDiff(
+                actual_failed_folders_1, expected_failed_folders_1, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    # simple workflow with errors
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_3}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_3, "metadata"),
+    )
+    expected_failed_folders_3 = __load_example_output_from_file(
+        example_cromwell_run_id_3, "failed_folders"
+    )
+    metadata_3 = crom.get_metadata(example_cromwell_run_id_3)
+    actual_failed_folders_3 = metadata_3.failed_folders()
+
+    assert (
+        bool(
+            DeepDiff(
+                actual_failed_folders_3, expected_failed_folders_3, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    # failed, missing infile
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_4}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_4, "metadata"),
+    )
+    expected_failed_folders_4 = __load_example_output_from_file(
+        example_cromwell_run_id_4, "failed_folders"
+    )
+    metadata_4 = crom.get_metadata(example_cromwell_run_id_4)
+    actual_failed_folders_4 = metadata_4.failed_folders()
+
+    assert (
+        bool(
+            DeepDiff(
+                actual_failed_folders_4, expected_failed_folders_4, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    # failed simple run
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_6}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_6, "metadata"),
+    )
+    expected_failed_folders_6 = __load_example_output_from_file(
+        example_cromwell_run_id_6, "failed_folders"
+    )
+    metadata_6 = crom.get_metadata(example_cromwell_run_id_6)
+    actual_failed_folders_6 = metadata_6.failed_folders()
+    assert (
+        bool(
+            DeepDiff(
+                actual_failed_folders_6, expected_failed_folders_6, ignore_order=True
+            )
+        )
+        is False
+    )
+
+    # failed run with subworkflows
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_7}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_7, "metadata"),
+    )
+    expected_failed_folders_7 = __load_example_output_from_file(
+        example_cromwell_run_id_7, "failed_folders"
+    )
+    metadata_7 = crom.get_metadata(example_cromwell_run_id_7)
+    actual_failed_folders_7 = metadata_7.failed_folders()
+    assert (
+        bool(
+            DeepDiff(
+                actual_failed_folders_7, expected_failed_folders_7, ignore_order=True
+            )
+        )
+        is False
+    )
