@@ -440,6 +440,7 @@ class Call:
             else:
                 result["stdoutBackgroundContents"] = stdout_background_contents
         if "callRoot" in self.data:
+            result["callRoot"] = self.data["callRoot"]
             # check for existence of any task-specific *.log files.
             # callRoot is not specified for AWS/S3 files, so it works only for NFS paths.
             log_files = glob.glob(f"{self.data['callRoot']}/execution/*.log")
