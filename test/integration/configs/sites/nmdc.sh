@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 export JAWS_INSTALL_BASEDIR="/global/common/software/m3408/jaws-install"
 export JAWS_GLOBUS_EP="be1ff650-dcbc-11ea-85a2-0e1702b77d41"
 export JAWS_GLOBUS_HOST_PATH="/"
@@ -22,3 +23,4 @@ export JAWS_SUPERVISOR_PORT_DEV=64104
 export JAWS_AUTH_PORT_DEV=3004
 export JAWS_REST_PORT_DEV=5004
 export JAWS_CROMWELL_PORT_DEV=50104
+export JAWS_PERLMUTTER=1
