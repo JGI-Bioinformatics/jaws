@@ -83,7 +83,7 @@ variables:
     JAWS_SITE_NAME: "JGI"
   <<: *supervisor-stop
   script:
-    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME"
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run"
 
 
 .tahoma-deployment: &tahoma-deploy
@@ -101,7 +101,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
-    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME"
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run"
 
 .nmdc-deployment: &nmdc-deploy
   stage: deploy-jaws
@@ -137,7 +137,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *systemd-stop
   script:
-    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME"
+    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME-instance"
     - "./test/integration/deploy_tools/systemd.sh status"
 ##### End anchors and extends jobs
 
@@ -219,8 +219,6 @@ deploy-jaws-aws-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "aws/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-aws-prod:
   extends: .aws-deployment
@@ -255,8 +253,6 @@ deploy-jaws-jgi-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "jgi/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-jgi-staging:
   extends: .jgi-deployment
@@ -285,8 +281,6 @@ deploy-jaws-tahoma-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "tahoma/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-tahoma-staging:
   extends: .tahoma-deployment
@@ -316,8 +310,6 @@ deploy-jaws-nmdc-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "nmdc/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-nmdc-staging:
   extends: .nmdc-deployment
@@ -375,8 +367,6 @@ deploy-jaws-dori-dev:
     JAWS_DEPLOYMENT_NAME: "dev"
   environment:
     name: "dori/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-dori-staging:
   extends: .dori-deployment

@@ -4,8 +4,8 @@ DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-log")
 
-function write_supervisor_shims {
-  local container_runtime=$1
+
+function write_apptainer_run {
   container_templ="$DIR/templates/container_runtime_templates/${container_runtime}-run.sh"
   for service in "${SERVICES[@]}"; do
     export SERVICE="$service"
@@ -13,14 +13,11 @@ function write_supervisor_shims {
   done
 }
 
-function write_systemd_shims {
-  local container_runtime=$1
+function write_apptainer_instance {
   container_templ="$DIR/templates/container_runtime_templates/${container_runtime}-instance.sh"
-  service_dir="${HOME}/.config/systemd/user"
   for service in "${SERVICES[@]}"; do
     export SERVICE="$service"
     envsubst < "$container_templ" > "$JAWS_BIN_DIR/$SERVICE"
-    envsubst < "$DIR/templates/jaws-site.service.templ" > "${service_dir}/${SERVICE}-${JAWS_DEPLOYMENT_NAME}.service"
   done
 }
 
@@ -40,19 +37,15 @@ function write_perlmutter_shims {
 
 function write_shims {
   local install_method="$1"
-  local container_runtime="$2"
   case "$install_method" in
     "venv")
       write_venv_shims
       ;;
-    "systemd")
-      write_systemd_shims "$container_runtime"
+    "apptainer-run")
+      write_apptainer_run_shims
       ;;
-    "supervisor")
-      write_supervisor_shims "$container_runtime"
-      ;;
-    "perlmutter")
-      write_perlmutter_shims
+    "apptainer-instance")
+      write_apptainer_instance_shims
       ;;
     *)
       echo "Unknown install method: $install_method"
