@@ -83,7 +83,7 @@ variables:
     JAWS_SITE_NAME: "JGI"
   <<: *supervisor-stop
   script:
-    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME"
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run"
 
 
 .tahoma-deployment: &tahoma-deploy
@@ -101,7 +101,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
-    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME"
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run"
 
 .nmdc-deployment: &nmdc-deploy
   stage: deploy-jaws
@@ -124,8 +124,8 @@ variables:
     JAWS_SITE_NAME: "PERLMUTTER"
   <<: *scrontab-stop
   script:
-    - "./test/integration/deploy.sh scrontab venv"
     - "./test/integration/write_shims.sh perlmutter"
+    - "./test/integration/deploy.sh supervisor venv"
 
 .dori-deployment: &dori-deploy
   stage: deploy-jaws
@@ -136,7 +136,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *systemd-stop
   script:
-    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME"
+    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME-instance"
     - "./test/integration/deploy_tools/systemd.sh status"
 ##### End anchors and extends jobs
 

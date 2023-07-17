@@ -2,7 +2,7 @@
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-function write_configs {
+function write_jaws_configs {
   echo "Writing config files"
   envsubst < "$DIR/templates/site.conf" > "$JAWS_CONFIG_DIR/jaws-site.conf"
   envsubst < "$DIR/templates/site.env.templ" > "$JAWS_CONFIG_DIR/site.env"
@@ -21,4 +21,43 @@ function write_configs {
       chmod 700 "$FACL_SCRIPT"
       "$FACL_SCRIPT"
   fi
+}
+
+function write_supervisor_configs {
+  envsubst < "$DIR/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
+  envsubst < "$DIR/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
+  envsubst < "$DIR/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
+  envsubst < "$DIR/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
+  chmod 600 $JAWS_CONFIG_DIR/*.conf
+  chmod 700 $JAWS_BIN_DIR/*
+}
+
+function write_systemd_configs {
+  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-log")
+  service_dir="${HOME}/.config/systemd/user"
+  for service in "${SERVICES[@]}"; do
+    export SERVICE="$service"
+    envsubst < "$DIR/templates/jaws-site.service.templ" > "${service_dir}/${SERVICE}-${JAWS_DEPLOYMENT_NAME}.service"
+  done
+}
+
+function write_configs {
+  local launch_tool="$1"
+
+  # always write the jaws configs
+  write_jaws_configs
+
+  case "$launch_tool" in
+    "supervisor")
+      write_supervisor_configs
+      ;;
+    "systemd")
+      write_systemd_configs
+      ;;
+    *)
+      echo "Unknown launch tool: $launch_tool"
+      exit 1
+      ;;
+  esac
+
 }
