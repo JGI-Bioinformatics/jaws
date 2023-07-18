@@ -14,9 +14,10 @@ source "$DIR/install_jaws_site.sh"
 function deploy {
   launch_tool="$1"
   install_method="$2"
+  version="$3"
   write_configs "$launch_tool"
   write_shims "$install_method"
-  install_jaws_site "$install_method"
+  install_jaws_site "$install_method" "$version"
   "${DIR}/deploy_tools/${launch_tool}.sh" start
 }
 
