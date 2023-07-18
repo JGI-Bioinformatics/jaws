@@ -11,7 +11,7 @@ function pull_container {
   local tag="$3"
   echo "Pulling container"
   if [ $CONTAINER_RUNTIME == "apptainer" ]; then
-    apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "$registry/$image:$tag"
+    apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "$registry/$image:apptainer-$tag"
   else
     echo "Unknown container runtime: $CONTAINER_RUNTIME"
     exit 1
@@ -35,13 +35,14 @@ function install_venv {
 
 function install_jaws_site {
   local install_method="${1%%-*}"
+  local version="$2"
   case "$install_method" in
     "venv")
       install_venv "$JAWS_PYTHON" "$JAWS_VENV_DIR"
       ;;
     "apptainer")
       login_gitlab_registry "oras://$CI_REGISTRY"
-      pull_container "oras://$CI_REGISTRY" "advanced-analysis/jaws-site" "$JAWS_SITE_VERSION"
+      pull_container "oras://$CI_REGISTRY" "advanced-analysis/jaws-site" "$version"
       ;;
     *)
       echo "Unknown install method: $install_method"
