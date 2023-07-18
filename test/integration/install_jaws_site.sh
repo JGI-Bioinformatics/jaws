@@ -34,7 +34,7 @@ function install_venv {
 }
 
 function install_jaws_site {
-  local install_method="$1"
+  local install_method="${1%%-*}"
   case "$install_method" in
     "venv")
       install_venv "$JAWS_PYTHON" "$JAWS_VENV_DIR"
