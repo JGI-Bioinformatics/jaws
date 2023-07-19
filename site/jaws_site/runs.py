@@ -841,7 +841,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             data["workflow_root"] = run.workflow_root
             data["workflow_name"] = run.workflow_name
         elif log.status_to == "complete":
-            run = session.query(models.Run).get(log.run_id)
+            run = Run.from_id(session, log.run_id)
             data["output_manifest"] = run.output_manifest()
             logger.debug(f"Run {run.data.id}: Generate output manifest: {data['output_manifest']}")
         try:
