@@ -843,6 +843,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         elif log.status_to == "complete":
             run = session.query(models.Run).get(log.run_id)
             data["output_manifest"] = run.output_manifest()
+            logger.debug(f"Run {run.data.id}: Generate output manifest: {data['output_manifest']}")
         try:
             response = central_rpc_client.request("update_run_log", data)
         except Exception as error:
