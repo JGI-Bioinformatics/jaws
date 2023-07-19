@@ -199,7 +199,7 @@ build-docker-site:
         GITLAB_IMAGE_TAG: "$CI_REGISTRY_IMAGE:docker-$JAWS_SITE_VERSION"
     - if: "$CI_COMMIT_TAG == 'dev'"
       variables:
-        GITLAB_IMAGE_TAG: "$CI_REGISTRY_IMAGE:docker-dev-$CI_COMMIT_SHORT_SHA"
+        GITLAB_IMAGE_TAG: "$CI_REGISTRY_IMAGE:docker-dev"
 
 build-apptainer-site:
   tags:
