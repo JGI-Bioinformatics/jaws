@@ -1,13 +1,12 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+
+## 1.2.0 Summary [07/19/2023]
 - Use `parallel_sync` Python package for file transfers
 - Add close() in update_status to force use of a fresh connection on the next update
 - chmod's the output files using concurrent.futures
 - get the Pagurus filewriter tests working again, also disentangle filewriter class from script.
-- return both outfiles and complete failed tasks' folder to user
-
-## 1.1.2 Summary [05/15/2023]
 
 ## 1.1.1 Summary [05/10/2023]
 - Update Dockerfile base image to 3.11 and replace setup.py with pyproject.toml (#1635)
