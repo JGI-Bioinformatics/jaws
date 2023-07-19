@@ -231,7 +231,7 @@ deploy-jaws-aws-dev:
   extends: .aws-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_VERSION: "dev-$CI_COMMIT_SHORT_SHA"
+    JAWS_SITE_VERSION: "dev"
   environment:
     name: "aws/dev"
   rules:
@@ -416,6 +416,7 @@ deploy-jaws-dori-staging:
 
 deploy-jaws-dori-prod:
   extends: .dori-deployment
+  stage: release-jaws
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
   environment:
