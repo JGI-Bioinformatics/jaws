@@ -24,6 +24,7 @@ function write_venv_shims {
 
 function write_perlmutter_shims {
   envsubst < "$DIR/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site-cronjob"
+  envsubst '${JAWS_SITE_NAME},${JAWS_DEPLOYMENT_NAME},${JAWS_BIN_DIR},${JAWS_LOGS_DIR}' < "$DIR/templates/starter.sh" > "$JAWS_BIN_DIR/starter.sh"
   envsubst < "$DIR/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 }
 

@@ -1,11 +1,34 @@
 #!/usr/bin/env bash
 
+DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+function check_job_running {
+  /usr/bin/squeue --noheader -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" --state=running,pending -u "$USER" -o "%12i %2t %9u %25j %6D %10M %12q %8f %18R"
+}
+
 function stop_service {
-  squeue --format="%.18i %.9P %.35j %.8u %.8T %.10M %.9l %.6D %R" --me | grep "${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" |  xargs -n 1 scancel || true
+  job_status=$(check_job_running)
+
+  # If we get output then scancel all the jobs
+  if [[ ${#job_status} -ge 2 ]]; then
+    jobid=$(echo "$job_status" | awk '{print $1}')
+    echo "Stopping job $jobid"
+    srun --overlap --jobid="$jobid" "$JAWS_BIN_DIR/supervisorctl" stop jaws-site:*
+    scancel --cron "$jobid"
+  else
+    echo "No job running"
+  fi
 }
 
 function start_service {
-  echo "Login to perlmutter and modify the scrontab with scrontab -e"
+  if [[ ! -f "$JAWS_BIN_DIR/starter.sh" ]]; then
+    echo "starter.sh not found in $JAWS_BIN_DIR, creating it now"
+    envsubst '${JAWS_SITE_NAME},${JAWS_DEPLOYMENT_NAME},${JAWS_BIN_DIR},${JAWS_LOGS_DIR}' < "$DIR/templates/starter.sh" > "$JAWS_BIN_DIR/starter.sh"
+  fi
+  # In case our cronjob runs before we manually run our starter.sh, we attempt to kill any remaining job
+  # and submit again
+  stop_service
+  "$JAWS_BIN_DIR/starter.sh"
 }
 
 function scrontab {
