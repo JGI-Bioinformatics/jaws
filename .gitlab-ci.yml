@@ -124,8 +124,9 @@ variables:
     JAWS_SITE_NAME: "PERLMUTTER"
   <<: *scrontab-stop
   script:
-    - "./test/integration/write_shims.sh perlmutter"
-    - "./test/integration/deploy.sh supervisor venv $JAWS_SITE_VERSION"
+    - "source ./test/integration/write_shims.sh"
+    - "write_shims perlmutter"
+    - "./test/integration/deploy.sh scrontab venv $JAWS_SITE_VERSION"
 
 .dori-deployment: &dori-deploy
   stage: deploy-jaws
