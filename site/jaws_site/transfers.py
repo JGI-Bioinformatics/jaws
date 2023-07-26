@@ -402,7 +402,11 @@ class Transfer:
         """
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
+        if not os.path.isdir(src):
+            raise IOError(f"Error; folder not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
+        if not os.path.isdir(dest):
+            raise IOError(f"Error; folder not found: {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
