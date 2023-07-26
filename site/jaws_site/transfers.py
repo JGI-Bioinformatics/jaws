@@ -415,7 +415,7 @@ class Transfer:
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         mode = config.conf.get("SITE", "file_permissions")
-        parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
+        # parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
 
 
 def check_queue(session) -> None:
