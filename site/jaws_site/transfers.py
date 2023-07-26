@@ -526,6 +526,7 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     :ptype dest: str
     """
     parallelism = kwargs.get("paralellelism", 1000)
+    logger.debug(f"Begin rsync with {parallelism} threads")
     paths = []
     for rel_path in manifest:
         s = os.path.join(src, rel_path)
@@ -540,7 +541,7 @@ def parallel_chmod(path, mode, parallelism=1):
     """
     Recursively copy folder and set permissions.
     """
-    return
+    logger.debug(f"Begin parallel chmod w/{parallelism} threads")
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         futures = []
         root_dir = os.path.abspath(path)
