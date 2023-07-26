@@ -415,7 +415,7 @@ class Transfer:
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         mode = config.conf.get("SITE", "file_permissions")
-        # parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
+        parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
 
 
 def check_queue(session) -> None:
@@ -540,6 +540,7 @@ def parallel_chmod(path, mode, parallelism=1):
     """
     Recursively copy folder and set permissions.
     """
+    return
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         futures = []
         root_dir = os.path.abspath(path)
