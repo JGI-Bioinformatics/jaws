@@ -717,6 +717,7 @@ class Run:
             "metadata.json",
             "errors.json",
             "outputs.json",
+            "outfiles.json",
             "outmanifest.json",
             "task_summary.json",
         ]
