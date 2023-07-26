@@ -539,7 +539,10 @@ def parallel_chmod(path, mode, parallelism=1):
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         futures = []
         root_dir = os.path.abspath(path)
-        os.chmod(root_dir, mode)
+        try:
+            os.chmod(root_dir, mode)
+        except Exception as error:
+            logger.warning(f"ERROR failed chmod {root_dir}: {error}")
         for src_dir, dirs, files in os.walk(root_dir):
             for subdir in dirs:
                 subdir_path = os.path.join(src_dir, subdir)
@@ -551,7 +554,7 @@ def parallel_chmod(path, mode, parallelism=1):
             try:
                 _ = future.result()
             except Exception as error:
-                logger.warning(f"ERROR chmod failed: {error}")
+                logger.warning(f"ERROR failed chmod: {error}")
 
 
 def reset_queue(session):
