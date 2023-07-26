@@ -537,6 +537,7 @@ def parallel_chmod(path, mode, parallelism=1):
     Recursively copy folder and set permissions.
     """
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
+        futures = []
         root_dir = os.path.abspath(path)
         os.chmod(root_dir, mode)
         for src_dir, dirs, files in os.walk(root_dir):
@@ -545,7 +546,12 @@ def parallel_chmod(path, mode, parallelism=1):
                 executor.submit(os.chmod, subdir_path, mode)
             for file in files:
                 file_path = os.path.join(src_dir, file)
-                executor.submit(os.chmod, file_path, mode)
+                futures.append(executor.submit(os.chmod, file_path, mode))
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                _ = future.result()
+            except Exception as error:
+                logger.warning(f"ERROR chmod failed: {error}")
 
 
 def reset_queue(session):
