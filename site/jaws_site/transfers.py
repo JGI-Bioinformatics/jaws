@@ -125,11 +125,10 @@ class Transfer:
         """
         Return list of files to transfer -- may be empty list if complete folder is to be transferred.
         """
-        return (
-            []
-            if self.data.manifest_json is None
-            else json.loads(self.data.manifest_json)
-        )
+        manifest = []
+        if self.data.manifest_json is not None:
+            manifest = json.loads(self.data.manifest_json)
+        return manifest
 
     def cancel(self) -> None:
         """Cancel a transfer by changing the status in the db to prevent it from being picked up
@@ -400,6 +399,7 @@ class Transfer:
         """
         Copy files and folders (recursively).
         """
+        logger.debug(f"Transfer {self.data.id}: Begin local rsync")
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
@@ -407,6 +407,7 @@ class Transfer:
         dest = f"{self.data.dest_base_dir}/"
         if not os.path.isdir(dest):
             raise IOError(f"Error; folder not found: {dest}")
+
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
