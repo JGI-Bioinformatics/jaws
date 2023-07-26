@@ -166,6 +166,10 @@ def test_local_rsync(monkeypatch):
         assert type(path) == str
         assert type(perms) == int
 
+    def mock_isdir(path):
+        assert type(path) == str
+        return True
+
     monkeypatch.setattr(jaws_site.transfers, "get_abs_files", mock_get_abs_files)
     monkeypatch.setattr(jaws_site.transfers, "abs_to_rel_paths", mock_abs_to_rel_paths)
     monkeypatch.setattr(jaws_site.transfers, "calculate_parallelism", mock_calculate_parallelism)
@@ -173,6 +177,7 @@ def test_local_rsync(monkeypatch):
         jaws_site.transfers, "parallel_rsync_files_only", mock_parallel_rsync_files_only
     )
     monkeypatch.setattr(jaws_site.transfers, "parallel_chmod", mock_parallel_chmod)
+    monkeypatch.setattr(os.path, "isdir", mock_isdir)
 
     mock_session = MockSession()
     mock_data = MockTransferModel(
