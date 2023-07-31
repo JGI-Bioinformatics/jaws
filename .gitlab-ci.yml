@@ -81,6 +81,7 @@ variables:
   variables:
     CONTAINER_RUNTIME: "apptainer"
     JAWS_SITE_NAME: "JGI"
+    APPTAINER_CACHEDIR: "/tmp"  
   <<: *supervisor-stop
   script:
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
