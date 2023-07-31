@@ -54,6 +54,9 @@ function write_configs {
     "systemd")
       write_systemd_configs
       ;;
+    "scrontab")
+      write_supervisor_configs
+      ;;
     *)
       echo "Unknown launch tool: $launch_tool"
       exit 1
