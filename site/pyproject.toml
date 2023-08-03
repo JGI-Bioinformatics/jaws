@@ -15,12 +15,14 @@ authors = [
 {name = "Kelly Rowland", email = "kellyrowland@lbl.gov"},
 {name = "Nick Tyler", email = "tylern@lbl.gov"},
 {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
-{name = "Ramani Kothadia", email = "ramanik@lbl.gov"}
+{name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
+{name = "Elais Player", email = "elais@lbl.gov"}
 ]
 requires-python = ">=3.9,<3.12"
 
 dependencies = [
     "AMQPStorm",
+    "anyio",
     "boto3",
     "click",
     "deepdiff",
