@@ -9,10 +9,13 @@ from jaws_site.runs import (
     RunNotFoundError,
     RunFileNotFoundError,
     RunInputError,
+    send_run_status_logs
 )
+from datetime import datetime
 from tests.conftest import MockSession, MockRunModel, initRunModel
 from jaws_site.cromwell import Cromwell, CromwellError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
+from unittest.mock import MagicMock, patch
 import io
 
 
@@ -28,6 +31,19 @@ def test_status():
     mock_data = MockRunModel(status="queued")
     run = Run(mock_session, mock_data)
     assert run.status() == "queued"
+
+
+@pytest.fixture
+def mock_rpc_client():
+    sent_requests = []
+
+    def record_sent_request(*args):
+        sent_requests.append({"args": args})
+        return {"success": True}
+
+    with patch('jaws_rpc.rpc_client_basic.RpcClientBasic') as mock_client:
+        mock_client.return_value.request.side_effect = record_sent_request
+        yield mock_client.return_value, sent_requests
 
 
 @pytest.mark.parametrize(
@@ -712,3 +728,48 @@ def test_get_run_inputs(monkeypatch, mock_sqlalchemy_session):
 
     with pytest.raises(RunFileNotFoundError):
         run.get_run_inputs()
+
+
+def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
+    mock_rpc_client, sent_requests = mock_rpc_client
+    cromwell_run_id = "6649faab-e485-48ed-8b23-bc25da8b509e"
+    workflow_root = tmpdir.mkdir(cromwell_run_id)
+    outputs_manifest_contents = [
+        "metadata.json",
+        "errors.json",
+        "outputs.json",
+        "outmanifest.json",
+        "task_summary.json"
+    ]
+    outputs_manifest_file = workflow_root.join("output_manifest.json")
+    with open(outputs_manifest_file, "w") as f:
+        json.dump(outputs_manifest_contents, f)
+
+    ready_time = datetime.strptime("2023-06-10 12:00:00", "%Y-%m-%d %H:%M:%S")
+    running_time = datetime.strptime("2023-06-10 12:10:00", "%Y-%m-%d %H:%M:%S")
+    completion_time = datetime.strptime("2023-06-10 12:20:00", "%Y-%m-%d %H:%M:%S")
+    log_query_results = [
+        {"sent": False, "run_id": 1, "status_from": "ready", "status_to": "submitted", "timestamp": ready_time,
+         "reason": "Test reason 1"},
+        {"sent": False, "run_id": 1, "status_from": "submitted", "status_to": "queued", "timestamp": running_time,
+         "reason": "Test reason 2"},
+        {"sent": False, "run_id": 1, "status_from": "running", "status_to": "complete", "timestamp": completion_time,
+         "reason": "Test reason 3"},
+    ]
+    run_query_results = [
+        {"id": 1, "run_id": 1, "cromwell_run_id": cromwell_run_id, "workflow_name": "fq_count",
+         "workflow_root": str(workflow_root)}
+    ]
+    mock_sqlalchemy_session.output(log_query_results)
+    mock_sqlalchemy_session.output(run_query_results)
+
+    send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client)
+
+    assert len(sent_requests) == 3
+    request_bodies = [sent_request["args"][1] for sent_request in sent_requests]
+    assert request_bodies[0]["cromwell_run_id"] == cromwell_run_id
+    assert request_bodies[1]["workflow_name"] == "fq_count"
+    assert request_bodies[1]["workflow_root"] == str(workflow_root)
+    assert request_bodies[2]["output_manifest"] == ["metadata.json", "errors.json", "outputs.json",
+                                                    "outmanifest.json",
+                                                    "task_summary.json"]

@@ -833,15 +833,13 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             "reason": log.reason,
         }
         # add special fields
+        run = Run.from_id(session, log.run_id)
         if log.status_to == "submitted":
-            run = session.query(models.Run).get(log.run_id)
-            data["cromwell_run_id"] = run.cromwell_run_id
+            data["cromwell_run_id"] = run.data.cromwell_run_id
         elif log.status_to == "queued":
-            run = session.query(models.Run).get(log.run_id)
-            data["workflow_root"] = run.workflow_root
-            data["workflow_name"] = run.workflow_name
+            data["workflow_root"] = run.data.workflow_root
+            data["workflow_name"] = run.data.workflow_name
         elif log.status_to == "complete":
-            run = session.query(models.Run).get(log.run_id)
             data["output_manifest"] = run.output_manifest()
         try:
             response = central_rpc_client.request("update_run_log", data)
