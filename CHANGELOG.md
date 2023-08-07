@@ -2,7 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 
-## 1.1.2 Summary [08/07/2023]
+## 1.1.2b Summary [08/07/2023]
 - Various commits to update deployment scripts and change submission to Perlmutter
     - Use longer run time with prod: (#1665)
     - Bug fixes with CI/CD: (#1673)
