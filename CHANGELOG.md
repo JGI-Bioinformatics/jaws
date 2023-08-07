@@ -2,6 +2,12 @@
 
 # Inbound changes not assigned to version # yet
 
+## 1.1.2 Summary [08/07/2023]
+- Various commits to update deployment scripts and change submission to Perlmutter
+    - Use longer run time with prod: (#1665)
+    - Bug fixes with CI/CD: (#1673)
+    - Apptainer images changes #1675
+
 ## 1.1.1 Summary [05/10/2023]
 - Update Dockerfile base image to 3.11 and replace setup.py with pyproject.toml (#1635)
 - dori now is now a viable site because globus configuration has been fixed
