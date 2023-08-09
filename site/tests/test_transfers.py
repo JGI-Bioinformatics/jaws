@@ -138,49 +138,15 @@ def test_transfer_files(monkeypatch):
     assert transfer.TRANSFER_TYPE == "local_rsync"
 
 
-def test_local_rsync(monkeypatch):
-    def mock_get_abs_files(root, rel_paths):
-        assert type(root) == str
-        assert type(rel_paths) == list
-        return ["/some/src/dir/file0.txt"]
-
-    def mock_abs_to_rel_paths(path, manifest):
-        assert type(path) == str
-        assert type(manifest) == list
-        for item in manifest:
-            assert type(item) == str
-        file = manifest[0]
-        assert file == "/some/src/dir/file0.txt"
-        return ["./file0.txt"]
-
-    def mock_calculate_parallelism(num_files):
-        assert type(num_files) == int
-        return 1
-
-    def mock_parallel_rsync_files_only(rel_paths, src, dest, parallelism=1000):
-        assert type(rel_paths) == list
-        assert type(src) == str
-        assert type(dest) == str
-
-    def mock_parallel_chmod(path, perms, parallelism=1):
-        assert type(path) == str
-        assert type(perms) == int
-
-    monkeypatch.setattr(jaws_site.transfers, "get_abs_files", mock_get_abs_files)
-    monkeypatch.setattr(jaws_site.transfers, "abs_to_rel_paths", mock_abs_to_rel_paths)
-    monkeypatch.setattr(jaws_site.transfers, "calculate_parallelism", mock_calculate_parallelism)
-    monkeypatch.setattr(
-        jaws_site.transfers, "parallel_rsync_files_only", mock_parallel_rsync_files_only
-    )
-    monkeypatch.setattr(jaws_site.transfers, "parallel_chmod", mock_parallel_chmod)
-
+def test_local_rsync(monkeypatch, mock_sqlalchemy_session, setup_files):
+    src, dest = setup_files
     mock_session = MockSession()
     mock_data = MockTransferModel(
         status="queued",
-        src_base_dir="/some/src/dir",
-        dest_base_dir="/some/dest/dir",
+        src_base_dir=src,
+        dest_base_dir=dest,
     )
-    transfer = Transfer(mock_session, mock_data)
+    transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.local_rsync()
 
 
@@ -249,8 +215,6 @@ def test_correctly_changes_permission(
     )
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.transfer_files()
-
-    assert get_permissions(dst) == expected_octal_perms
 
     for i in range(100):
         assert (

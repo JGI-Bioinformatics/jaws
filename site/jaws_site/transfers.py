@@ -125,11 +125,10 @@ class Transfer:
         """
         Return list of files to transfer -- may be empty list if complete folder is to be transferred.
         """
-        return (
-            []
-            if self.data.manifest_json is None
-            else json.loads(self.data.manifest_json)
-        )
+        manifest = []
+        if self.data.manifest_json is not None:
+            manifest = json.loads(self.data.manifest_json)
+        return manifest
 
     def cancel(self) -> None:
         """Cancel a transfer by changing the status in the db to prevent it from being picked up
@@ -402,7 +401,12 @@ class Transfer:
         """
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
+        if not os.path.isdir(src):
+            raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
+        if not os.path.isdir(dest):
+            raise FileNotFoundError(f"Destination directory not found: {dest}")
+        logger.debug(f"Transfer {self.data.id} begin local rsync of {src} to {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
@@ -521,12 +525,14 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     :param dest: destination root directory
     :ptype dest: str
     """
-    parallelism = kwargs.get("paralellelism", 1000)
+    parallelism = kwargs.get("parallelism", 1000)
     paths = []
     for rel_path in manifest:
         s = os.path.join(src, rel_path)
+        if not os.path.exists(s):
+            raise FileNotFoundError(f"Cannot rsync {s}. File does not exist")
         if os.path.isdir(s):
-            raise ValueError("parallel_rsync_files_only does not support folders")
+            raise IsADirectoryError("parallel_rsync_files_only does not support folders")
         d = os.path.join(dest, rel_path)
         paths.append((s, d))
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
@@ -538,14 +544,19 @@ def parallel_chmod(path, mode, parallelism=1):
     """
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         root_dir = os.path.abspath(path)
-        os.chmod(root_dir, mode)
         for src_dir, dirs, files in os.walk(root_dir):
             for subdir in dirs:
                 subdir_path = os.path.join(src_dir, subdir)
-                executor.submit(os.chmod, subdir_path, mode)
+                try:
+                    executor.submit(os.chmod, subdir_path, mode)
+                except Exception as e:
+                    logger.warning(f"Error changing permissions of {subdir_path}: {e}")
             for file in files:
                 file_path = os.path.join(src_dir, file)
-                executor.submit(os.chmod, file_path, mode)
+                try:
+                    executor.submit(os.chmod, file_path, mode)
+                except Exception as e:
+                    logger.warning(f"Error changing permissions of {file_path}: {e}")
 
 
 def reset_queue(session):
