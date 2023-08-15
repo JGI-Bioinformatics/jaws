@@ -2,7 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 
-## 1.2.0 Summary [08/15/2023]
+## 1.2.1 Summary [08/15/2023]
 ### Internal Facing Changes
 - use Cromwell hogGroups to prevent a single user from hogging entire cluster
 - Use `parallel_sync` Python package for file transfers
