@@ -479,6 +479,7 @@ class Run:
         options = {
             "caching": self.data.caching,
             "default_container": default_container,
+            "hogGroup": self.data.user_id,
         }
         return options
 
@@ -507,7 +508,6 @@ class Run:
             options = self.cromwell_options()
         except Exception as error:
             self.update_run_status("submission failed", f"Options error: {error}")
-        options["hogGroup"] = self.data.user_id
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:
