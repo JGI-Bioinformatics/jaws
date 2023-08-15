@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- use Cromwell hogGroups to prevent a single user from hogging entire cluster
 
 ## 1.2.0 Summary [08/15/2023]
 ### Internal Facing Changes

@@ -479,6 +479,7 @@ class Run:
         options = {
             "caching": self.data.caching,
             "default_container": default_container,
+            "hogGroup": self.data.user_id,
         }
         return options
 
