@@ -1,10 +1,10 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
-- use Cromwell hogGroups to prevent a single user from hogging entire cluster
 
 ## 1.2.0 Summary [08/15/2023]
 ### Internal Facing Changes
+- use Cromwell hogGroups to prevent a single user from hogging entire cluster
 - Use `parallel_sync` Python package for file transfers
 - Add close() in update_status to force use of a fresh connection on the next update
 - chmod's the output files using concurrent.futures
