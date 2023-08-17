@@ -406,7 +406,7 @@ class Transfer:
         dest = f"{self.data.dest_base_dir}/"
         if not os.path.isdir(dest):
             try:
-                os.mkdir(dest)
+                mkdir(dest)
             except IOError as error:
                 logger.error(f"Transfer {self.data.id} failed: {error}")
                 raise IOError(f"Transfer {self.data.id} failed: {error}")
