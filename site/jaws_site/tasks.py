@@ -3,7 +3,7 @@ import logging
 import pika
 from datetime import datetime
 from dateutil import parser
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
 
@@ -129,13 +129,12 @@ def receive_messages(config, session):
     site_id = config.get("SITE", "id")
     queue = f"{site_id}_tasks"
 
-    def _insert_task_log(message: str) -> None:
+    def _insert_task_log(message: str) -> bool:
         params = json.loads(message)
         cromwell_run_id = params.get("cromwell_run_id", None)
         execution_dir = params.get("execution_dir", None)
         status = params.get("status", None)
         timestamp = params.get("timestamp", None)
-        job_id = params.get("job_id", None)
         timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         try:
             log_entry = models.Task_Log(
@@ -143,10 +142,13 @@ def receive_messages(config, session):
                 execution_dir=execution_dir,
                 status=status,
                 timestamp=timestamp,
-                job_id=job_id,
             )
             session.add(log_entry)
             session.commit()
+        except OperationalError as error:
+            # this is the only case in which we would not want to ack the message
+            logger.error(f"Unable to connect to db: {error}")
+            return False
         except IntegrityError as error:
             session.rollback()
             logger.error(f"Invalid task-log message, {message}: {error}")
@@ -155,16 +157,13 @@ def receive_messages(config, session):
             logger.exception(
                 f"Failed to insert task log for Task {execution_dir} ({status}): {error}"
             )
+        return True
 
     def callback(ch, method, properties, body):
         message = body.decode()
         logger.debug(f"Received: {message}")
-        try:
-            _insert_task_log(message)
-        except Exception as error:
-            logger.error(f"Unable to save task log: {error}")
-            raise
-        else:
+        result = _insert_task_log(message)
+        if result is True:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
     credentials = pika.PlainCredentials(user, password)
