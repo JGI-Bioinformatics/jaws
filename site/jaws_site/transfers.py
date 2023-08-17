@@ -405,7 +405,11 @@ class Transfer:
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
         if not os.path.isdir(dest):
-            raise FileNotFoundError(f"Destination directory not found: {dest}")
+            try:
+                mkdir(dest)
+            except IOError as error:
+                logger.error(f"Transfer {self.data.id} failed: {error}")
+                raise IOError(f"Transfer {self.data.id} failed: {error}")
         logger.debug(f"Transfer {self.data.id} begin local rsync of {src} to {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
