@@ -718,7 +718,7 @@ class Run:
             "metadata.json",
             "errors.json",
             "outputs.json",
-            "outmanifest.json",
+            "output_manifest.json",
             "task_summary.json",
         ]
         manifest_file = f"{root}/output_manifest.json"
