@@ -9,13 +9,15 @@ from jaws_site.runs import (
     RunNotFoundError,
     RunFileNotFoundError,
     RunInputError,
-    send_run_status_logs
+    send_run_status_logs,
 )
 from datetime import datetime
 from tests.conftest import MockSession, MockRunModel, initRunModel
-from jaws_site.cromwell import Cromwell, CromwellError
+from jaws_site.cromwell import Cromwell, CromwellError, CromwellServiceError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
+# from unittest.mock import MagicMock
 import io
 
 
@@ -41,7 +43,7 @@ def mock_rpc_client():
         sent_requests.append({"args": args})
         return {"success": True}
 
-    with patch('jaws_rpc.rpc_client_basic.RpcClientBasic') as mock_client:
+    with patch("jaws_rpc.rpc_client_basic.RpcClientBasic") as mock_client:
         mock_client.return_value.request.side_effect = record_sent_request
         yield mock_client.return_value, sent_requests
 
@@ -81,24 +83,43 @@ def test_mark_to_cancel(monkeypatch):
     mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.mark_to_cancel()
-    assert run.status() == "cancel"
+    assert run.data.status == "cancel"
 
     # test2: run was already marked to be cancelled
     mock_data = MockRunModel(status="cancel", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.mark_to_cancel()
-    assert run.status() == "cancel"
+    assert run.data.status == "cancel"
 
     # test3: run was already cancelled
     mock_data = MockRunModel(status="cancelled", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.mark_to_cancel()
-    assert run.status() == "cancelled"
+    assert run.data.status == "cancelled"
+
+    # test 4: run is active and has cromwell_run_id
+    mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    run.mark_to_cancel()
+    assert run.data.status == "cancel"
+
+    # test 5: run is succeeded
+    mock_data = MockRunModel(status="succeeded", cromwell_run_id="ABCD")
+    run = Run(mock_session, mock_data)
+    with pytest.raises(jaws_site.runs.RunInputError):
+        run.mark_to_cancel()
+
+    # test 6: run is ready to submit to Cromwell
+    mock_data = MockRunModel(status="ready", cromwell_run_id=None)
+    run = Run(mock_session, mock_data)
+    run.mark_to_cancel()
+    assert run.data.status == "cancelled"
 
 
 def test_cancel(monkeypatch):
     def mock_cromwell_abort(self, cromwell_run_id):
         assert type(cromwell_run_id) is str
+        return {"id": cromwell_run_id, "status": "Aborting"}
 
     def mock_update_run_status(self, new_status):
         assert new_status is not None
@@ -110,17 +131,23 @@ def test_cancel(monkeypatch):
     monkeypatch.setattr(Run, "update_run_status", mock_update_run_status)
     mock_session = MockSession()
 
-    # test 1: run has cromwell_run_id
-    mock_data = MockRunModel(status="queued", cromwell_run_id="ABCD")
+    mock_data = MockRunModel(status="cancel", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.cancel()
-    assert run.status() == "cancelled"
+    assert run.data.status == "cancelled"
 
-    # test 2: run doesn't have cromwell_run_id
-    mock_data = MockRunModel(status="queued", cromwell_run_id=None)
+    # test 2: cromwell is unavailable
+    def mock_cromwell_abort_raises(self, cromwell_run_id):
+        raise CromwellServiceError("Cromwell service in unavailable")
+
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "abort", mock_cromwell_abort_raises
+    )
+
+    mock_data = MockRunModel(status="cancel", cromwell_run_id="ABCD")
     run = Run(mock_session, mock_data)
     run.cancel()
-    assert run.status() == "cancelled"
+    assert run.data.status == "cancel"
 
 
 def test_s3_parse_path():
@@ -603,42 +630,6 @@ def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     run.publish_report()
 
 
-def test_cancel2(mock_metadata, mock_sqlalchemy_session, monkeypatch):
-    data = initRunModel(status="succeeded")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.cancel()
-    assert ret is None
-
-    def mock_cromwell_abort(self, cid):
-        pass
-
-    monkeypatch.setattr(Cromwell, "abort", mock_cromwell_abort)
-
-    data = initRunModel(status="submitted")
-    run = Run(mock_sqlalchemy_session, data)
-    ret = run.cancel()
-    assert ret is None
-
-    # Test exception in cromwell.abort
-    def mock_cromwell_abort(self, cid):
-        raise CromwellError
-
-    monkeypatch.setattr(Cromwell, "abort", mock_cromwell_abort)
-
-    data = initRunModel(status="submitted")
-    run = Run(mock_sqlalchemy_session, data)
-    run.cancel()
-
-    # Test RunDbError
-    def mock_update_run_status(self, status):
-        raise Exception
-
-    monkeypatch.setattr(Run, "update_run_status", mock_update_run_status)
-
-    with pytest.raises(RunDbError):
-        run.cancel()
-
-
 def test__read_file_nfs(
     config_file,
     file_not_found_config,
@@ -739,7 +730,7 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
         "errors.json",
         "outputs.json",
         "outmanifest.json",
-        "task_summary.json"
+        "task_summary.json",
     ]
     outputs_manifest_file = workflow_root.join("output_manifest.json")
     with open(outputs_manifest_file, "w") as f:
@@ -749,16 +740,39 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
     running_time = datetime.strptime("2023-06-10 12:10:00", "%Y-%m-%d %H:%M:%S")
     completion_time = datetime.strptime("2023-06-10 12:20:00", "%Y-%m-%d %H:%M:%S")
     log_query_results = [
-        {"sent": False, "run_id": 1, "status_from": "ready", "status_to": "submitted", "timestamp": ready_time,
-         "reason": "Test reason 1"},
-        {"sent": False, "run_id": 1, "status_from": "submitted", "status_to": "queued", "timestamp": running_time,
-         "reason": "Test reason 2"},
-        {"sent": False, "run_id": 1, "status_from": "running", "status_to": "complete", "timestamp": completion_time,
-         "reason": "Test reason 3"},
+        {
+            "sent": False,
+            "run_id": 1,
+            "status_from": "ready",
+            "status_to": "submitted",
+            "timestamp": ready_time,
+            "reason": "Test reason 1",
+        },
+        {
+            "sent": False,
+            "run_id": 1,
+            "status_from": "submitted",
+            "status_to": "queued",
+            "timestamp": running_time,
+            "reason": "Test reason 2",
+        },
+        {
+            "sent": False,
+            "run_id": 1,
+            "status_from": "running",
+            "status_to": "complete",
+            "timestamp": completion_time,
+            "reason": "Test reason 3",
+        },
     ]
     run_query_results = [
-        {"id": 1, "run_id": 1, "cromwell_run_id": cromwell_run_id, "workflow_name": "fq_count",
-         "workflow_root": str(workflow_root)}
+        {
+            "id": 1,
+            "run_id": 1,
+            "cromwell_run_id": cromwell_run_id,
+            "workflow_name": "fq_count",
+            "workflow_root": str(workflow_root),
+        }
     ]
     mock_sqlalchemy_session.output(log_query_results)
     mock_sqlalchemy_session.output(run_query_results)
@@ -770,6 +784,10 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
     assert request_bodies[0]["cromwell_run_id"] == cromwell_run_id
     assert request_bodies[1]["workflow_name"] == "fq_count"
     assert request_bodies[1]["workflow_root"] == str(workflow_root)
-    assert request_bodies[2]["output_manifest"] == ["metadata.json", "errors.json", "outputs.json",
-                                                    "outmanifest.json",
-                                                    "task_summary.json"]
+    assert request_bodies[2]["output_manifest"] == [
+        "metadata.json",
+        "errors.json",
+        "outputs.json",
+        "outmanifest.json",
+        "task_summary.json",
+    ]
