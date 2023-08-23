@@ -237,12 +237,23 @@ class Run:
         """
         if self.data.status in ["cancel", "cancelled"]:
             return
-        try:
-            self.update_run_status("cancel")
-        except Exception as error:
-            logger.error(f"Failed to mark Run {self.data.id} to be cancelled: {error}")
-            raise RunDbError(
-                f"Change Run {self.data.id} status to 'cancel' failed: {error}"
+        elif self.data.cromwell_run_id and self.data.status in [
+            "submitted",
+            "queued",
+            "running",
+        ]:
+            try:
+                self.update_run_status("cancel")
+            except Exception as error:
+                logger.error(
+                    f"Failed to mark Run {self.data.id} to be cancelled: {error}"
+                )
+                raise RunDbError(
+                    f"Change Run {self.data.id} status to 'cancel' failed: {error}"
+                )
+        else:
+            raise RunInputError(
+                f"Run {self.data.id}: cannot abort run in {self.data.status} state"
             )
 
     def cancel(self) -> None:
@@ -251,31 +262,26 @@ class Run:
 
         Note: `cancel` = to-be-cancelled status
         """
-        if self.data.cromwell_run_id and self.data.status in [
-            "submitted",
-            "queued",
-            "running",
-        ]:
-            try:
-                logger.debug(f"Run {self.data.id}: Send Cromwell abort")
-                cromwell.abort(self.data.cromwell_run_id)
-            except CromwellRunNotFoundError as error:
-                logger.error(
-                    f"Cromwell couldn't cancel unknown Run {self.data.id}: {error}"
-                )
-                # do not return; future attempts will similarly fail; proceed to mark as cancelled
-            except CromwellServiceError as error:
-                logger.warning(
-                    f"Could not cancel Run {self.data.id} as Cromwell unavailable: {error}"
-                )
-                return  # try again later
-            except CromwellError as error:
-                logger.error(
-                    f"Unknown Cromwell error cancelling Run {self.data.id}: {error}"
-                )
-                # unknown error; don't bother trying again later, just proceed to mark as cancelled
-            else:
-                logger.debug(f"Run {self.data.id}: Cromwell abort successful")
+        try:
+            logger.debug(f"Run {self.data.id}: Send Cromwell abort")
+            result = cromwell.abort(self.data.cromwell_run_id)
+        except CromwellRunNotFoundError as error:
+            logger.error(
+                f"Cromwell couldn't cancel unknown Run {self.data.id}: {error}"
+            )
+            # do not return; future attempts will similarly fail; proceed to mark as cancelled
+        except CromwellServiceError as error:
+            logger.warning(
+                f"Could not cancel Run {self.data.id} as Cromwell unavailable: {error}"
+            )
+            return  # try again later
+        except CromwellError as error:
+            logger.error(
+                f"Unknown Cromwell error cancelling Run {self.data.id}: {error}"
+            )
+            # unknown error; don't bother trying again later, just proceed to mark as cancelled
+        else:
+            logger.debug(f"Run {self.data.id}: Cromwell abort successful: {result}")
 
         try:
             self.update_run_status("cancelled")

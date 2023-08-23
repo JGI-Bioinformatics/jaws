@@ -923,14 +923,13 @@ class Cromwell:
                 f"Workflow {workflow_id}: Abort; Unable to reach Cromwell service: {error}"
             )
         sc = response.status_code
-        if sc == 200:
-            return
+        if sc == 200 or sc == 403:
+            # 403 = finishing already; too late to cancel (do not raise)
+            return response.json()
         elif sc == 400:
             raise CromwellRunError(
                 f"Workflow {workflow_id}: Abort failed for malformed workflow id"
             )
-        elif sc == 403:
-            return  # too late to cancel; do not raise
         elif sc == 404:
             raise CromwellRunNotFoundError(
                 f"Workflow {workflow_id}: Abort; id not found"
