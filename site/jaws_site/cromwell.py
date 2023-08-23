@@ -52,10 +52,13 @@ aws_secret_access_key = os.environ.get("AWS_SECRET_ACCESS_KEY", None)
 aws_region_name = os.environ.get("AWS_REGION_NAME", None)
 
 session = requests.Session()
-retries = urllib3.Retry(total=NUMBER_OF_RETRIES, backoff_factor=BACKOFF_FACTOR,
-                        status_forcelist=[500, 502, 503, 504])
+retries = urllib3.Retry(
+    total=NUMBER_OF_RETRIES,
+    backoff_factor=BACKOFF_FACTOR,
+    status_forcelist=[500, 502, 503, 504],
+)
 
-session.mount('http://', requests.adapters.HTTPAdapter(max_retries=retries))
+session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
 
 
 def s3_parse_uri(full_uri):
@@ -830,7 +833,7 @@ class Metadata:
         # change full paths to relative paths
         for myfile in matches:
             relpath = myfile.replace(workflow_root, ".")
-            relpath = re.sub(r'[\"\}\],]', "", relpath)
+            relpath = re.sub(r"[\"\}\],]", "", relpath)
             relpath_outputs.append(relpath)
 
         return relpath_outputs
@@ -872,7 +875,9 @@ class Cromwell:
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         except requests.exceptions.RetryError:
-            logger.exception("Reached max retries to Cromwell server. Check cromwell server status")
+            logger.exception(
+                "Reached max retries to Cromwell server. Check cromwell server status"
+            )
             raise CromwellServiceError("Max retries for Cromwell server reached")
         if response.status_code == 404:
             raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
@@ -914,20 +919,26 @@ class Cromwell:
         try:
             response = session.post(url, timeout=REQUEST_TIMEOUT)
         except requests.exceptions.ConnectionError as error:
-            raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
+            raise CromwellServiceError(
+                f"Workflow {workflow_id}: Abort; Unable to reach Cromwell service: {error}"
+            )
         sc = response.status_code
         if sc == 200:
             return
         elif sc == 400:
             raise CromwellRunError(
-                f"Abort failed for malformed workflow id: {workflow_id}"
+                f"Workflow {workflow_id}: Abort failed for malformed workflow id"
             )
         elif sc == 403:
             return  # too late to cancel; do not raise
         elif sc == 404:
-            raise CromwellRunNotFoundError(f"Cromwell run {workflow_id} not found")
+            raise CromwellRunNotFoundError(
+                f"Workflow {workflow_id}: Abort; id not found"
+            )
         else:
-            return
+            raise CromwellError(
+                f"Workflow {workflow_id}: Abort; An unexpected Cromwell error {sc} occurred"
+            )
 
     def _options_fh(self, **kwargs):
         """

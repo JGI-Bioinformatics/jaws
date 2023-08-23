@@ -257,6 +257,7 @@ class Run:
             "running",
         ]:
             try:
+                logger.debug(f"Run {self.data.id}: Send Cromwell abort")
                 cromwell.abort(self.data.cromwell_run_id)
             except CromwellRunNotFoundError as error:
                 logger.error(
@@ -273,6 +274,8 @@ class Run:
                     f"Unknown Cromwell error cancelling Run {self.data.id}: {error}"
                 )
                 # unknown error; don't bother trying again later, just proceed to mark as cancelled
+            else:
+                logger.debug(f"Run {self.data.id}: Cromwell abort successful")
 
         try:
             self.update_run_status("cancelled")
