@@ -237,11 +237,16 @@ class Run:
         """
         if self.data.status in ["cancel", "cancelled"]:
             return
+        elif self.data.status == "ready":
+            # this run wasn't submitted to Cromwell yet, so can be cancelled immediately
+            self.update_run_status("cancel")
+            self.update_run_status("cancelled")
         elif self.data.cromwell_run_id and self.data.status in [
             "submitted",
             "queued",
             "running",
         ]:
+            # an active Cromwell run requires communication with Cromwell, so just mark to cancel for now.
             try:
                 self.update_run_status("cancel")
             except Exception as error:
@@ -252,6 +257,7 @@ class Run:
                     f"Change Run {self.data.id} status to 'cancel' failed: {error}"
                 )
         else:
+            # if the run has already completed, it cannot be cancelled.
             raise RunInputError(
                 f"Run {self.data.id}: cannot abort run in {self.data.status} state"
             )

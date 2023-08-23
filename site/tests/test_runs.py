@@ -109,6 +109,12 @@ def test_mark_to_cancel(monkeypatch):
     with pytest.raises(jaws_site.runs.RunInputError):
         run.mark_to_cancel()
 
+    # test 6: run is ready to submit to Cromwell
+    mock_data = MockRunModel(status="ready", cromwell_run_id=None)
+    run = Run(mock_session, mock_data)
+    run.mark_to_cancel()
+    assert run.data.status == "cancelled"
+
 
 def test_cancel(monkeypatch):
     def mock_cromwell_abort(self, cromwell_run_id):
