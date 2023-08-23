@@ -253,6 +253,12 @@ class MockCromwell:
     def status(self):
         return True
 
+    def abort(self, cromwell_run_id: str) -> dict:
+        return {
+            "id": cromwell_run_id,
+            "status": "Aborting"
+        }
+
 
 class MockCromwellException:
     def __init__(self, url="localhost"):
