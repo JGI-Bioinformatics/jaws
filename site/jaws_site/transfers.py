@@ -418,8 +418,9 @@ class Transfer:
 
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
-        mode = config.conf.get("SITE", "file_permissions")
-        parallel_chmod(dest, int(mode, base=8), parallelism=parallelism)
+        file_mode = config.conf.get("SITE", "file_permissions")
+        folder_mode = config.conf.get("SITE", "folder_permissions")
+        parallel_chmod(dest, int(file_mode, base=8), int(folder_mode, base=8), parallelism=parallelism)
 
 
 def check_queue(session) -> None:
@@ -542,7 +543,7 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
-def parallel_chmod(path, mode, parallelism=1):
+def parallel_chmod(path, file_mode, folder_mode, parallelism=1):
     """
     Recursively copy folder and set permissions.
     """
@@ -552,13 +553,13 @@ def parallel_chmod(path, mode, parallelism=1):
             for subdir in dirs:
                 subdir_path = os.path.join(src_dir, subdir)
                 try:
-                    executor.submit(os.chmod, subdir_path, mode)
+                    executor.submit(os.chmod, subdir_path, folder_mode)
                 except Exception as e:
                     logger.warning(f"Error changing permissions of {subdir_path}: {e}")
             for file in files:
                 file_path = os.path.join(src_dir, file)
                 try:
-                    executor.submit(os.chmod, file_path, mode)
+                    executor.submit(os.chmod, file_path, file_mode)
                 except Exception as e:
                     logger.warning(f"Error changing permissions of {file_path}: {e}")
 
