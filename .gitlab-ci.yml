@@ -110,12 +110,11 @@ variables:
     - nmjaws
   variables:
     JAWS_SITE_NAME: "NMDC"
-  <<: *supervisor-stop
+  <<: *scrontab-stop
   script:
-    - "./test/integration/deploy.sh supervisor venv $JAWS_SITE_VERSION"
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
+    - "source ./test/integration/write_shims.sh"
+    - "write_shims nmdc"
+    - "./test/integration/deploy.sh scrontab venv $JAWS_SITE_VERSION"
 
 .perlmutter-deployment: &perlmutter-deploy
   stage: deploy-jaws
