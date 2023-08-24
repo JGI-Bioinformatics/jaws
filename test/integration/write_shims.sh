@@ -28,6 +28,11 @@ function write_perlmutter_shims {
   envsubst < "$DIR/templates/jaws-perlmutter-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
 }
 
+function write_nmdc_shims {
+  envsubst < "$DIR/templates/jaws-site.sh" > "$JAWS_BIN_DIR/jaws-site-cronjob"
+  envsubst '${JAWS_SITE_NAME},${JAWS_DEPLOYMENT_NAME},${JAWS_BIN_DIR},${JAWS_LOGS_DIR}' < "$DIR/templates/starter.sh" > "$JAWS_BIN_DIR/starter.sh"
+  envsubst < "$DIR/templates/jaws-nmdc-gitlab-runner.sh" > "$JAWS_BIN_DIR/jaws-perlmutter-gitlab-runner"
+}
 function write_shims {
   local install_method="$1"
   case "$install_method" in
@@ -39,6 +44,9 @@ function write_shims {
       ;;
     "perlmutter")
       write_perlmutter_shims
+      ;;
+     "nmdc")
+      write_nmdc_shims
       ;;
     *)
       echo "Unknown install method: $install_method"
