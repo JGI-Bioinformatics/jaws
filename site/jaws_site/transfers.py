@@ -418,8 +418,8 @@ class Transfer:
 
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
-        file_mode = config.conf.get("SITE", "file_permissions")
-        folder_mode = config.conf.get("SITE", "folder_permissions")
+        file_mode = int(config.conf.get("SITE", "file_permissions"))
+        folder_mode = int(config.conf.get("SITE", "folder_permissions"))
         parallel_chmod(dest, int(file_mode, base=8), int(folder_mode, base=8), parallelism=parallelism)
 
 
