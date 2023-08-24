@@ -687,57 +687,95 @@ class Run:
         # get Cromwell metadata
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-        except CromwellServiceError:
+        except CromwellServiceError as error:
+            logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
             self.update_run_status(
-                "failed", "supplementary files could not be generated"
+                "failed", "Cromwell metadata could not be retrieved"
             )
             return
-
-        # write metadata
-        metadata_file = f"{root}/metadata.json"
-        write_json_file(metadata_file, metadata.data)
+        else:
+            metadata_file = f"{root}/metadata.json"
+            logger.debug(f"Run {self.data.id}: Writing {metadata_file}")
+            write_json_file(metadata_file, metadata.data)
 
         # write errors report
-        errors_report = metadata.errors()
-        errors_file = f"{root}/errors.json"
-        write_json_file(errors_file, errors_report)
+        try:
+            errors_report = metadata.errors()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate errors report: {error}")
+            self.update_run_status(
+                "failed", "Failed to generate errors report"
+            )
+            return
+        else:
+            errors_file = f"{root}/errors.json"
+            logger.debug(f"Run {self.data.id}: Writing {errors_file}")
+            write_json_file(errors_file, errors_report)
 
         # write outputs
-        outputs = metadata.outputs()
-        outputs_file = f"{root}/outputs.json"
-        write_json_file(outputs_file, outputs)
+        try:
+            outputs = metadata.outputs()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate outputs file: {error}")
+            self.update_run_status(
+                "failed", "Failed to generate outputs file"
+            )
+            return
+        else:
+            outputs_file = f"{root}/outputs.json"
+            logger.debug(f"Run {self.data.id}: Writing {outputs_file}")
+            write_json_file(outputs_file, outputs)
 
         # write outfiles
-        outfiles = metadata.outfiles()
-        outfiles_file = f"{root}/outfiles.json"
-        write_json_file(outfiles_file, outfiles)
+        try:
+            outfiles = metadata.outfiles()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate outfiles file: {error}")
+            self.update_run_status(
+                "failed", "Failed to generate outfiles file"
+            )
+            return
+        else:
+            outfiles_file = f"{root}/outfiles.json"
+            logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
+            write_json_file(outfiles_file, outfiles)
 
         # write task summary
-        task_summary = self.summary()
-        # convert to old name so as not to upset Elasticsearch
-        task_summary["site_id"] = task_summary["compute_site_id"].upper()
-        del task_summary["compute_site_id"]
-        task_summary["tasks"] = []
-        for task in metadata.task_summary(last_attempts=True):
-            # rename job_id key to cromwell_job_id
-            task["cromwell_job_id"] = task["job_id"]
-            task_summary["tasks"].append(task)
-        summary_file = f"{root}/task_summary.json"
-        write_json_file(summary_file, task_summary)
+        try:
+            task_summary = self.summary()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate task summary: {error}")
+            self.update_run_status(
+                "failed", "Failed to generate task summary"
+            )
+            return
+        else:
+            summary_file = f"{root}/task_summary.json"
+            logger.debug(f"Run {self.data.id}: Writing {summary_file}")
+            write_json_file(summary_file, task_summary)
 
         # write output manifest (i.e. files to return to user)
-        failed_folders = metadata.failed_folders()
-        manifest = [
-            *outfiles,
-            *failed_folders,
-            "metadata.json",
-            "errors.json",
-            "outputs.json",
-            "output_manifest.json",
-            "task_summary.json",
-        ]
-        manifest_file = f"{root}/output_manifest.json"
-        write_json_file(manifest_file, manifest)
+        try:
+            failed_folders = metadata.failed_folders()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate output manifest: {error}")
+            self.update_run_status(
+                "failed", "Failed to generate output manifest"
+            )
+            return
+        else:
+            manifest = [
+                *outfiles,
+                *failed_folders,
+                "metadata.json",
+                "errors.json",
+                "outputs.json",
+                "output_manifest.json",
+                "task_summary.json",
+            ]
+            manifest_file = f"{root}/output_manifest.json"
+            logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
+            write_json_file(manifest_file, manifest)
 
         self.update_run_status("complete")
 
