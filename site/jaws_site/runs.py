@@ -674,13 +674,6 @@ class Run:
         After Cromwell completes, several supplementary files are written to the Run's
         workflow_root folder.
         """
-        # "test" is a special user account use to run end-to-end tests which do not require the
-        # supplementary files, so skip.
-        if self.data.user_id == "test":
-            self.update_run_status("complete")
-            self.update_run_status("finished")
-            return
-
         logger.info(f"Run {self.data.id}: Write supplementary files")
         root = self.data.workflow_root
 
