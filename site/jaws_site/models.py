@@ -68,7 +68,7 @@ class Task_Log(Base):
     __tablename__ = "task_logs"
     id = Column(Integer, primary_key=True)  # auto-increment
     cromwell_run_id = Column(String(36), nullable=False)
-    execution_dir = Column(String(1024), nullable=False)
+    task_dir = Column(String(1024), nullable=False)
     status = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
 

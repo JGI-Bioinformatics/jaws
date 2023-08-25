@@ -51,7 +51,7 @@ class TaskLog:
         for row in query:
             table.append(
                 [
-                    row.execution_dir,
+                    row.task_dir,
                     row.status,
                     row.timestamp.strftime(DATETIME_FMT)
                 ]
@@ -93,22 +93,22 @@ class TaskLog:
         - running duration
         """
         local_tz = kwargs.get("local_tz", None)
-        execution_dirs = {}
-        for (execution_dir, status, timestamp) in self.data:
-            if execution_dir not in execution_dirs:
-                execution_dirs[execution_dir] = [None, None, None, None]
+        task_dirs = {}
+        for (task_dir, status, timestamp) in self.data:
+            if task_dir not in task_dirs:
+                task_dirs[task_dir] = [None, None, None, None]
             if status == "queued":
-                execution_dirs[execution_dir][1] = timestamp
+                task_dirs[task_dir][1] = timestamp
             elif status == "running":
-                execution_dirs[execution_dir][2] = timestamp
+                task_dirs[task_dir][2] = timestamp
             elif status in ("succeeded", "failed"):
-                execution_dirs[execution_dir][3] = timestamp
+                task_dirs[task_dir][3] = timestamp
             # else "cancelled"
-            execution_dirs[execution_dir][0] = status
+            task_dirs[task_dir][0] = status
         table = []
-        for execution_dir in sorted(execution_dirs.keys()):
+        for task_dir in sorted(task_dirs.keys()):
             # calculate queue and run durations
-            row = execution_dirs[execution_dir]
+            row = task_dirs[task_dir]
             if row[1] is not None and row[2] is not None:
                 delta = parser.parse(row[2]) - parser.parse(row[1])
                 row.append(str(delta))
@@ -125,7 +125,7 @@ class TaskLog:
                     if row[i] is not None:
                         row[i] = self.utc_to_local(row[i], local_tz)
             # add execution dir
-            row = [execution_dir, *execution_dirs[execution_dir]]
+            row = [task_dir, *task_dirs[task_dir]]
             table.append(row)
         result = {
             "header": [
@@ -146,7 +146,7 @@ class TaskLog:
         Check if any task has started running by checking the task log.
         """
         for row in self.data:
-            (execution_dir, status, timestamp) = row
+            (task_dir, status, timestamp) = row
             if status != "queued":
                 return True
         return False
@@ -175,14 +175,14 @@ def receive_messages(config, session):
     def _insert_task_log(message: str) -> bool:
         params = json.loads(message)
         cromwell_run_id = params.get("cromwell_run_id", None)
-        execution_dir = params.get("execution_dir", None)
+        task_dir = params.get("task_dir", None)
         status = params.get("status", None)
         timestamp = params.get("timestamp", None)
         timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         try:
             log_entry = models.Task_Log(
                 cromwell_run_id=cromwell_run_id,
-                execution_dir=execution_dir,
+                task_dir=task_dir,
                 status=status,
                 timestamp=timestamp,
             )
@@ -198,7 +198,7 @@ def receive_messages(config, session):
         except SQLAlchemyError as error:
             session.rollback()
             logger.exception(
-                f"Failed to insert task log for Task {execution_dir} ({status}): {error}"
+                f"Failed to insert task log for Task {task_dir} ({status}): {error}"
             )
         return True
 
