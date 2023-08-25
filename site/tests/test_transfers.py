@@ -140,7 +140,6 @@ def test_transfer_files(monkeypatch):
 
 def test_local_rsync(monkeypatch, mock_sqlalchemy_session, setup_files):
     src, dest = setup_files
-    mock_session = MockSession()
     mock_data = MockTransferModel(
         status="queued",
         src_base_dir=src,
@@ -180,6 +179,7 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
     assert transfer.data.status == "failed"
 
 
+# @pytest.mark.skip(reason="this fails on mac but works on linux")
 @pytest.mark.parametrize(
     "set_perms, expected_octal_perms", [("755", "0o755"), ("777", "0o777")]
 )
