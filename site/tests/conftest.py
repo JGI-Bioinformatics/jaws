@@ -96,8 +96,8 @@ deployment = test
 inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 max_user_active_runs = 1
 max_transfer_threads = 10
-file_permissions = "666"
-folder_permissions = "777"
+file_permissions = 666
+folder_permissions = 777
 
 [CROMWELL]
 url = http://localhost:8000
