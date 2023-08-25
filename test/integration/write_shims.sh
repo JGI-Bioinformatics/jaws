@@ -40,6 +40,9 @@ function write_shims {
     "perlmutter")
       write_perlmutter_shims
       ;;
+     "nmdc")
+      write_perlmutter_shims
+      ;;
     *)
       echo "Unknown install method: $install_method"
       exit 1
