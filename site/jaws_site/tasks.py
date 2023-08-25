@@ -73,11 +73,9 @@ class TaskLog:
                 execution_dirs[execution_dir][1] = timestamp
             elif status == "running":
                 execution_dirs[execution_dir][2] = timestamp
-            elif status == "cancelled":
-                execution_dirs[execution_dir][0] = "cancelled"
-            else:
-                # "succeeded" or "failed"
+            elif status in ("succeeded", "failed"):
                 execution_dirs[execution_dir][3] = timestamp
+            # else "cancelled"
             execution_dirs[execution_dir][0] = status
         table = []
         for execution_dir in sorted(execution_dirs.keys()):
@@ -94,9 +92,21 @@ class TaskLog:
             else:
                 row.append(None)
             # add execution dir
-            row = (execution_dir, *execution_dirs[execution_dir])
+            row = [execution_dir, *execution_dirs[execution_dir]]
             table.append(row)
-        return table
+        result = {
+            "header": [
+                "TASK",
+                "STATUS",
+                "QUEUED",
+                "RUNNING",
+                "FINISHED",
+                "QUEUE_DUR",
+                "RUN_DUR",
+            ],
+            "data": table,
+        }
+        return result
 
     def did_run_start(self):
         """
