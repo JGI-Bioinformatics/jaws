@@ -1,11 +1,15 @@
 import json
 import logging
 import pika
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 from dateutil import parser
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
+
+
+DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 
 
 class TaskDbError(Exception):
@@ -49,12 +53,35 @@ class TaskLog:
                 [
                     row.execution_dir,
                     row.status,
-                    row.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    row.timestamp.strftime(DATETIME_FMT)
                 ]
             )
         self.data = table
 
-    def table(self):
+    @staticmethod
+    def _utc_to_local(utc_datetime: str, local_tz: str) -> str:
+        """Convert UTC time to the local time zone. This should handle daylight savings.
+        :param utc_datetime: a string of date and time "2021-07-06 11:15:17".
+        :ptype utc_datetime: str
+        :param local_tz: name of the local timezone; use server timezone if not specified
+        :ptype local_tz: str
+        :return: similarly formatted string in the specified local tz
+        :rtype: str
+        """
+        # The timezone can be overwritten with a environmental variable.
+        # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
+        local_tz_obj = ""
+        if local_tz is None:
+            local_tz_obj = datetime.now().astimezone().tzinfo
+        else:
+            local_tz_obj = pytz.timezone(local_tz)
+        datetime_obj = datetime.strptime(utc_datetime, DATETIME_FMT)
+        local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(
+            tz=local_tz_obj
+        )
+        return local_datetime_obj.strftime(DATETIME_FMT)
+
+    def table(self, **kwargs):
         """
         Calculate queue/run durations and reformat into a table with columns:
         - cromwell_run_id
@@ -65,6 +92,7 @@ class TaskLog:
         - queue duration
         - running duration
         """
+        local_tz = kwargs.get("local_tz", None)
         execution_dirs = {}
         for (execution_dir, status, timestamp) in self.data:
             if execution_dir not in execution_dirs:
@@ -91,6 +119,11 @@ class TaskLog:
                 row.append(str(delta))
             else:
                 row.append(None)
+            # convert to local_tz
+            if local_tz is not None:
+                for i in range(1, 4):
+                    if row[i] is not None:
+                        row[i] = self.utc_to_local(row[i], local_tz)
             # add execution dir
             row = [execution_dir, *execution_dirs[execution_dir]]
             table.append(row)

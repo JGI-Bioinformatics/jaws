@@ -89,7 +89,8 @@ def run_task_log(params, session):
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
         task_log = TaskLog(session, params["cromwell_run_id"], logger)
-        result = task_log.table()
+        local_tz = params.get("local_tz", None)
+        result = task_log.table(local_tz=local_tz)
     except Exception as error:
         return failure(error)
     else:

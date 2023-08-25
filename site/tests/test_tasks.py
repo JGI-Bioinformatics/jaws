@@ -79,3 +79,18 @@ def test_table(monkeypatch):
     task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
     actual = task_log.table()
     assert actual == expected
+
+
+def test__utc_to_local(monkeypatch):
+    def mock__select_rows(self):
+        self.data = []
+
+    monkeypatch.setattr(TaskLog, "_select_rows", mock__select_rows)
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+
+    actual = task_log._utc_to_local("2023-04-24 08:00:00", "US/Pacific")
+    expected = "2023-04-24 01:00:00"
+    assert actual == expected
