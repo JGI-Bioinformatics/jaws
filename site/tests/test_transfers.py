@@ -179,7 +179,7 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
     assert transfer.data.status == "failed"
 
 
-@pytest.mark.skip(reason="skip so i can deploy and try on linux")
+# @pytest.mark.skip(reason="this fails on mac but works on linux")
 @pytest.mark.parametrize(
     "set_perms, expected_octal_perms", [("755", "0o755"), ("777", "0o777")]
 )
