@@ -1,4 +1,4 @@
-export JAWS_INSTALL_BASEDIR="/global/cfs/projectdirs/jaws/jaws-install"
+export JAWS_INSTALL_BASEDIR="/global/cfs/cdirs/jaws/jaws-install"
 export JAWS_GLOBUS_EP="be1ff650-dcbc-11ea-85a2-0e1702b77d41"
 export JAWS_GLOBUS_HOST_PATH="/"
 export JAWS_LOAD_PYTHON="module load jgi/python-jamo"
