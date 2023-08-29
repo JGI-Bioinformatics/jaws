@@ -18,11 +18,11 @@ function stop_service {
     state=$(echo ${job_status[$i]} | awk '{print $2}')
     if [[ $state == "R" ]]; then
         echo "Stopping job $jobid"
-        echo srun --overlap --jobid="$jobid" "$JAWS_BIN_DIR/supervisorctl" stop jaws-site:*
-        echo scancel --cron "$jobid"
+        srun --overlap --jobid="$jobid" "$JAWS_BIN_DIR/supervisorctl" stop jaws-site:*
+        scancel --cron "$jobid"
     else
         # if job is pending(PD) then we don't need to stop the service with srun, just cancel it.
-        echo scancel --cron "$jobid"
+        scancel --cron "$jobid"
     fi
   done
 }
