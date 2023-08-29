@@ -2,7 +2,7 @@
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 function check_job_running {
-  /usr/bin/squeue --noheader -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" --state=running,pending -u "$USER" -o "%12i %2t %9u %25j %6D %10M %12q %8f %18R" 
+  /usr/bin/squeue --noheader -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" --state=running,pending -u "$USER" -o "%12i %2t %9u %25j %6D %10M %12q %8f %18R"
 }
 
 function stop_service {
@@ -10,7 +10,7 @@ function stop_service {
   
   # do nothing if no jobs running/pending
   if [[ ${#job_status[@]} -lt 1 ]]; then
-	    return
+     return
   fi
 
   for i in ${!job_status[@]}; do
