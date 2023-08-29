@@ -1,24 +1,30 @@
 #!/usr/bin/env bash
-set -x
-
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 function check_job_running {
-  /usr/bin/squeue --noheader -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" --state=running,pending -u "$USER" -o "%12i %2t %9u %25j %6D %10M %12q %8f %18R"
+  /usr/bin/squeue --noheader -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" --state=running,pending -u "$USER" -o "%12i %2t %9u %25j %6D %10M %12q %8f %18R" 
 }
 
 function stop_service {
-  job_status=$(check_job_running)
-
-  # If we get output then scancel all the jobs
-  if [[ ${#job_status} -ge 2 ]]; then
-    jobid=$(echo "$job_status" | awk '{print $1}')
-    echo "Stopping job $jobid"
-    srun --overlap --jobid="$jobid" "$JAWS_BIN_DIR/supervisorctl" stop jaws-site:*
-    scancel --cron "$jobid"
-  else
-    echo "No job running"
+  readarray -t job_status < <(check_job_running)
+  
+  # do nothing if no jobs running/pending
+  if [[ ${#job_status[@]} -lt 1 ]]; then
+	    return
   fi
+
+  for i in ${!job_status[@]}; do
+    jobid=$(echo ${job_status[$i]} | awk '{print $1}')
+    state=$(echo ${job_status[$i]} | awk '{print $2}')
+    if [[ $state == "R" ]]; then
+        echo "Stopping job $jobid"
+        echo srun --overlap --jobid="$jobid" "$JAWS_BIN_DIR/supervisorctl" stop jaws-site:*
+        echo scancel --cron "$jobid"
+    else
+        # if job is pending(PD) then we don't need to stop the service with srun, just cancel it.
+        echo scancel --cron "$jobid"
+    fi
+  done
 }
 
 function start_service {
@@ -49,5 +55,4 @@ function scrontab {
 }
 
 scrontab "$@"
-
 
