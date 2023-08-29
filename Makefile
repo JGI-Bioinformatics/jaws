@@ -1,6 +1,30 @@
 VERSION := $(shell git describe --always --tags --abbrev=0)
 Q := $(if $V,,@)
 
+init:
+	pip install -r site/requirements.txt
+
+
+update-deps:
+	pip install --upgrade pip-tools pip setuptools
+	pip-compile --upgrade --build-isolation \
+		--allow-unsafe --resolver=backtracking --strip-extras \
+		--output-file site/requirements.txt \
+		site/pyproject.toml rpc/pyproject.toml pubsub/pyproject.toml
+
+
+update: update-deps init
+
+
+up-dev:
+	docker compose up --build --force-recreate --detach --remove-orphans
+
+
+down-dev:
+	docker compose down
+
+
+.PHONY: update-deps init update
 ## Package Section BEGIN
 .PHONY: pkg-requirements
 pkg-requirements:

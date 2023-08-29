@@ -15,6 +15,7 @@ authors = [
 {name = "Kelly Rowland", email = "kellyrowland@lbl.gov"},
 {name = "Nick Tyler", email = "tylern@lbl.gov"},
 {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
+{name = "Elais Player", email = "elais@lbl.gov"},
 {name = "Ramani Kothadia", email = "ramanik@lbl.gov"}]
 requires-python = ">=3.9,<3.12"
 dependencies = [
@@ -29,3 +30,5 @@ dev = ["requests-mock", "pytest-cov"]
 [tool.setuptools]
 packages = ["jaws_rpc"]
 zip-safe = false
+
+

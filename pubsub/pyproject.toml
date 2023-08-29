@@ -1,15 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "jaws-pubsub"
+name = "jaws_pubsub"
+dynamic = ["version"]
 authors = [{name = "Elais Player", email = "elais@lbl.gov"}]
-version = "0.1"
 description = "Pubsub utilities for jaws-site."
 requires-python = ">=3.10"
-
 dependencies = [
   "pika",
   "msgpack"
 ]
 
-[tool.setuptools.packages.find]
-where = ["components.pubsub"]
-include = ["log", "broker"]
+[tool.setuptools]
+packages = ["components.jaws_pubsub"]
+
+[tool.ruff]
+ignore-init-module-imports = true

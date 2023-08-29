@@ -1,0 +1,18 @@
+---
+
+volumes:
+    jaws_site_rabbitmq_data:
+        driver: local
+
+services:
+    rabbitmq:
+        image: rabbitmq:management-alpine
+        container_name: 'rabbitmq'
+        volumes:
+            - jaws_site_rabbitmq_data:/var/lib/rabbitmq/
+        ports:
+            - 5672:5672
+            - 15672:15672
+        environment:
+            SEED_USER_NAME: guest
+            SEED_USER_PASSWORD: guest
