@@ -10,6 +10,7 @@
 - chmod's the output files using concurrent.futures
 - get the Pagurus filewriter tests working again, also disentangle filewriter class from script.
 - bugfix cancel where compute resources were not being released
+- bugfix in the scrontab.sh script that prevented deployment to perlmutter
 
 ## 1.1.1 Summary [05/10/2023]
 - Update Dockerfile base image to 3.11 and replace setup.py with pyproject.toml (#1635)
