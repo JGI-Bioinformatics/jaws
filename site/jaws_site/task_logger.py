@@ -84,8 +84,8 @@ class TaskLogger:
         timestamp = kwargs.get("timestamp")
         try:
             row = (
-                self.session.query(models.TaskLog)
-                .filter(models.TaskLog.job_id == job_id)
+                self.session.query(models.Task_Log)
+                .filter(models.Task_Log.job_id == job_id)
                 .one_or_none()
             )
         except OperationalError as error:
@@ -123,10 +123,10 @@ class TaskLogger:
         timestamp = kwargs.get("timestamp")
         try:
             row = (
-                self.session.query(models.TaskLog)
+                self.session.query(models.Task_Log)
                 .filter(
-                    models.TaskLog.cromwell_run_id == cromwell_run_id,
-                    models.TaskLog.task_dir == task_dir,
+                    models.Task_Log.cromwell_run_id == cromwell_run_id,
+                    models.Task_Log.task_dir == task_dir,
                 )
                 .one_or_none()
             )
