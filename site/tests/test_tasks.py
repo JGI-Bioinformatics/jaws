@@ -1,5 +1,4 @@
 from tests.conftest import MockSession, MockLogger
-from datetime import datetime
 from jaws_site.tasks import TaskLog
 
 
