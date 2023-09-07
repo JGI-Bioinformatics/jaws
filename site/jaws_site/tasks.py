@@ -7,6 +7,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
 
 
+DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -105,7 +106,11 @@ class TaskLog:
         )
         return local_datetime_obj.strftime(DATETIME_FMT)
 
-    def table_local_tz(self, local_tz: str) -> list:
+    def table(self, **kwargs):
+        """
+        Update the times to local, if specified, and return with header.
+        """
+        local_tz = kwargs.get("local_tz", DEFAULT_TZ)
         table = []
         for row in self.data:
             (
@@ -137,15 +142,6 @@ class TaskLog:
                     run_dir,
                 ]
             )
-        return table
-
-    def table(self, **kwargs):
-        """
-        Update the times to local, if specified, and return with header.
-        """
-        local_tz = kwargs.get("local_tz", None)
-        table = self.data
-        if local_tz is not None:
             table = self.table_local_tz(local_tz)
         result = {
             "header": [
