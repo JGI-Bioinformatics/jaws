@@ -117,16 +117,21 @@ class TaskLog:
                 queue_dir,
                 run_dir,
             ) = row
+            status = "queued"
             queued = self._utc_to_local(queued, local_tz)
             if running is not None:
+                status = "running"
                 running = self._utc_to_local(running, local_tz)
             if completed is not None:
+                status = "completed"
                 completed = self._utc_to_local(completed, local_tz)
             if cancelled is not None:
+                status = "cancelled"
                 cancelled = self._utc_to_local(cancelled, local_tz)
             table.append(
                 [
                     task_dir,
+                    status,
                     queued,
                     running,
                     completed,
@@ -139,6 +144,7 @@ class TaskLog:
         result = {
             "header": [
                 "TASK",
+                "STATUS",
                 "QUEUED",
                 "RUNNING",
                 "COMPLETED",
