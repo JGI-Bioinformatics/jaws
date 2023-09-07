@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger");
+SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger-receive");
 
 function disable_service {
   systemctl --user disable "$1"
