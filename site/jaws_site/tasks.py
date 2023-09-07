@@ -84,7 +84,7 @@ class TaskLog:
         return table
 
     @staticmethod
-    def _utc_to_local(utc_datetime: str, local_tz: str) -> str:
+    def _utc_to_local(utc_datetime: str, local_tz: str = DEFAULT_TZ) -> str:
         """Convert UTC time to the local time zone. This should handle daylight savings.
         :param utc_datetime: a string of date and time "2021-07-06 11:15:17".
         :ptype utc_datetime: str
@@ -93,13 +93,7 @@ class TaskLog:
         :return: similarly formatted string in the specified local tz
         :rtype: str
         """
-        # The timezone can be overwritten with a environmental variable.
-        # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
-        local_tz_obj = ""
-        if local_tz is None:
-            local_tz_obj = datetime.now().astimezone().tzinfo
-        else:
-            local_tz_obj = pytz.timezone(local_tz)
+        local_tz_obj = pytz.timezone(local_tz)
         datetime_obj = datetime.strptime(utc_datetime, DATETIME_FMT)
         local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(
             tz=local_tz_obj
@@ -142,7 +136,6 @@ class TaskLog:
                     run_dir,
                 ]
             )
-            table = self.table_local_tz(local_tz)
         result = {
             "header": [
                 "TASK",
