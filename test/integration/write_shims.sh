@@ -2,7 +2,7 @@
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-log")
+SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger-receive")
 
 function write_apptainer_shims {
   local template="$1"
@@ -15,7 +15,7 @@ function write_apptainer_shims {
 
 function write_venv_shims {
     envsubst < "$DIR/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
-    envsubst < "$DIR/templates/task-log.sh" > "$JAWS_BIN_DIR/task-log"
+    envsubst < "$DIR/templates/task-logger-receive.sh" > "$JAWS_BIN_DIR/task-logger-receive"
     envsubst < "$DIR/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "$DIR/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "$DIR/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"

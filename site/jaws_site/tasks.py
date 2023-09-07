@@ -1,11 +1,13 @@
-import json
 import logging
-import pika
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 from dateutil import parser
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
+
+
+DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 
 
 class TaskDbError(Exception):
@@ -26,8 +28,7 @@ class TaskLog:
             self.logger = logging.getLogger(__package__)
         else:
             self.logger = logger
-        self.data = []
-        self._select_rows()
+        self.data = self._select_rows()
 
     def _select_rows(self):
         table = []
@@ -45,143 +46,128 @@ class TaskLog:
             raise TaskDbError(error)
 
         for row in query:
+            queued = row.queued
+            if queued is not None:
+                queued = queued.strftime(DATETIME_FMT)
+            running = row.running
+            if running is not None:
+                running = running.strftime(DATETIME_FMT)
+            completed = row.completed
+            if completed is not None:
+                completed = completed.strftime(DATETIME_FMT)
+            cancelled = row.cancelled
+            if cancelled is not None:
+                cancelled = cancelled.strftime(DATETIME_FMT)
+
+            queue_dur = None
+            run_dur = None
+            if running is not None:
+                delta = parser.parse(running) - parser.parse(queued)
+                queue_dur = str(delta)
+                if completed is not None:
+                    delta = parser.parse(completed) - parser.parse(running)
+                    run_dur = str(delta)
+
             table.append(
                 [
-                    row.execution_dir,
-                    row.status,
-                    row.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    row.task_dir,
+                    queued,
+                    running,
+                    completed,
+                    row.rc,
+                    cancelled,
+                    queue_dur,
+                    run_dur,
                 ]
             )
-        self.data = table
-
-    def table(self):
-        """
-        Calculate queue/run durations and reformat into a table with columns:
-        - cromwell_run_id
-        - status
-        - queued timestamp
-        - running timestamp
-        - completed timestamp
-        - queue duration
-        - running duration
-        """
-        execution_dirs = {}
-        for (execution_dir, status, timestamp) in self.data:
-            if execution_dir not in execution_dirs:
-                execution_dirs[execution_dir] = [None, None, None, None]
-            if status == "queued":
-                execution_dirs[execution_dir][1] = timestamp
-            elif status == "running":
-                execution_dirs[execution_dir][2] = timestamp
-            elif status == "cancelled":
-                execution_dirs[execution_dir][0] = "cancelled"
-            else:
-                # "succeeded" or "failed"
-                execution_dirs[execution_dir][3] = timestamp
-            execution_dirs[execution_dir][0] = status
-        table = []
-        for execution_dir in sorted(execution_dirs.keys()):
-            # calculate queue and run durations
-            row = execution_dirs[execution_dir]
-            if row[1] is not None and row[2] is not None:
-                delta = parser.parse(row[2]) - parser.parse(row[1])
-                row.append(str(delta))
-            else:
-                row.append(None)
-            if row[2] is not None and row[3] is not None:
-                delta = parser.parse(row[3]) - parser.parse(row[2])
-                row.append(str(delta))
-            else:
-                row.append(None)
-            # add execution dir
-            row = (execution_dir, *execution_dirs[execution_dir])
-            table.append(row)
         return table
+
+    @staticmethod
+    def _utc_to_local(utc_datetime: str, local_tz: str) -> str:
+        """Convert UTC time to the local time zone. This should handle daylight savings.
+        :param utc_datetime: a string of date and time "2021-07-06 11:15:17".
+        :ptype utc_datetime: str
+        :param local_tz: name of the local timezone; use server timezone if not specified
+        :ptype local_tz: str
+        :return: similarly formatted string in the specified local tz
+        :rtype: str
+        """
+        # The timezone can be overwritten with a environmental variable.
+        # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
+        local_tz_obj = ""
+        if local_tz is None:
+            local_tz_obj = datetime.now().astimezone().tzinfo
+        else:
+            local_tz_obj = pytz.timezone(local_tz)
+        datetime_obj = datetime.strptime(utc_datetime, DATETIME_FMT)
+        local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(
+            tz=local_tz_obj
+        )
+        return local_datetime_obj.strftime(DATETIME_FMT)
+
+    def table_local_tz(self, local_tz: str) -> list:
+        table = []
+        for row in self.data:
+            (
+                task_dir,
+                queued,
+                running,
+                completed,
+                rc,
+                cancelled,
+                queue_dir,
+                run_dir,
+            ) = row
+            queued = self._utc_to_local(queued, local_tz)
+            if running is not None:
+                running = self._utc_to_local(running, local_tz)
+            if completed is not None:
+                completed = self._utc_to_local(completed, local_tz)
+            if cancelled is not None:
+                cancelled = self._utc_to_local(cancelled, local_tz)
+            table.append(
+                [
+                    task_dir,
+                    queued,
+                    running,
+                    completed,
+                    rc,
+                    cancelled,
+                    queue_dir,
+                    run_dir,
+                ]
+            )
+        return table
+
+    def table(self, **kwargs):
+        """
+        Update the times to local, if specified, and return with header.
+        """
+        local_tz = kwargs.get("local_tz", None)
+        table = self.data
+        if local_tz is not None:
+            table = self.table_local_tz(local_tz)
+        result = {
+            "header": [
+                "TASK",
+                "QUEUED",
+                "RUNNING",
+                "COMPLETED",
+                "RC",
+                "CANCELLED",
+                "QUEUE_DUR",
+                "RUN_DUR",
+            ],
+            "data": table,
+        }
+        return result
 
     def did_run_start(self):
         """
         Check if any task has started running by checking the task log.
         """
         for row in self.data:
-            (execution_dir, status, timestamp) = row
-            if status != "queued":
+            running = row[2]
+            if running is not None:
                 return True
         return False
-
-
-def receive_messages(config, session):
-    """
-    Receive and consume task-log messages indefinately.
-    :param config: Configuration parameters
-    :ptype config: jaws_site.config
-    :param session: Database session handle
-    :ptype session: sqlalchemy.orm.sessionmaker
-    """
-
-    logger = logging.getLogger(__package__)
-
-    host = config.get("RMQ", "host")
-    port = config.get("RMQ", "port")
-    vhost = config.get("RMQ", "vhost")
-    user = config.get("RMQ", "user")
-    password = config.get("RMQ", "password")
-    ttl = int(config.get("RMQ", "ttl", 3600000))  # must match value in sender's config
-    site_id = config.get("SITE", "id")
-    queue = f"{site_id}_tasks"
-
-    def _insert_task_log(message: str) -> bool:
-        params = json.loads(message)
-        cromwell_run_id = params.get("cromwell_run_id", None)
-        execution_dir = params.get("execution_dir", None)
-        status = params.get("status", None)
-        timestamp = params.get("timestamp", None)
-        timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-        try:
-            log_entry = models.Task_Log(
-                cromwell_run_id=cromwell_run_id,
-                execution_dir=execution_dir,
-                status=status,
-                timestamp=timestamp,
-            )
-            session.add(log_entry)
-            session.commit()
-        except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            logger.error(f"Unable to connect to db: {error}")
-            return False
-        except IntegrityError as error:
-            session.rollback()
-            logger.error(f"Invalid task-log message, {message}: {error}")
-        except SQLAlchemyError as error:
-            session.rollback()
-            logger.exception(
-                f"Failed to insert task log for Task {execution_dir} ({status}): {error}"
-            )
-        return True
-
-    def callback(ch, method, properties, body):
-        message = body.decode()
-        logger.debug(f"Received: {message}")
-        result = _insert_task_log(message)
-        if result is True:
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-
-    credentials = pika.PlainCredentials(user, password)
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host, port, vhost, credentials)
-    )
-    channel = connection.channel()
-
-    try:
-        channel.queue_declare(
-            queue=queue, durable=True, arguments={"x-message-ttl": ttl}
-        )
-    except Exception as error:
-        logger.warning(f"Unable to declare RMQ queue: {error}")
-        # channel.queue_delete(queue=queue)
-        # connection.close()
-        raise
-
-    channel.basic_consume(queue=queue, on_message_callback=callback, auto_ack=False)
-    logger.debug("Waiting for task-log messages")
-    channel.start_consuming()
