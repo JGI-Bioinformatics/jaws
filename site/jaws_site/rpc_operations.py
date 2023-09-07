@@ -8,6 +8,9 @@ from jaws_site.tasks import TaskLog
 from jaws_site.transfers import Transfer
 
 
+DEFAULT_TZ = "America/Los_Angeles"
+
+
 # config and logging must be initialized before importing this module
 logger = logging.getLogger(__package__)
 
@@ -89,7 +92,7 @@ def run_task_log(params, session):
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
         task_log = TaskLog(session, params["cromwell_run_id"], logger)
-        local_tz = params.get("local_tz", None)
+        local_tz = params.get("local_tz", DEFAULT_TZ)
         result = task_log.table(local_tz=local_tz)
     except Exception as error:
         return failure(error)

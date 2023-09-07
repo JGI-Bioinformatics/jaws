@@ -94,7 +94,7 @@ def test_table(monkeypatch):
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
     task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
-    actual = task_log.table(local_tz="US/Pacific")
+    actual = task_log.table(local_tz="America/Los_Angeles")
     assert actual == expected
 
 

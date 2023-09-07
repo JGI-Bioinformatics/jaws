@@ -7,6 +7,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
 
 
+DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 
 
@@ -83,7 +84,7 @@ class TaskLog:
         return table
 
     @staticmethod
-    def _utc_to_local(utc_datetime: str, local_tz: str) -> str:
+    def _utc_to_local(utc_datetime: str, local_tz: str = DEFAULT_TZ) -> str:
         """Convert UTC time to the local time zone. This should handle daylight savings.
         :param utc_datetime: a string of date and time "2021-07-06 11:15:17".
         :ptype utc_datetime: str
@@ -92,20 +93,18 @@ class TaskLog:
         :return: similarly formatted string in the specified local tz
         :rtype: str
         """
-        # The timezone can be overwritten with a environmental variable.
-        # JAWS_TZ should be set to a timezone in a similar format to 'US/Pacific'
-        local_tz_obj = ""
-        if local_tz is None:
-            local_tz_obj = datetime.now().astimezone().tzinfo
-        else:
-            local_tz_obj = pytz.timezone(local_tz)
+        local_tz_obj = pytz.timezone(local_tz)
         datetime_obj = datetime.strptime(utc_datetime, DATETIME_FMT)
         local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(
             tz=local_tz_obj
         )
         return local_datetime_obj.strftime(DATETIME_FMT)
 
-    def table_local_tz(self, local_tz: str) -> list:
+    def table(self, **kwargs):
+        """
+        Update the times to local, if specified, and return with header.
+        """
+        local_tz = kwargs.get("local_tz", DEFAULT_TZ)
         table = []
         for row in self.data:
             (
@@ -137,16 +136,6 @@ class TaskLog:
                     run_dir,
                 ]
             )
-        return table
-
-    def table(self, **kwargs):
-        """
-        Update the times to local, if specified, and return with header.
-        """
-        local_tz = kwargs.get("local_tz", None)
-        table = self.data
-        if local_tz is not None:
-            table = self.table_local_tz(local_tz)
         result = {
             "header": [
                 "TASK",
