@@ -1,8 +1,9 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
-- cancelling a run now updates the task-log
-- task-log format has changed
+- cancelling a run now updates the task-log (#1664)
+- task-log format has changed (!1520)
+- task-summary shall use timestamps from the task log instead of Cromwell metadata (#1611)
 
 ## 2.0.0 Summary [08/23/2023]
 ### Internal Facing Changes
