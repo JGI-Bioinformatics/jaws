@@ -221,16 +221,21 @@ class Run:
             (
                 relpath,
                 status,
-                queue_start,
-                run_start,
-                run_end,
+                queued,
+                running,
+                completed,
+                rc,
+                cancelled,
                 queue_duration,
                 run_duration,
             ) = row
             tasks[relpath] = {
-                "queue_start": queue_start,
-                "run_start": run_start,
-                "run_end": run_end,
+                "status": status,
+                "queued": queued,
+                "running": running,
+                "completed": completed,
+                "rc": rc,
+                "cancelled": cancelled,
                 "queue_duration": queue_duration,
                 "run_duration": run_duration,
             }
@@ -246,9 +251,12 @@ class Run:
                     f"Run {self.data.id}, Task {relpath} not found in task-log"
                 )
                 continue
-            task["queue_start"] = tasks[relpath]["queue_start"]
-            task["run_start"] = tasks[relpath]["run_start"]
-            task["run_end"] = tasks[relpath]["run_end"]
+            task["status"] = tasks[relpath]["status"]
+            task["queued"] = tasks[relpath]["queued"]
+            task["running"] = tasks[relpath]["running"]
+            task["completed"] = tasks[relpath]["completed"]
+            task["rc"] = tasks[relpath]["rc"]
+            task["cancelled"] = tasks[relpath]["cancelled"]
             task["queue_duration"] = tasks[relpath]["queue_duration"]
             task["run_duration"] = tasks[relpath]["run_duration"]
         return summary
