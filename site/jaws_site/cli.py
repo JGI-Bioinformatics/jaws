@@ -121,7 +121,7 @@ def pool_manager_daemon() -> None:
 
 
 @cli.command()
-def task_logger() -> None:
+def task_logger_receive() -> None:
     """Start task-log message receiver."""
     from jaws_site.task_logger import TaskLogger
     from jaws_site.database import session_factory

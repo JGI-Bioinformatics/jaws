@@ -33,7 +33,7 @@ function write_supervisor_configs {
 }
 
 function write_systemd_configs {
-  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger")
+  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger-receive")
   service_dir="${HOME}/.config/systemd/user"
   for service in "${SERVICES[@]}"; do
     export SERVICE="$service"
