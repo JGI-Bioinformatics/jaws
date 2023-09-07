@@ -67,6 +67,7 @@ def test_table(monkeypatch):
     expected = {
         "header": [
             "TASK",
+            "STATUS",
             "QUEUED",
             "RUNNING",
             "COMPLETED",
@@ -78,9 +79,10 @@ def test_table(monkeypatch):
         "data": [
             [
                 "call-do_something",
-                "2023-04-24 04:00:00",
-                "2023-04-24 04:01:00",
-                "2023-04-24 04:03:00",
+                "completed",
+                "2023-04-24 11:00:00",
+                "2023-04-24 11:01:00",
+                "2023-04-24 11:03:00",
                 0,
                 None,
                 "0:01:00",
@@ -94,7 +96,7 @@ def test_table(monkeypatch):
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
     task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
-    actual = task_log.table(local_tz="America/Los_Angeles")
+    actual = task_log.table(local_tz="GMT")
     assert actual == expected
 
 
