@@ -68,9 +68,13 @@ class Task_Log(Base):
     __tablename__ = "task_logs"
     id = Column(Integer, primary_key=True)  # auto-increment
     cromwell_run_id = Column(String(36), nullable=False)
-    task_dir = Column(String(1024), nullable=False)
-    status = Column(String(32), nullable=False)
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
+    cromwell_job_id = Column(Integer, nullable=False)
+    task_dir = Column(String(256), nullable=False)
+    queued = Column(DateTime, nullable=False)
+    running = Column(DateTime, nullable=True)
+    completed = Column(DateTime, nullable=True)
+    cancelled = Column(DateTime, nullable=True)
+    rc = Column(Integer, nullable=True)
 
 
 class Transfer(Base):
