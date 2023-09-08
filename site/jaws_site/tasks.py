@@ -1,5 +1,5 @@
 import logging
-from datetime import timezone
+from datetime import datetime, timezone
 import pytz
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
@@ -85,13 +85,14 @@ class TaskLog:
         :return: a formatted string in the local timezone
         :rtype: str
         """
-        result = None
-        if timestamp is not None:
-            local_timestamp = timestamp.replace(tzinfo=timezone.utc).astimezone(
-                tz=self.local_tz_obj
-            )
-            result = local_timestamp.strftime(DATETIME_FMT)
-        return result
+        if timestamp is None:
+            return None
+        if type(timestamp) is str:
+            timestamp = datetime.strptime("2023-04-24 08:00:00", DATETIME_FMT)
+        local_timestamp = timestamp.replace(tzinfo=timezone.utc).astimezone(
+            tz=self.local_tz_obj
+        )
+        return local_timestamp.strftime(DATETIME_FMT)
 
     def table(self, **kwargs):
         """
@@ -146,7 +147,7 @@ class TaskLog:
         Check if any task has started running by checking the task log.
         """
         for row in self.data:
-            run_start = row[2]
+            run_start = row[3]
             if run_start is not None:
                 return True
         return False

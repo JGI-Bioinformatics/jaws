@@ -1,5 +1,9 @@
 from tests.conftest import MockSession, MockLogger
 from jaws_site.tasks import TaskLog
+from datetime import datetime
+
+
+DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 
 
 def test_did_run_start(monkeypatch):
@@ -8,11 +12,11 @@ def test_did_run_start(monkeypatch):
         return [
             [
                 "call-count_seqs",
-                "2023-04-03 17:20:35",
-                "2023-04-03 17:20:52",
-                "2023-04-03 17:20:55",
+                "done",
+                datetime.strptime("2023-04-03 17:20:35", DATETIME_FMT),
+                datetime.strptime("2023-04-03 17:20:52", DATETIME_FMT),
+                datetime.strptime("2023-04-03 17:20:55", DATETIME_FMT),
                 0,
-                None,
                 "0:0:17",
                 "0:0:03",
             ],
@@ -30,8 +34,8 @@ def test_did_run_start(monkeypatch):
         return [
             [
                 "call-count_seqs",
-                "2023-04-03 17:20:35",
-                None,
+                "queued",
+                datetime.strptime("2023-04-03 17:20:35", DATETIME_FMT),
                 None,
                 None,
                 None,
@@ -53,11 +57,11 @@ def test_table(monkeypatch):
         return [
             [
                 "call-do_something",
-                "2023-04-24 11:00:00",
-                "2023-04-24 11:01:00",
-                "2023-04-24 11:03:00",
+                "done",
+                datetime.strptime("2023-04-24 11:00:00", DATETIME_FMT),
+                datetime.strptime("2023-04-24 11:01:00", DATETIME_FMT),
+                datetime.strptime("2023-04-24 11:03:00", DATETIME_FMT),
                 0,
-                None,
                 "0:01:00",
                 "0:02:00",
             ],
@@ -67,23 +71,21 @@ def test_table(monkeypatch):
         "header": [
             "TASK",
             "STATUS",
-            "QUEUED",
-            "RUNNING",
-            "COMPLETED",
+            "QUEUE_START",
+            "RUN_START",
+            "RUN_END",
             "RC",
-            "CANCELLED",
             "QUEUE_DUR",
             "RUN_DUR",
         ],
         "data": [
             [
                 "call-do_something",
-                "completed",
+                "done",
                 "2023-04-24 11:00:00",
                 "2023-04-24 11:01:00",
                 "2023-04-24 11:03:00",
                 0,
-                None,
                 "0:01:00",
                 "0:02:00",
             ]
@@ -95,11 +97,11 @@ def test_table(monkeypatch):
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
     task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
-    actual = task_log.table(local_tz="GMT")
+    actual = task_log.table(local_tz="UTC")
     assert actual == expected
 
 
-def test__utc_to_local(monkeypatch):
+def test__utc_to_local_str(monkeypatch):
     def mock__select_rows(self):
         return []
 
@@ -107,8 +109,10 @@ def test__utc_to_local(monkeypatch):
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
-    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger, local_tz="Africa/Algiers")
 
-    actual = task_log._utc_to_local("2023-04-24 08:00:00", "US/Pacific")
-    expected = "2023-04-24 01:00:00"
+    timestamp = datetime.strptime("2023-04-24 08:00:00", "%Y-%m-%d %H:%M:%S")
+    print(type(timestamp))  # ECCE
+    actual = task_log._utc_to_local_str(timestamp)
+    expected = "2023-04-24 09:00:00"
     assert actual == expected
