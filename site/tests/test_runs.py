@@ -13,7 +13,7 @@ from jaws_site.runs import (
 )
 from datetime import datetime
 from tests.conftest import MockSession, MockRunModel, initRunModel
-from jaws_site.cromwell import Cromwell, CromwellError, CromwellServiceError
+from jaws_site.cromwell import CromwellServiceError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 from unittest.mock import patch
 
@@ -389,12 +389,12 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     assert run.data.status == "failed"
 
     # test get metadata, workflow_root
-    mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD")
+    mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD-EFGH")
     run = Run(mock_session, mock_data)
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
-    assert run.data.workflow_name == "unknown"
-    assert run.data.workflow_root == "/data/cromwell-executions/example/ABCD"
+    assert run.data.workflow_name == "testWorkflow"
+    assert run.data.workflow_root == "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH"
 
 
 def test_run_log(monkeypatch):
