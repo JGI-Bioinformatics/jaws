@@ -158,7 +158,7 @@ def initRunModel(**kwargs):
         submission_id=kwargs.get("submission_id", "XXXX"),
         caching=(False if "caching" in kwargs and kwargs["caching"] is False else True),
         input_site_id=kwargs.get("input_site_id", "NERSC"),
-        cromwell_run_id=kwargs.get("cromwell_run_id", "myid"),
+        cromwell_run_id=kwargs.get("cromwell_run_id", "ABCD-EFGH"),
         result=kwargs.get("result", "succeeded"),
         status=kwargs.get("status", "running"),
         submitted=kwargs.get("submitted", datetime.utcnow()),
@@ -185,7 +185,7 @@ class MockRunModel:
         self.download_task_id = kwargs.get("download_task_id", "325")
         self.email = kwargs.get("email", "jaws@vog.gov")
         self.cromwell_workflow_dir = (
-            "/global/scratch/jaws/dev/cromwell-executions/test_wdl/myid"
+            "/global/scratch/jaws/dev/cromwell-executions/test_wdl/ABCD-EFGH"
         )
         self.input_site_id = kwargs.get("input_site_id", "CORI")
         self.caching = kwargs.get("caching", True)
@@ -255,10 +255,7 @@ class MockCromwell:
         return True
 
     def abort(self, cromwell_run_id: str) -> dict:
-        return {
-            "id": cromwell_run_id,
-            "status": "Aborting"
-        }
+        return {"id": cromwell_run_id, "status": "Aborting"}
 
 
 class MockCromwellException:
@@ -1078,9 +1075,13 @@ def mock_metadata(monkeypatch):
         def __init__(self):
             self.data = {
                 "MOCK_METADATA": True,
-                "workflowName": "unknown",
-                "workflowRoot": "/data/cromwell-executions/example/ABCD",
+                "cromwell_run_id": "ABCD-EFGH",
+                "workflowName": "testWorkflow",
+                "workflowRoot": "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH",
                 "status": "Running",
+            }
+            self.config = {
+                "cromwell_executions_dir": "/scratch/cromwell-executions",
             }
 
         def started_running(self):
@@ -1090,36 +1091,24 @@ def mock_metadata(monkeypatch):
             return [
                 {
                     "name": "test",
-                    "shard_index": "shard_index",
-                    "attempt": "attempt",
-                    "cached": "cached",
+                    "shard_index": "-1",
+                    "attempt": 1,
+                    "cached": False,
                     "job_id": "123",
-                    "execution_status": "succeeded",
-                    "result": "result",
-                    "failure_message": "failure_message",
-                    "queue_start": "01-01-2022",
-                    "run_start": "01-01-2022",
-                    "run_end": "01-01-2022",
-                    "queue_duration": "queue_duration",
-                    "run_duration": "run_duration",
-                    "call_root": "call_root",
-                    "requested_time": "01-01-2022",
+                    "execution_status": "done",
+                    "result": "succeeded",
+                    "failure_message": None,
+                    "queue_start": "01-01-2022 12:00:00",
+                    "run_start": "01-01-2022 12:01:00",
+                    "run_end": "01-01-2022 12:11:00",
+                    "queue_duration": "00:01:00",
+                    "run_duration": "00:10:00",
+                    "call_root": "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH/call-test",
+                    "requested_time": "00:30:00",
                     "requested_cpu": 15,
-                    "requested_memory": "100",
+                    "requested_memory": "10 GB",
                 },
             ]
-
-        def task_log(self):
-            return {
-                "name": "test",
-                "cached": False,
-                "execution_status": "succeeded",
-                "queue_start": "01-01-2022",
-                "run_start": "01-01-2022",
-                "run_end": "01-01-2022",
-                "queue_duration": "01-01-2022",
-                "run_duration": "01-01-2022",
-            }
 
         def get(self, param, default=None):
             return self.data.get(param, default)
