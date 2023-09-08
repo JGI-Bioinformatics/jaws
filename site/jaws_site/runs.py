@@ -208,6 +208,56 @@ class Run:
         }
         return summary
 
+    def task_summary(self, metadata=None) -> list:
+        """Produce summary of tasks"""
+        if metadata is None:
+            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+
+        # get task log and populate dictionary by task task_dir
+        task_log = self.task_log()
+        tasks = {}
+        for row in task_log["data"]:
+            (
+                task_dir,
+                status,
+                queue_start,
+                run_start,
+                run_end,
+                rc,
+                queue_duration,
+                run_duration,
+            ) = row
+            tasks[task_dir] = {
+                "status": status,
+                "queue_start": queue_start,
+                "run_start": run_start,
+                "run_end": run_end,
+                "rc": rc,
+                "queue_duration": queue_duration,
+                "run_duration": run_duration,
+            }
+
+        # replace Cromwell timestamps with more accurate task-log timestamps
+        summary = metadata.task_summary()
+        for task in summary:
+            p = task["call_root"].split('/')
+            i = p.index(self.data.cromwell_run_id) + 1
+            task_dir = '/'.join(p[i:])
+            if task_dir not in tasks:
+                logger.warning(
+                    f"Run {self.data.id}, Task {task_dir} not found in task-log"
+                )
+                continue
+            t = tasks[task_dir]
+            task["status"] = t["status"]
+            task["queue_start"] = t["queue_start"]
+            task["run_start"] = t["run_start"]
+            task["run_end"] = t["run_end"]
+            task["rc"] = t["rc"]
+            task["queue_duration"] = t["queue_duration"]
+            task["run_duration"] = t["run_duration"]
+        return summary
+
     def did_run_start(self):
         """
         Check if any task has started running by checking the task log.
@@ -682,9 +732,7 @@ class Run:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
-            self.update_run_status(
-                "failed", "Cromwell metadata could not be retrieved"
-            )
+            self.update_run_status("failed", "Cromwell metadata could not be retrieved")
             return
         else:
             metadata_file = f"{root}/metadata.json"
@@ -695,10 +743,10 @@ class Run:
         try:
             errors_report = metadata.errors()
         except Exception as error:
-            logger.error(f"Run {self.data.id}: Failed to generate errors report: {error}")
-            self.update_run_status(
-                "failed", "Failed to generate errors report"
+            logger.error(
+                f"Run {self.data.id}: Failed to generate errors report: {error}"
             )
+            self.update_run_status("failed", "Failed to generate errors report")
             return
         else:
             errors_file = f"{root}/errors.json"
@@ -709,10 +757,10 @@ class Run:
         try:
             outputs = metadata.outputs()
         except Exception as error:
-            logger.error(f"Run {self.data.id}: Failed to generate outputs file: {error}")
-            self.update_run_status(
-                "failed", "Failed to generate outputs file"
+            logger.error(
+                f"Run {self.data.id}: Failed to generate outputs file: {error}"
             )
+            self.update_run_status("failed", "Failed to generate outputs file")
             return
         else:
             outputs_file = f"{root}/outputs.json"
@@ -723,38 +771,50 @@ class Run:
         try:
             outfiles = metadata.outfiles()
         except Exception as error:
-            logger.error(f"Run {self.data.id}: Failed to generate outfiles file: {error}")
-            self.update_run_status(
-                "failed", "Failed to generate outfiles file"
+            logger.error(
+                f"Run {self.data.id}: Failed to generate outfiles file: {error}"
             )
+            self.update_run_status("failed", "Failed to generate outfiles file")
             return
         else:
             outfiles_file = f"{root}/outfiles.json"
             logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
             write_json_file(outfiles_file, outfiles)
 
-        # write task summary
+        # write run summary
         try:
-            task_summary = self.summary()
+            summary = self.summary()
         except Exception as error:
-            logger.error(f"Run {self.data.id}: Failed to generate task summary: {error}")
-            self.update_run_status(
-                "failed", "Failed to generate task summary"
-            )
+            logger.error(f"Run {self.data.id}: Failed to generate summary: {error}")
+            self.update_run_status("failed", "Failed to generate summary")
             return
         else:
-            summary_file = f"{root}/task_summary.json"
+            summary_file = f"{root}/summary.json"
             logger.debug(f"Run {self.data.id}: Writing {summary_file}")
-            write_json_file(summary_file, task_summary)
+            write_json_file(summary_file, summary)
+
+        # write task summary
+        try:
+            task_summary = self.task_summary(metadata)
+        except Exception as error:
+            logger.error(
+                f"Run {self.data.id}: Failed to generate task summary: {error}"
+            )
+            self.update_run_status("failed", "Failed to generate task summary")
+            return
+        else:
+            task_summary_file = f"{root}/task_summary.json"
+            logger.debug(f"Run {self.data.id}: Writing {task_summary_file}")
+            write_json_file(task_summary_file, task_summary)
 
         # write output manifest (i.e. files to return to user)
         try:
             failed_folders = metadata.failed_folders()
         except Exception as error:
-            logger.error(f"Run {self.data.id}: Failed to generate output manifest: {error}")
-            self.update_run_status(
-                "failed", "Failed to generate output manifest"
+            logger.error(
+                f"Run {self.data.id}: Failed to generate output manifest: {error}"
             )
+            self.update_run_status("failed", "Failed to generate output manifest")
             return
         else:
             manifest = [
@@ -764,6 +824,7 @@ class Run:
                 "errors.json",
                 "outputs.json",
                 "output_manifest.json",
+                "summary.json",
                 "task_summary.json",
             ]
             manifest_file = f"{root}/output_manifest.json"

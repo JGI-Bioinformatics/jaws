@@ -13,7 +13,7 @@ from jaws_site.runs import (
 )
 from datetime import datetime
 from tests.conftest import MockSession, MockRunModel, initRunModel
-from jaws_site.cromwell import Cromwell, CromwellError, CromwellServiceError
+from jaws_site.cromwell import CromwellServiceError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 from unittest.mock import patch
 
@@ -389,12 +389,12 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     assert run.data.status == "failed"
 
     # test get metadata, workflow_root
-    mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD")
+    mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD-EFGH")
     run = Run(mock_session, mock_data)
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
-    assert run.data.workflow_name == "unknown"
-    assert run.data.workflow_root == "/data/cromwell-executions/example/ABCD"
+    assert run.data.workflow_name == "testWorkflow"
+    assert run.data.workflow_root == "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH"
 
 
 def test_run_log(monkeypatch):
@@ -517,28 +517,28 @@ def test_from_id(mock_sqlalchemy_session):
 def test_from_cromwell_run_id(mock_sqlalchemy_session):
     data = initRunModel(status="succeeded")
     run = Run(mock_sqlalchemy_session, data)
-    run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+    run.from_cromwell_run_id(mock_sqlalchemy_session, "ABCD-EFGH")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test raising Exception
     mock_sqlalchemy_session.data.raise_exception = True
     with pytest.raises(Exception):
-        run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+        run.from_cromwell_run_id(mock_sqlalchemy_session, "ABCD-EFGH")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test raising SQLAlchemyError
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
     with pytest.raises(RunDbError):
-        run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+        run.from_cromwell_run_id(mock_sqlalchemy_session, "ABCD-EFGH")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
     # Test RunNotFound
     mock_sqlalchemy_session.data.raise_exception_noresultfound = True
     with pytest.raises(RunNotFoundError):
-        run.from_cromwell_run_id(mock_sqlalchemy_session, "myid")
+        run.from_cromwell_run_id(mock_sqlalchemy_session, "ABCD-EFGH")
     assert mock_sqlalchemy_session.data.session["query"] is True
     mock_sqlalchemy_session.clear()
 
@@ -549,7 +549,7 @@ def test_summary2(mock_sqlalchemy_session):
     ret = run.summary()
     assert ret["run_id"] == "99"
     assert ret["user_id"] == "test_user"
-    assert ret["cromwell_run_id"] == "myid"
+    assert ret["cromwell_run_id"] == "ABCD-EFGH"
     assert ret["result"] == "succeeded"
 
 
@@ -576,7 +576,7 @@ def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
     ret == {
         "run_id": "99",
         "user_id": "test_user",
-        "cromwell_run_id": "myid",
+        "cromwell_run_id": "ABCD-EFGH",
         "submitted": "2022-09-15 00:06:13",
         "updated": "2022-09-15 00:06:13",
         "status": "succeeded",
@@ -791,3 +791,64 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
         "outmanifest.json",
         "task_summary.json",
     ]
+
+
+def test_task_summary(
+    requests_mock, mock_metadata, mock_sqlalchemy_session, monkeypatch
+):
+    def mock_task_log(self):
+        return {
+            "header": [
+                "TASK_DIR",
+                "STATUS",
+                "QUEUE_START",
+                "RUN_START",
+                "RUN_END",
+                "RC",
+                "QUEUE_DUR",
+                "RUN_DUR",
+            ],
+            "data": [
+                [
+                    "call-test",
+                    "done",
+                    "01-01-2022 01:00:00",
+                    "01-01-2022 01:01:00",
+                    "01-01-2022 01:11:00",
+                    0,
+                    "00:01:00",
+                    "00:10:00",
+                ]
+            ],
+        }
+
+    monkeypatch.setattr(Run, "task_log", mock_task_log)
+
+    data = initRunModel()
+    run = Run(mock_sqlalchemy_session, data)
+
+    actual = run.task_summary()
+    expected = [
+        {
+            "name": "test",
+            "shard_index": "-1",
+            "attempt": 1,
+            "cached": False,
+            "job_id": "123",
+            "execution_status": "done",
+            "result": "succeeded",
+            "failure_message": None,
+            "status": "done",
+            "queue_start": "01-01-2022 01:00:00",
+            "run_start": "01-01-2022 01:01:00",
+            "run_end": "01-01-2022 01:11:00",
+            "rc": 0,
+            "queue_duration": "00:01:00",
+            "run_duration": "00:10:00",
+            "call_root": "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH/call-test",
+            "requested_time": "00:30:00",
+            "requested_cpu": 15,
+            "requested_memory": "10 GB",
+        },
+    ]
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
