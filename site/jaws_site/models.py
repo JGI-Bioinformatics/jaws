@@ -70,10 +70,10 @@ class Task_Log(Base):
     cromwell_run_id = Column(String(36), nullable=False)
     cromwell_job_id = Column(Integer, nullable=False)
     task_dir = Column(String(256), nullable=False)
-    queued = Column(DateTime, nullable=False)
-    running = Column(DateTime, nullable=True)
-    completed = Column(DateTime, nullable=True)
-    cancelled = Column(DateTime, nullable=True)
+    status = Column(String(32), nullable=False)
+    queue_start = Column(DateTime, nullable=False)
+    run_start = Column(DateTime, nullable=True)
+    run_end = Column(DateTime, nullable=True)
     rc = Column(Integer, nullable=True)
 
 

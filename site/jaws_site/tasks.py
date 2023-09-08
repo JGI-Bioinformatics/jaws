@@ -1,7 +1,6 @@
 import logging
-from datetime import datetime, timezone
+from datetime import timezone
 import pytz
-from dateutil import parser
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
@@ -22,16 +21,24 @@ class TaskLog:
     saves them in a persistent RDb and provides them upon request.
     """
 
-    def __init__(self, session, cromwell_run_id, logger=None) -> None:
+    def __init__(self, session, cromwell_run_id, logger=None, **kwargs) -> None:
         self.session = session
         self.cromwell_run_id = cromwell_run_id
         if logger is None:
             self.logger = logging.getLogger(__package__)
         else:
             self.logger = logger
+        self.set_local_tz(kwargs.get("local_tz", DEFAULT_TZ))
         self.data = self._select_rows()
 
+    def set_local_tz(self, local_tz=DEFAULT_TZ):
+        self.local_tz = local_tz
+        self.local_tz_obj = pytz.timezone(local_tz)
+
     def _select_rows(self):
+        """
+        Select rows, copy into a table, and calculate queue and run durations.  All timestamps are datetime objects in UTC, durations are timedelta objects.
+        """
         table = []
         try:
             query = (
@@ -47,109 +54,86 @@ class TaskLog:
             raise TaskDbError(error)
 
         for row in query:
-            queued = row.queued
-            if queued is not None:
-                queued = queued.strftime(DATETIME_FMT)
-            running = row.running
-            if running is not None:
-                running = running.strftime(DATETIME_FMT)
-            completed = row.completed
-            if completed is not None:
-                completed = completed.strftime(DATETIME_FMT)
-            cancelled = row.cancelled
-            if cancelled is not None:
-                cancelled = cancelled.strftime(DATETIME_FMT)
-
+            queue_start = row.queue_start
+            run_start = row.run_start
+            run_end = row.run_end
             queue_dur = None
             run_dur = None
-            if running is not None:
-                delta = parser.parse(running) - parser.parse(queued)
-                queue_dur = str(delta)
-                if completed is not None:
-                    delta = parser.parse(completed) - parser.parse(running)
-                    run_dur = str(delta)
+            if queue_start and run_start:
+                queue_dur = run_start - queue_start
+            if run_start and run_end:
+                run_dur = run_end - run_start
 
             table.append(
                 [
                     row.task_dir,
-                    queued,
-                    running,
-                    completed,
+                    row.status,
+                    queue_start,
+                    run_start,
+                    run_end,
                     row.rc,
-                    cancelled,
                     queue_dur,
                     run_dur,
                 ]
             )
         return table
 
-    @staticmethod
-    def _utc_to_local(utc_datetime: str, local_tz: str = DEFAULT_TZ) -> str:
+    def _utc_to_local_str(self, timestamp) -> str:
         """Convert UTC time to the local time zone. This should handle daylight savings.
-        :param utc_datetime: a string of date and time "2021-07-06 11:15:17".
-        :ptype utc_datetime: str
-        :param local_tz: name of the local timezone; use server timezone if not specified
-        :ptype local_tz: str
-        :return: similarly formatted string in the specified local tz
+        :param timestamp: a datetime object, UTC timezone
+        :ptype timestamp: datetime.datetime
+        :return: a formatted string in the local timezone
         :rtype: str
         """
-        local_tz_obj = pytz.timezone(local_tz)
-        datetime_obj = datetime.strptime(utc_datetime, DATETIME_FMT)
-        local_datetime_obj = datetime_obj.replace(tzinfo=timezone.utc).astimezone(
-            tz=local_tz_obj
-        )
-        return local_datetime_obj.strftime(DATETIME_FMT)
+        result = None
+        if timestamp is not None:
+            local_timestamp = timestamp.replace(tzinfo=timezone.utc).astimezone(
+                tz=self.local_tz_obj
+            )
+            result = local_timestamp.strftime(DATETIME_FMT)
+        return result
 
     def table(self, **kwargs):
         """
-        Update the times to local, if specified, and return with header.
+        Convert the timestamps to local timezone strings and return with header.
         """
-        local_tz = kwargs.get("local_tz", DEFAULT_TZ)
+        if "local_tz" in kwargs:
+            self.set_local_tz(kwargs.get("local_tz"))
         table = []
         for row in self.data:
             (
                 task_dir,
-                queued,
-                running,
-                completed,
+                status,
+                queue_start,
+                run_start,
+                run_end,
                 rc,
-                cancelled,
-                queue_dir,
-                run_dir,
+                queue_dur,
+                run_dur,
             ) = row
-            status = "queued"
-            queued = self._utc_to_local(queued, local_tz)
-            if running is not None:
-                status = "running"
-                running = self._utc_to_local(running, local_tz)
-            if completed is not None:
-                status = "completed"
-                completed = self._utc_to_local(completed, local_tz)
-            if cancelled is not None:
-                status = "cancelled"
-                cancelled = self._utc_to_local(cancelled, local_tz)
+            queued_str = self._utc_to_local_str(queue_start)
+            run_start_str = self._utc_to_local_str(run_start)
+            run_end_str = self._utc_to_local_str(run_end)
             table.append(
                 [
                     task_dir,
                     status,
-                    queued,
-                    running,
-                    completed,
+                    queued_str,
+                    run_start_str,
+                    run_end_str,
                     rc,
-                    cancelled,
-                    queue_dir,
-                    run_dir,
+                    str(queue_dur),
+                    str(run_dur),
                 ]
             )
         result = {
             "header": [
                 "TASK",
                 "STATUS",
-                "QUEUED",
-                "RUNNING",
-                "COMPLETED",
+                "QUEUE_START",
+                "RUN_START",
+                "RUN_END",
                 "RC",
-                "CANCELLED",
                 "QUEUE_DUR",
                 "RUN_DUR",
             ],
@@ -162,7 +146,7 @@ class TaskLog:
         Check if any task has started running by checking the task log.
         """
         for row in self.data:
-            running = row[2]
-            if running is not None:
+            run_start = row[2]
+            if run_start is not None:
                 return True
         return False

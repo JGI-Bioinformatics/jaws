@@ -213,52 +213,49 @@ class Run:
         if metadata is None:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
 
-        # get task log and populate dictionary by task relpath
-        task_log = TaskLog(self.session, self.data.cromwell_run_id, logger)
+        # get task log and populate dictionary by task task_dir
+        task_log = self.task_log()
         tasks = {}
-        table = task_log.table()
-        for row in table["data"]:
+        for row in task_log["data"]:
             (
-                relpath,
+                task_dir,
                 status,
-                queued,
-                running,
-                completed,
+                queue_start,
+                run_start,
+                run_end,
                 rc,
-                cancelled,
                 queue_duration,
                 run_duration,
             ) = row
-            tasks[relpath] = {
+            tasks[task_dir] = {
                 "status": status,
-                "queued": queued,
-                "running": running,
-                "completed": completed,
+                "queue_start": queue_start,
+                "run_start": run_start,
+                "run_end": run_end,
                 "rc": rc,
-                "cancelled": cancelled,
                 "queue_duration": queue_duration,
                 "run_duration": run_duration,
             }
 
-        # replace Cromwell timestamps with task-log timestamps
-        summary = metadata.summary()
+        # replace Cromwell timestamps with more accurate task-log timestamps
+        summary = metadata.task_summary()
         for task in summary:
-            relpath = os.path.relpath(
-                task["call_root"], start=self.config["cromwell_executions_dir"]
-            )
-            if relpath not in tasks:
+            p = task["call_root"].split('/')
+            i = p.index(self.data.cromwell_run_id) + 1
+            task_dir = '/'.join(p[i:])
+            if task_dir not in tasks:
                 logger.warning(
-                    f"Run {self.data.id}, Task {relpath} not found in task-log"
+                    f"Run {self.data.id}, Task {task_dir} not found in task-log"
                 )
                 continue
-            task["status"] = tasks[relpath]["status"]
-            task["queued"] = tasks[relpath]["queued"]
-            task["running"] = tasks[relpath]["running"]
-            task["completed"] = tasks[relpath]["completed"]
-            task["rc"] = tasks[relpath]["rc"]
-            task["cancelled"] = tasks[relpath]["cancelled"]
-            task["queue_duration"] = tasks[relpath]["queue_duration"]
-            task["run_duration"] = tasks[relpath]["run_duration"]
+            t = tasks[task_dir]
+            task["status"] = t["status"]
+            task["queue_start"] = t["queue_start"]
+            task["run_start"] = t["run_start"]
+            task["run_end"] = t["run_end"]
+            task["rc"] = t["rc"]
+            task["queue_duration"] = t["queue_duration"]
+            task["run_duration"] = t["run_duration"]
         return summary
 
     def did_run_start(self):

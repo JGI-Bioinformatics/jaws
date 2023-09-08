@@ -39,7 +39,7 @@ class TaskLogger:
             return self._queued(**params)
         elif status == "cancelled":
             return self._cancelled(**params)
-        elif status in ("running", "completed"):
+        elif status in ("running", "completed", "done"):
             return self._update(**params)
         else:
             self.logger.error(f"Invalid log status: {status}")
@@ -58,7 +58,8 @@ class TaskLogger:
                 cromwell_run_id=cromwell_run_id,
                 cromwell_job_id=cromwell_job_id,
                 task_dir=task_dir,
-                queued=timestamp,
+                status="queued",
+                queue_start=timestamp,
             )
             self.session.add(log_entry)
             self.session.commit()
@@ -104,7 +105,8 @@ class TaskLogger:
             return True
 
         try:
-            row.cancelled = timestamp
+            row.run_end = timestamp
+            row.status = "cancelled"
             self.session.commit()
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
@@ -145,10 +147,12 @@ class TaskLogger:
 
         try:
             if status == "running":
-                row.running = timestamp
-            elif status == "completed":
-                row.completed = timestamp
+                row.run_start = timestamp
+                row.status = "running"
+            else:
+                row.run_end = timestamp
                 row.rc = kwargs.get("rc", None)
+                row.status = "done"
             self.session.commit()
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
@@ -180,8 +184,7 @@ class TaskLogger:
         def callback(ch, method, properties, body):
             message = body.decode()
             self.logger.debug(str(message))
-            result = self.save(message)
-            if result is True:
+            if self.save(message) is True:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
         credentials = pika.PlainCredentials(user, password)
