@@ -18,6 +18,7 @@
 
 
 import os
+from pathlib import Path
 import logging
 import json
 import io
@@ -240,9 +241,9 @@ class Run:
         # replace Cromwell timestamps with more accurate task-log timestamps
         summary = metadata.task_summary()
         for task in summary:
-            p = task["call_root"].split('/')
+            p = task["call_root"].split("/")
             i = p.index(self.data.cromwell_run_id) + 1
-            task_dir = '/'.join(p[i:])
+            task_dir = "/".join(p[i:])
             if task_dir not in tasks:
                 logger.warning(
                     f"Run {self.data.id}, Task {task_dir} not found in task-log"
@@ -375,7 +376,7 @@ class Run:
         except botocore.exceptions.ClientError as error:
             raise RunFileNotFoundError(f"File obj not found, {src_path}: {error}")
         except Exception as error:
-            raise IOError(error)
+            raise RunFileNotFoundError(error)
         fh.seek(0)
 
         if not binary:
@@ -389,7 +390,7 @@ class Run:
         Read file from NFS into RAM and return a file handle object.
         """
         if not os.path.isfile(path):
-            raise IOError(f"File not found: {path}")
+            raise RunFileNotFoundError(f"File not found: {path}")
         data = None
         mode = "rb" if binary else "r"
         if not os.path.isfile(path):
@@ -397,10 +398,10 @@ class Run:
         try:
             with open(path, mode) as fh:
                 data = fh.read()
-        except IOError:
+        except RunFileNotFoundError:
             raise
         if len(data) == 0:
-            raise IOError("File is 0 bytes")
+            raise RunFileNotFoundError("File is 0 bytes")
         fh = io.BytesIO(data) if binary else io.StringIO(data)
         fh.seek(0)
         return fh
@@ -451,7 +452,6 @@ class Run:
         else:
             return self._write_file_nfs(path, contents)
 
-    # TODO
     def read_inputs(self):
         """
         Read inputs json from file or S3 bucket and return contents.
@@ -464,42 +464,56 @@ class Run:
         inputs = json.load(fh)
         return inputs
 
+    @staticmethod
+    def add_prefix_to_paths(data, site_id: str, prefix: str):
+        """
+        Recursively traverse inputs dictionary and add path prefix to file items to
+        make them valid absolute paths at this compute-site.
+        Also touch the files to ensure their accessed timestamps are current.
+        Raise on missing file.
+        :param site_id: The name of the compute-site
+        :ptype str:
+        :param prefix: The path to the input data folder
+        :ptype prefix: str
+        :return: If item is a relpath, return abspath, else return unmodified item.
+        :rtype: any
+        """
+        if type(data) is str:
+            if data.startswith(site_id):
+                abspath = os.path.join(prefix, data)
+                if abspath.startswith("s3://"):
+                    return abspath
+                if not os.path.isfile(abspath):
+                    raise RunFileNotFoundError(f"File not found: {abspath}")
+                # touch to ensure atime is changed to now
+                Path(abspath).touch(exist_ok=True)
+                return abspath
+            else:
+                return data
+        elif type(data) is list:
+            new_data = []
+            for item in data:
+                new_data.append(self.add_prefix_to_paths(item, site_id, prefix))
+            return new_data
+        elif type(data) is dict:
+            new_data = {}
+            for key, value in data.items():
+                new_key = self.add_prefix_to_paths(key, site_id, prefix)
+                new_value = self.add_prefix_to_paths(value, site_id, prefix)
+                new_data[new_key] = new_value
+            return new_data
+        else:
+            return data
+
     def inputs(self):
         """
-        Get the Run inputs with valid paths for this Site.
+        Get the Run's relpath inputs and convert to valid abspaths for this Site.
         :return: input parameters
         :rtype: dict
         """
-
-        def add_prefix_to_paths(data, site_id, prefix):
-            """Recursively traverse dictionary and add prefix to
-            file path items"""
-            if type(data) is str:
-                if data.startswith(site_id):
-                    return os.path.join(prefix, data)
-                else:
-                    return data
-            elif type(data) is list:
-                new_data = []
-                for item in data:
-                    new_data.append(add_prefix_to_paths(item, site_id, prefix))
-                return new_data
-            elif type(data) is dict:
-                new_data = {}
-                for key, value in data.items():
-                    new_key = add_prefix_to_paths(key, site_id, prefix)
-                    new_value = add_prefix_to_paths(value, site_id, prefix)
-                    new_data[new_key] = new_value
-                return new_data
-            else:
-                return data
-
-        # convert paths to correct abspaths for this Site
-        relpath_inputs = self.read_inputs()
-        inputs = add_prefix_to_paths(
-            relpath_inputs, self.data.input_site_id, self.config["inputs_dir"]
+        return self.add_prefix_to_paths(
+            self.read_inputs(), self.data.input_site_id, self.config["inputs_dir"]
         )
-        return inputs
 
     def inputs_fh(self):
         """
@@ -517,10 +531,7 @@ class Run:
         Get file handles.
         """
         file_handles = {}
-        try:
-            file_handles["inputs"] = self.inputs_fh()
-        except Exception as error:
-            raise RunFileNotFoundError(f"Error specifying inputs: {error}")
+        file_handles["inputs"] = self.inputs_fh()
         try:
             path = os.path.join(
                 self.config["inputs_dir"], f"{self.data.submission_id}.wdl"
@@ -567,8 +578,8 @@ class Run:
 
         try:
             file_handles = self.get_run_inputs()
-        except Exception as error:
-            self.update_run_status("submission failed", f"Input error: {error}")
+        except RunFileNotFoundError as error:
+            self.update_run_status("submission failed", str(error))
         try:
             options = self.cromwell_options()
         except Exception as error:
@@ -840,7 +851,7 @@ class Run:
         manifest_file = f"{self.data.workflow_root}/output_manifest.json"
         try:
             manifest = read_json(manifest_file)
-        except IOError as error:
+        except RunFileNotFoundError as error:
             logger.error(f"Run {self.data.id}: Failed to read output manifest: {error}")
             return []
         else:
