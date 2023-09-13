@@ -174,12 +174,12 @@ def test_inputs(monkeypatch):
     mock_session = MockSession()
     mock_data = MockRunModel(input_site_id="CORI")
     run = Run(mock_session, mock_data)
-    run.config["inputs_dir"] = "/inputs"
+    run.config["inputs_dir"] = "s3://inputs"
     inputs = run.inputs()
 
     # print(inputs)
 
-    assert inputs["fasta_file"] == "/inputs/CORI/mydata/genome.fasta"
+    assert inputs["fasta_file"] == "s3://inputs/CORI/mydata/genome.fasta"
     assert inputs["min_score"] == 95
 
 
@@ -645,11 +645,11 @@ def test__read_file_nfs(
     assert isinstance(ret, io.StringIO)
 
     # Test OSError
-    with pytest.raises(OSError):
+    with pytest.raises(RunFileNotFoundError):
         run._read_file_nfs(file_not_found_config)
 
     # Test zero file
-    with pytest.raises(OSError):
+    with pytest.raises(RunFileNotFoundError):
         run._read_file_nfs(config_file_zero)
 
 
