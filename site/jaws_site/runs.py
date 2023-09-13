@@ -532,13 +532,8 @@ class Run:
         """
         file_handles = {}
         file_handles["inputs"] = self.inputs_fh()
-        try:
-            path = os.path.join(
-                self.config["inputs_dir"], f"{self.data.submission_id}.wdl"
-            )
-            file_handles["wdl"] = self._read_file(path)
-        except Exception as error:
-            raise RunFileNotFoundError(f"Cannot read {path}: {error}")
+        path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.wdl")
+        file_handles["wdl"] = self._read_file(path)
         try:
             path = os.path.join(
                 self.config["inputs_dir"], f"{self.data.submission_id}.zip"
@@ -579,15 +574,17 @@ class Run:
         try:
             file_handles = self.get_run_inputs()
         except RunFileNotFoundError as error:
+            logger.error(f"Run {self.data.id}: Submission failed; {error}")
             self.update_run_status("submission failed", str(error))
         try:
             options = self.cromwell_options()
         except Exception as error:
+            logger.error(f"Run {self.data.id}: Submission failed; {error}")
             self.update_run_status("submission failed", f"Options error: {error}")
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellError as error:
-            logger.error(f"Run {self.data.id} submission failed: {error}")
+            logger.error(f"Run {self.data.id}: Submission failed: {error}")
             # self.update_run_status("submission failed", f"{error}")
             return  # try again later
         else:
