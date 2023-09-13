@@ -394,7 +394,9 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
     assert run.data.workflow_name == "testWorkflow"
-    assert run.data.workflow_root == "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH"
+    assert (
+        run.data.workflow_root == "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH"
+    )
 
 
 def test_run_log(monkeypatch):
@@ -851,4 +853,30 @@ def test_task_summary(
             "requested_memory": "10 GB",
         },
     ]
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+def test_add_prefix_to_paths(mock_sqlalchemy_session):
+    test_site_id = "JGI"
+    test_site_inputs_dir = "s3://JAWS/inputs"
+    test_inputs = {
+        "string": "foo",
+        "infile": "JGI/a/b/c/infile.txt",
+        "somelist": ["apple", "orange"],
+        "filelist": ["JGI/x/bar"],
+        "dictionary": {"apple": "red", "banana": "yellow"},
+        "dict_val_files": {"foo": "JGI/1/2/foo.txt"},
+        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},
+    }
+    expected = {
+        "string": "foo",
+        "infile": "s3://JAWS/inputs/JGI/a/b/c/infile.txt",
+        "somelist": ["apple", "orange"],
+        "filelist": ["s3://JAWS/inputs/JGI/x/bar"],
+        "dictionary": {"apple": "red", "banana": "yellow"},
+        "dict_val_files": {"foo": "s3://JAWS/inputs/JGI/1/2/foo.txt"},
+        "dict_key_files": {"s3://JAWS/inputs/JGI/1/2/bar.txt": "bar"},
+    }
+    run = Run(mock_sqlalchemy_session, initRunModel())
+    actual = run.add_prefix_to_paths(test_inputs, test_site_id, test_site_inputs_dir)
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
