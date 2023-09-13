@@ -464,8 +464,7 @@ class Run:
         inputs = json.load(fh)
         return inputs
 
-    @staticmethod
-    def add_prefix_to_paths(data, site_id: str, prefix: str):
+    def add_prefix_to_paths(self, data, site_id: str, prefix: str):
         """
         Recursively traverse inputs dictionary and add path prefix to file items to
         make them valid absolute paths at this compute-site.
