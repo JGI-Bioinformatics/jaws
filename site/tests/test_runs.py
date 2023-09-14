@@ -455,6 +455,8 @@ def test_from_params(mock_sqlalchemy_session):
         "manifest": ["test", "test2"],
         "manifest_json": "test.json",
         "run_id": 123,
+        "wdl_basename": "workflow.wdl",
+        "json_basename": "inputs.json",
     }
     data = initRunModel(status="succeeded")
     run = Run(mock_sqlalchemy_session, data)

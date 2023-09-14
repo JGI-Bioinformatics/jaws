@@ -29,6 +29,7 @@ from sqlalchemy.orm.session import sessionmaker
 import boto3
 import botocore
 from random import shuffle
+import shutil
 from jaws_site import models, config
 from jaws_site.cromwell import (
     Cromwell,
@@ -123,6 +124,8 @@ class Run:
                 submission_id=params["submission_id"],
                 input_site_id=params["input_site_id"],
                 status="ready",
+                wdl_basename=params["wdl_basename"],
+                json_basename=params["json_basename"],
             )
         except SQLAlchemyError as error:
             raise RunDbError(
@@ -734,6 +737,38 @@ class Run:
         logger.info(f"Run {self.data.id}: Write supplementary files")
         root = self.data.workflow_root
 
+        # copy wdl
+        infiles = []
+        src_wdl_path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.wdl")
+        wdl_path = os.path.join(root, self.data.wdl_basename)
+        try:
+            shutil.copy(src_wdl_path, wdl_path)
+        except IOError as error:
+            logger.error(f"Run {self.data.id}: Failed to copy WDL to output dir: {error}")
+        else:
+            infiles.append(wdl_path)
+
+        # copy subworkflows zip (if exists)
+        src_subworkflows_path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.zip")
+        subworkflows_path = os.path.join(root, "subworkflows.zip")
+        if os.path.isfile(src_subworkflows_path):
+            try:
+                shutil.copy(src_subworkflows_path, subworkflows_path)
+            except IOError as error:
+                logger.error(f"Run {self.data.id}: Failed to copy subworkflows-ZIP to output dir: {error}")
+            else:
+                infiles.append(subworkflows_path)
+
+        # copy inputs json
+        src_inputs_json_path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.json")
+        inputs_json_path = os.path.join(root, self.data.json_basename)
+        try:
+            shutil.copy(src_inputs_json_path, inputs_json_path)
+        except IOError as error:
+            logger.error(f"Run {self.data.id}: Failed to copy inputs-JSON to output dir: {error}")
+        else:
+            infiles.append(inputs_json_path)
+
         # get Cromwell metadata
         try:
             metadata = cromwell.get_metadata(self.data.cromwell_run_id)
@@ -742,7 +777,7 @@ class Run:
             self.update_run_status("failed", "Cromwell metadata could not be retrieved")
             return
         else:
-            metadata_file = f"{root}/metadata.json"
+            metadata_file = os.path.join(root, "metadata.json")
             logger.debug(f"Run {self.data.id}: Writing {metadata_file}")
             write_json_file(metadata_file, metadata.data)
 
@@ -756,7 +791,7 @@ class Run:
             self.update_run_status("failed", "Failed to generate errors report")
             return
         else:
-            errors_file = f"{root}/errors.json"
+            errors_file = os.path.join(root, "errors.json")
             logger.debug(f"Run {self.data.id}: Writing {errors_file}")
             write_json_file(errors_file, errors_report)
 
@@ -770,7 +805,7 @@ class Run:
             self.update_run_status("failed", "Failed to generate outputs file")
             return
         else:
-            outputs_file = f"{root}/outputs.json"
+            outputs_file = os.path.join(root, "outputs.json")
             logger.debug(f"Run {self.data.id}: Writing {outputs_file}")
             write_json_file(outputs_file, outputs)
 
@@ -784,7 +819,7 @@ class Run:
             self.update_run_status("failed", "Failed to generate outfiles file")
             return
         else:
-            outfiles_file = f"{root}/outfiles.json"
+            outfiles_file = os.path.join(root, "outfiles.json")
             logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
             write_json_file(outfiles_file, outfiles)
 
@@ -796,7 +831,7 @@ class Run:
             self.update_run_status("failed", "Failed to generate summary")
             return
         else:
-            summary_file = f"{root}/summary.json"
+            summary_file = os.path.join(root, "summary.json")
             logger.debug(f"Run {self.data.id}: Writing {summary_file}")
             write_json_file(summary_file, summary)
 
@@ -810,7 +845,7 @@ class Run:
             self.update_run_status("failed", "Failed to generate task summary")
             return
         else:
-            task_summary_file = f"{root}/task_summary.json"
+            task_summary_file = os.path.join(root, "task_summary.json")
             logger.debug(f"Run {self.data.id}: Writing {task_summary_file}")
             write_json_file(task_summary_file, task_summary)
 
@@ -825,6 +860,7 @@ class Run:
             return
         else:
             manifest = [
+                *infiles,
                 *outfiles,
                 *failed_folders,
                 "metadata.json",
@@ -834,7 +870,7 @@ class Run:
                 "summary.json",
                 "task_summary.json",
             ]
-            manifest_file = f"{root}/output_manifest.json"
+            manifest_file = os.path.join(root, "output_manifest.json")
             logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
             write_json_file(manifest_file, manifest)
 
