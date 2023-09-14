@@ -68,6 +68,7 @@ class Run:
     def __init__(self, session, data, **kwargs):
         self.session = session
         self.data = data
+        self._metadata = None
         self.operations = {
             "ready": self.submit_run,
             "submitted": self.check_cromwell_run_status,
@@ -212,10 +213,9 @@ class Run:
         }
         return summary
 
-    def task_summary(self, metadata=None) -> list:
+    def task_summary(self) -> list:
         """Produce summary of tasks"""
-        if metadata is None:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+        metadata = self.get_metadata()
 
         # get task log and populate dictionary by task task_dir
         task_log = self.task_log()
@@ -627,55 +627,58 @@ class Run:
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
         return {self.data.id: "ready"}
 
-    def check_cromwell_metadata(self) -> str:
+    def get_metadata(self, **kwargs):
         """
-        Check Cromwell metadata for status, workflow_root, and workflow_name.
-        This is used only for runs in "submitted" state.  Do not transition out of this
-        state until we have the workflow_name and workflow_root.
-        :return: status; may be None if unavailable
-        :rtype: str
+        Get Cromwell metadata, save for future use.
+        Returns cached object unless "force" option is provided.
+        A CromwellError exception may be raised if Cromwell is unreachable.
+        """
+        force = kwargs.get("force", False)
+        if force or self._metadata is None:
+            self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+        return self._metadata
+
+    def check_cromwell_metadata(self):
+        """
+        Check Cromwell metadata for workflow_root and workflow_name.
+        :return: our JAWS Cromwell Metadata object
+        :rtype: Cromwell.Metadata
         """
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
-        try:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-        except CromwellError as error:
-            logger.error(f"Run {self.data.id} failed to get Cromwell metadata: {error}")
-            return None
-        cromwell_status = metadata.get("status")
+        metadata = self.get_metadata()
         workflow_name = metadata.get("workflowName")
         workflow_root = metadata.get("workflowRoot")
-        if workflow_name is None or workflow_root is None:
-            # setting these fields is a requirement to transition past this state
-            return None
-        logger.debug(
-            f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
-        )
-        try:
-            self.data.workflow_name = workflow_name
-            self.data.workflow_root = workflow_root
-            self.session.commit()
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            logger.exception(f"Unable to update Run {self.data.id}: {error}")
-            return None
-        return cromwell_status
+        if workflow_name or workflow_root:
+            logger.debug(
+                f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
+            )
+            try:
+                self.data.workflow_name = workflow_name
+                self.data.workflow_root = workflow_root
+                self.session.commit()
+            except SQLAlchemyError as error:
+                self.session.rollback()
+                logger.exception(f"Unable to update Run {self.data.id}: {error}")
+        return metadata
 
     def check_cromwell_run_status(self) -> None:
         """
         Check Cromwell for the status of the Run.
         """
-        cromwell_status = None
-        if self.data.status == "submitted":
-            cromwell_status = self.check_cromwell_metadata()
-        else:
-            logger.debug(f"Run {self.data.id}: Check Cromwell Run status")
+        if self.data.workflow_root is None:
             try:
-                cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
-            except CromwellError as error:
+                metadata = self.check_cromwell_metadata()
+            except CromwellServiceError as error:
                 logger.error(
-                    f"Unable to check Cromwell status of Run {self.data.id}: {error}"
+                    f"Run {self.data.id}: Failed to generate metadata: {error}"
                 )
-                return
+        try:
+            cromwell_status = cromwell.get_status(self.data.cromwell_run_id)
+        except CromwellError as error:
+            logger.error(
+                f"Run {self.data.id}: Unable to check Cromwell status: {error}"
+            )
+            return
         if not cromwell_status:
             return
 
@@ -692,7 +695,32 @@ class Run:
                 if self.did_run_start() is True:
                     self.update_run_status("running")
         elif cromwell_status == "Failed":
-            self.update_run_status("failed")
+            err_msg = "Cromwell execution failed"
+            if self.data.workflow_root is None:
+                # The run failed in input processing stage, so no output folder was created, and the
+                # errors report shall not be returned to the user.
+                # Thus, we need to include the error message in the run-log.
+                try:
+                    metadata = self.get_metadata()
+                except CromwellServiceError as error:
+                    logger.error(
+                        f"Run {self.data.id}: Failed to generate metadata: {error}"
+                    )
+                err_msg = "Cromwell submission failed"
+                if metadata is not None:
+                    errors_report = metadata.errors()
+                    if (
+                        "failures" in errors_report
+                        and "message" in errors_report["failures"]
+                    ):
+                        err_msg = errors_report["failures"]
+                    err_detail = []
+                    if "causedBy" in errors_report:
+                        for item in errors_report["causedBy"]:
+                            err_detail.append(item["message"])
+                    if len(err_detail):
+                        err_msg = f"{err_msg}: " + "; ".join(err_detail)
+            self.update_run_status("failed", err_msg)
         elif cromwell_status == "Succeeded":
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
@@ -739,39 +767,51 @@ class Run:
 
         # copy wdl
         infiles = []
-        src_wdl_path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.wdl")
+        src_wdl_path = os.path.join(
+            self.config["inputs_dir"], f"{self.data.submission_id}.wdl"
+        )
         wdl_path = os.path.join(root, self.data.wdl_basename)
         try:
             shutil.copy(src_wdl_path, wdl_path)
         except IOError as error:
-            logger.error(f"Run {self.data.id}: Failed to copy WDL to output dir: {error}")
+            logger.error(
+                f"Run {self.data.id}: Failed to copy WDL to output dir: {error}"
+            )
         else:
             infiles.append(wdl_path)
 
         # copy subworkflows zip (if exists)
-        src_subworkflows_path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.zip")
+        src_subworkflows_path = os.path.join(
+            self.config["inputs_dir"], f"{self.data.submission_id}.zip"
+        )
         subworkflows_path = os.path.join(root, "subworkflows.zip")
         if os.path.isfile(src_subworkflows_path):
             try:
                 shutil.copy(src_subworkflows_path, subworkflows_path)
             except IOError as error:
-                logger.error(f"Run {self.data.id}: Failed to copy subworkflows-ZIP to output dir: {error}")
+                logger.error(
+                    f"Run {self.data.id}: Failed to copy subworkflows-ZIP to output dir: {error}"
+                )
             else:
                 infiles.append(subworkflows_path)
 
         # copy inputs json
-        src_inputs_json_path = os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.json")
+        src_inputs_json_path = os.path.join(
+            self.config["inputs_dir"], f"{self.data.submission_id}.json"
+        )
         inputs_json_path = os.path.join(root, self.data.json_basename)
         try:
             shutil.copy(src_inputs_json_path, inputs_json_path)
         except IOError as error:
-            logger.error(f"Run {self.data.id}: Failed to copy inputs-JSON to output dir: {error}")
+            logger.error(
+                f"Run {self.data.id}: Failed to copy inputs-JSON to output dir: {error}"
+            )
         else:
             infiles.append(inputs_json_path)
 
         # get Cromwell metadata
         try:
-            metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            metadata = self.get_metadata()
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
             self.update_run_status("failed", "Cromwell metadata could not be retrieved")
@@ -837,7 +877,7 @@ class Run:
 
         # write task summary
         try:
-            task_summary = self.task_summary(metadata)
+            task_summary = self.task_summary()
         except Exception as error:
             logger.error(
                 f"Run {self.data.id}: Failed to generate task summary: {error}"
