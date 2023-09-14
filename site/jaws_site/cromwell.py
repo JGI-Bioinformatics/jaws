@@ -701,7 +701,7 @@ class Metadata:
         return self.data.get(param, default)
 
     def workflow_name(self):
-        return self.get("workflowName", "unknown")
+        return self.get("workflowName", None)
 
     def workflow_root(self, **kwargs):
         """
@@ -806,7 +806,25 @@ class Metadata:
 
     def outputs(self, **kwargs):
         """Returns all outputs for a workflow"""
-        return self.get("outputs", {})
+        relpaths = kwargs.get("relpaths", False)
+        outputs = self.get("outputs", {})
+        if relpaths is False:
+            return outputs
+
+        # make paths relative to "{workflow_root}/{workflow_name}"
+        # i.e. the path starting with the cromwell run id
+        workflow_root = self.workflow_root(**kwargs)
+
+        if not workflow_root:
+            raise ValueError("The workflowRoot could not be determined.")
+        elif len(outputs.keys()) == 0:
+            return {}
+
+        # convert to string, convert all paths to relpaths via replace, then convert back to dict
+        output_str = json.dumps(outputs, indent=0)
+        output_str = output_str.replace(workflow_root, ".")
+        relpath_outputs = json.loads(output_str)
+        return relpath_outputs
 
     def outfiles(self, **kwargs):
         """

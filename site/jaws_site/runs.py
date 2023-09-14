@@ -762,7 +762,7 @@ class Run:
 
         # write outputs
         try:
-            outputs = metadata.outputs()
+            outputs = metadata.outputs(relpaths=True)
         except Exception as error:
             logger.error(
                 f"Run {self.data.id}: Failed to generate outputs file: {error}"

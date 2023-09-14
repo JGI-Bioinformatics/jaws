@@ -943,3 +943,45 @@ def test_failed_folders(requests_mock, monkeypatch):
         )
         is False
     )
+
+
+def test_outputs(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_8}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_8, "metadata"),
+    )
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_8}/outputs",
+        json=__load_example_output_from_file(example_cromwell_run_id_8, "outputs"),
+    )
+    expected = {
+        "create_lastdb.dbFiles": [
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",
+        ]
+    }
+    ex_8 = crom.get_metadata(example_cromwell_run_id_8)
+
+    # test : abspaths
+    actual = ex_8.outputs()
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+    # test: relpaths
+    expected = {
+        "create_lastdb.dbFiles": [
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+            "./call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis",
+        ]
+    }
+    actual = ex_8.outputs(relpaths=True)
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
