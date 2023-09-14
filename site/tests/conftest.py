@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
-from jaws_site import models, config, cromwell
+from jaws_site import models, config, cromwell, runs
 import sqlalchemy
 from sqlalchemy.orm.exc import NoResultFound
 from moto import mock_s3
@@ -164,6 +164,7 @@ def initRunModel(**kwargs):
         submitted=kwargs.get("submitted", datetime.utcnow()),
         updated=kwargs.get("updated", datetime.utcnow()),
         workflow_root=kwargs.get("workflow_root", None),
+        workflow_name=kwargs.get("workflow_name", None),
     )
 
 
@@ -192,6 +193,7 @@ class MockRunModel:
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
         self.workflow_root = kwargs.get("workflow_root", None)
+        self.workflow_name = kwargs.get("workflow_name", None)
 
 
 class MockRun:
@@ -1117,7 +1119,7 @@ def mock_metadata(monkeypatch):
             return "/root"
 
         def errors(self):
-            return "error"
+            return {}
 
         def running(self):
             return "running"

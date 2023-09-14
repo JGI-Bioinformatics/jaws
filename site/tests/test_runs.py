@@ -391,12 +391,26 @@ def test_check_cromwell_run_status(monkeypatch, mock_metadata):
     # test get metadata, workflow_root
     mock_data = MockRunModel(status="submitted", cromwell_run_id="ABCD-EFGH")
     run = Run(mock_session, mock_data)
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_running
+    )
     run.check_cromwell_run_status()
     assert run.data.status == "queued"
     assert run.data.workflow_name == "testWorkflow"
     assert (
         run.data.workflow_root == "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH"
     )
+
+    # test: ready -> failed
+    mock_data = MockRunModel(
+        status="ready", workflow_root=None, cromwell_run_id="ABCD-EFGH"
+    )
+    run = Run(mock_session, mock_data)
+    monkeypatch.setattr(
+        jaws_site.cromwell.Cromwell, "get_status", mock_get_status_failed
+    )
+    run.check_cromwell_run_status()
+    assert run.data.status == "failed"
 
 
 def test_run_log(monkeypatch):
@@ -828,7 +842,7 @@ def test_task_summary(
 
     monkeypatch.setattr(Run, "task_log", mock_task_log)
 
-    data = initRunModel()
+    data = initRunModel(cromwell_run_id="ABCD-EFGH")
     run = Run(mock_sqlalchemy_session, data)
 
     actual = run.task_summary()
