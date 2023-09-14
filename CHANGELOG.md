@@ -6,6 +6,7 @@
 - task-summary shall use timestamps from the task log instead of Cromwell metadata (#1611)
 - ensure infiles exist upon (re)submit before sending to Cromwell; i.e. haven't been purged (jaws-support#110)
 - update atime for infiles when (re)submit; to avoid purging files prematurely (#1689)
+- outputs.json shall contain relpaths instead of abspaths (#1652)
 
 ## 2.0.0 Summary [08/23/2023]
 ### Internal Facing Changes
