@@ -1,0 +1,11 @@
+{
+  "create_lastdb.dbFiles": [
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.bck",
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.des",
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.prj",
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.sds",
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.ssp",
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.suf",
+    "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/create_lastdb/5a2cbafe-56ed-42aa-955d-fef8cb5014bb/call-lastdb/execution/glob-457b18ddcc95e1a8de02cd6f6cc84b25/refGenomes.faa.tis"
+  ]
+}
