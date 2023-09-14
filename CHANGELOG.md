@@ -9,6 +9,7 @@
 - outputs.json shall contain relpaths instead of abspaths (#1652)
 - runs' output folders shall once again contain a copy of the WDL, inputs-JSON, and subworkflows-ZIP (#1710)
 - fixed bug when Cromwell submission fails during input processing, before a folder is created, and was not recognized by JAWS (#1711)
+- corrected outputs folder permissions (#1712)
 
 ## 2.0.0 Summary [08/23/2023]
 ### Internal Facing Changes
