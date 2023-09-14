@@ -170,6 +170,8 @@ operations = {
             "run_id",
             "submission_id",
             "input_site_id",
+            "wdl_basename",
+            "json_basename",
         ],
     },
     "resubmit_run": {
