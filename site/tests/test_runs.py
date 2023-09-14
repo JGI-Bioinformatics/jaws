@@ -882,7 +882,7 @@ def test_add_prefix_to_paths(mock_sqlalchemy_session):
         "filelist": ["JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
         "dict_val_files": {"foo": "JGI/1/2/foo.txt"},
-        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},
+        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},  # we don't substitute for dict keys
     }
     expected = {
         "string": "foo",
@@ -891,7 +891,7 @@ def test_add_prefix_to_paths(mock_sqlalchemy_session):
         "filelist": ["s3://JAWS/inputs/JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
         "dict_val_files": {"foo": "s3://JAWS/inputs/JGI/1/2/foo.txt"},
-        "dict_key_files": {"s3://JAWS/inputs/JGI/1/2/bar.txt": "bar"},
+        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},
     }
     run = Run(mock_sqlalchemy_session, initRunModel())
     actual = run.add_prefix_to_paths(test_inputs, test_site_id, test_site_inputs_dir)

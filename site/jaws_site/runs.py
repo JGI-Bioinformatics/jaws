@@ -500,9 +500,8 @@ class Run:
         elif type(data) is dict:
             new_data = {}
             for key, value in data.items():
-                new_key = self.add_prefix_to_paths(key, site_id, prefix)
                 new_value = self.add_prefix_to_paths(value, site_id, prefix)
-                new_data[new_key] = new_value
+                new_data[key] = new_value
             return new_data
         else:
             return data
