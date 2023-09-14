@@ -5,7 +5,6 @@ Items are stored in a relational database.
 import concurrent.futures
 import logging
 import os
-import pathlib
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 import json
@@ -19,11 +18,20 @@ from parallel_sync import rsync
 logger = logging.getLogger(__package__)
 
 
-def mkdir(folder):
-    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-
-
 FILES_PER_THREAD = 10000
+
+
+def mkdir(path, mode=None):
+    if mode is None:
+        mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+    if not path or os.path.exists(path):
+        return []
+    (head, tail) = os.path.split(path)
+    res = mkdir(head, mode)
+    os.mkdir(path)
+    os.chmod(path, mode)
+    res += [path]
+    return res
 
 
 class TransferError(Exception):
@@ -537,7 +545,9 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
         if not os.path.exists(s):
             raise FileNotFoundError(f"Cannot rsync {s}. File does not exist")
         if os.path.isdir(s):
-            raise IsADirectoryError("parallel_rsync_files_only does not support folders")
+            raise IsADirectoryError(
+                "parallel_rsync_files_only does not support folders"
+            )
         d = os.path.join(dest, rel_path)
         paths.append((s, d))
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
