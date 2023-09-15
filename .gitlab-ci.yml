@@ -332,7 +332,7 @@ deploy-jaws-nmdc-dev:
   extends: .nmdc-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_VERSION: "dev-$CI_COMMIT_SHORT_SHA"
+    JAWS_SITE_VERSION: "dev"
   environment:
     name: "nmdc/dev"
   rules:
@@ -411,7 +411,7 @@ deploy-jaws-dori-staging:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       variables:
-        JAWS_SITE_VERSION: "apptainer-mr-$CI_MERGE_REQUEST_IID"
+        JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
       when: manual
 
 deploy-jaws-dori-prod:
