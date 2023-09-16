@@ -421,24 +421,20 @@ class Run:
         inputs = json.load(fh)
         return inputs
 
-    def add_prefix_to_paths(self, data, site_id: str, prefix: str):
+    def rel_to_abs(self, data: any) -> any:
         """
-        Recursively traverse inputs dictionary and add path prefix to file items to
-        make them valid absolute paths at this compute-site.
+        Recursively traverse data structure and replace FILE variables' relative paths
+        (indicated by starting with "./") to absolute paths, using this site's inputs dir.
         Also touch the files to ensure their accessed timestamps are current.
         Raise on missing file.
-        :param site_id: The name of the compute-site
-        :ptype str:
         :param prefix: The path to the input data folder
         :ptype prefix: str
         :return: If item is a relpath, return abspath, else return unmodified item.
         :rtype: any
         """
         if type(data) is str:
-            if data.startswith(site_id):
-                abspath = os.path.join(prefix, data)
-                if abspath.startswith("s3://"):
-                    return abspath
+            if data.startswith("./"):
+                abspath = os.path.normpath(os.path.join(self.config["inputs_dir"], data))
                 if not os.path.isfile(abspath):
                     raise RunFileNotFoundError(f"File not found: {abspath}")
                 # touch to ensure atime is changed to now
@@ -449,13 +445,14 @@ class Run:
         elif type(data) is list:
             new_data = []
             for item in data:
-                new_data.append(self.add_prefix_to_paths(item, site_id, prefix))
+                new_data.append(self.rel_to_abs(item))
             return new_data
         elif type(data) is dict:
             new_data = {}
             for key, value in data.items():
-                new_value = self.add_prefix_to_paths(value, site_id, prefix)
-                new_data[key] = new_value
+                new_key = self.rel_to_abs(key)
+                new_value = self.rel_to_abs(value)
+                new_data[new_key] = new_value
             return new_data
         else:
             return data
@@ -466,9 +463,7 @@ class Run:
         :return: input parameters
         :rtype: dict
         """
-        return self.add_prefix_to_paths(
-            self.read_inputs(), self.data.input_site_id, self.config["inputs_dir"]
-        )
+        return self.rel_to_abs(self.read_inputs())
 
     def inputs_fh(self):
         """
