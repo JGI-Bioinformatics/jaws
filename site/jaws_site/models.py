@@ -67,7 +67,7 @@ class Run_Log(Base):
 
 
 class Task_Log(Base):
-    __tablename__ = "task_logs"
+    __tablename__ = "tasks"
     id = Column(Integer, primary_key=True)  # auto-increment
     cromwell_run_id = Column(String(36), nullable=False)
     cromwell_job_id = Column(Integer, nullable=False)
