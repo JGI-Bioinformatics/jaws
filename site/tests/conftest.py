@@ -242,7 +242,41 @@ class MockTaskLog:
         self.data = []
 
     def table(self):
-        return []
+        return {
+            "header": [
+                "TASK_DIR",
+                "STATUS",
+                "QUEUE_START",
+                "RUN_START",
+                "RUN_END",
+                "RC",
+                "QUEUE_DUR",
+                "RUN_DUR",
+            ],
+            "data": [
+                [
+                    "call-test",
+                    "done",
+                    "01-01-2022 01:00:00",
+                    "01-01-2022 01:01:00",
+                    "01-01-2022 01:11:00",
+                    0,
+                    "00:01:00",
+                    "00:10:00",
+                ]
+            ],
+        }
+
+    def add_metadata(self, metadata):
+        assert metadata is not None
+
+
+@pytest.fixture()
+def mock_task_log(monkeypatch):
+    monkeypatch.setattr(runs.Run, "task_log", mock_task_log)
+
+    mock_session = None
+    return MockTaskLog(mock_session, "ABCD-EFGH")
 
 
 class MockCromwell:
@@ -1100,11 +1134,6 @@ def mock_metadata(monkeypatch):
                     "execution_status": "done",
                     "result": "succeeded",
                     "failure_message": None,
-                    "queue_start": "01-01-2022 12:00:00",
-                    "run_start": "01-01-2022 12:01:00",
-                    "run_end": "01-01-2022 12:11:00",
-                    "queue_duration": "00:01:00",
-                    "run_duration": "00:10:00",
                     "call_root": "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH/call-test",
                     "requested_time": "00:30:00",
                     "requested_cpu": 15,

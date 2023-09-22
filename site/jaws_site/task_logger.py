@@ -14,7 +14,7 @@ class TaskLoggerDbError(Exception):
 
 
 class TaskLogger:
-    def __init__(self, config, session, logger=None) -> None:
+    def __init__(self, session, logger=None) -> None:
         """
         The task logger receives RabbitMQ messages and saves them in the RDb.
         :param config: Configuration parameters
@@ -22,7 +22,6 @@ class TaskLogger:
         :param self.session: Database self.session handle
         :ptype self.session: sqlalchemy.orm.self.sessionmaker
         """
-        self.config = config
         self.session = session
         if logger is None:
             self.logger = logging.getLogger(__package__)
@@ -149,10 +148,15 @@ class TaskLogger:
             if status == "running":
                 row.run_start = timestamp
                 row.status = "running"
+                duration = row.run_start - row.queue_start
+                row.queue_minutes = round(duration.total_seconds() / 60, 0)
             else:
                 row.run_end = timestamp
                 row.rc = kwargs.get("rc", None)
                 row.status = "done"
+                if row.run_start is not None:
+                    duration = row.run_end - row.run_start
+                    row.run_minutes = round(duration.total_seconds() / 60, 0)
             self.session.commit()
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
@@ -166,19 +170,19 @@ class TaskLogger:
             )
         return True
 
-    def receive_messages(self):
+    def receive_messages(self, config):
         """
         Receive and consume task-log messages indefinately.
         """
-        host = self.config.get("RMQ", "host")
-        port = self.config.get("RMQ", "port")
-        vhost = self.config.get("RMQ", "vhost")
-        user = self.config.get("RMQ", "user")
-        password = self.config.get("RMQ", "password")
+        host = config.get("RMQ", "host")
+        port = config.get("RMQ", "port")
+        vhost = config.get("RMQ", "vhost")
+        user = config.get("RMQ", "user")
+        password = config.get("RMQ", "password")
         ttl = int(
-            self.config.get("RMQ", "ttl", 3600000)
+            config.get("RMQ", "ttl", 3600000)
         )  # must match value in sender's config
-        site_id = self.config.get("SITE", "id")
+        site_id = config.get("SITE", "id")
         queue = f"{site_id}_tasks"
 
         def callback(ch, method, properties, body):

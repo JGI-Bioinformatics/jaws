@@ -33,7 +33,6 @@ import glob
 import json
 import io
 import re
-from datetime import datetime
 from dateutil import parser
 from collections import deque
 import boto3
@@ -59,6 +58,9 @@ retries = urllib3.Retry(
 )
 
 session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+
+time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
+memory_re = re.compile(r"^\s*(\d+)\s*(\w+)\s*$")
 
 
 def s3_parse_uri(full_uri):
@@ -206,37 +208,21 @@ class Call:
         self.data = data
         self.attempt = data.get("attempt", None)
         self.shard_index = data.get("shardIndex", -1)
-        if self.shard_index > -1:
-            self.name = f"{task_name}[{self.shard_index}]"
-        else:
-            self.name = task_name
+        self.name = task_name
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
         self.return_code = data.get("returnCode", None)
-        self.start = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # default
-        if "start" in data:
-            self.start = parser.parse(data["start"]).strftime("%Y-%m-%d %H:%M:%S")
-        self.end = None
-        if "end" in data:
-            self.end = parser.parse(data["end"]).strftime("%Y-%m-%d %H:%M:%S")
         self.stdout = self.data.get("stdout", None)
         self.stderr = self.data.get("stderr", None)
         self.call_root = self.data.get("callRoot", None)
         self.execution_dir = None
         self.job_id = self.data.get("jobId", None)
-        self.requested_time = None
-        self.requested_memory = None
+        self.requested_time_minutes = None
+        self.requested_memory_gb = None
         self.requested_cpu = None
         self.failure_message = None
-
-        # Here, we are using a file called container_start_time that is created when the job is run. This is used
-        # to get the start time of a run. The file is defined in cromwell.conf.
-        self.container_startfile = None
-        if self.call_root:
-            self.container_startfile = os.path.join(
-                self.call_root, "execution/container_start_time"
-            )
+        self.dir = None
 
         if self.execution_status == "Failure":
             self.result = "failed"
@@ -247,60 +233,16 @@ class Call:
             self.requested_time = self.data["runtimeAttributes"].get("time", None)
             self.requested_memory = self.data["runtimeAttributes"].get("memory", None)
             self.requested_cpu = self.data["runtimeAttributes"].get("cpu", None)
+            if self.requested_cpu is not None:
+                self.requested_cpu = int(self.requested_cpu)
 
         if "failures" in self.data:
             # save last failure message only
             for failure in self.data["failures"]:
                 self.failure_message = failure["message"]
 
-        # init with None to ensure keys exist
-        self.queue_start = None
-        self.queuetime_sec = None
-        self.run_start = None
-        self.run_end = None
-        self.queue_duration = None
-        self.run_duration = None
-        self.runtime_sec = None
-        self.wallclock_duration = None
-        self.walltime_sec = None
-        self.dir = None
-
         if "callCaching" in self.data and "hit" in self.data["callCaching"]:
             self.cached = self.data["callCaching"]["hit"]
-
-        # get queued, running, and completed times as well as durations
-        if "executionEvents" in self.data:
-            for event in self.data["executionEvents"]:
-                if event["description"] == "RequestingExecutionToken":
-                    self.queue_start = parser.parse(event["startTime"]).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                elif event["description"] == "RunningJob":
-                    self.run_start = parser.parse(event["startTime"]).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                elif event["description"] == "CallCacheReading":
-                    self.run_start = parser.parse(event["startTime"]).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                elif event["description"] == "UpdatingJobStore":
-                    self.run_end = parser.parse(event["startTime"]).strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-        if self.queue_start is None:
-            self.queue_start = self.start
-        if self.queue_start is not None and self.run_start is not None:
-            delta = parser.parse(self.run_start) - parser.parse(self.queue_start)
-            self.queue_duration = str(delta)
-            self.queuetime_sec = int(delta.total_seconds())
-        if self.run_start is not None and self.run_end is not None:
-            delta = parser.parse(self.run_end) - parser.parse(self.run_start)
-            self.run_duration = str(delta)
-            self.runtime_sec = int(delta.total_seconds())
-        if self.run_end is not None and self.queue_start is not None:
-            delta = parser.parse(self.run_end) - parser.parse(self.queue_start)
-            self.wallclock_duration = str(delta)
-            self.walltime_sec = int(delta.total_seconds())
 
     def _get_file_path(self, file_id, relpath=False):
         """
@@ -361,11 +303,6 @@ class Call:
             "execution_status": self.execution_status,
             "result": self.result,
             "failure_message": self.failure_message,
-            "queue_start": self.queue_start,
-            "run_start": self.run_start,
-            "run_end": self.run_end,
-            "queue_duration": self.queue_duration,
-            "run_duration": self.run_duration,
             "call_root": self.call_root,
             "requested_time": self.requested_time,
             "requested_cpu": self.requested_cpu,
@@ -583,8 +520,6 @@ class Task:
                 result.append(call.summary())
         for shard_index in self.subworkflows.keys():
             subworkflow_name = self.name
-            if shard_index > -1:
-                subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             for attempt in self.subworkflows[shard_index].keys():
                 sub_meta = self.subworkflows[shard_index][attempt]
                 for item in sub_meta.task_summary(last_attempts=False):
@@ -603,8 +538,6 @@ class Task:
             result.append(call.summary())
         for shard_index in self.subworkflows.keys():
             subworkflow_name = self.name
-            if shard_index > -1:
-                subworkflow_name = f"{subworkflow_name}[{shard_index}]"
             attempts = sorted(self.subworkflows[shard_index].keys())
             attempt = attempts[-1]
             sub_meta = self.subworkflows[shard_index][attempt]
@@ -790,7 +723,7 @@ class Metadata:
         for task_name, task in self.tasks.items():
             for item in task.summary(**kwargs):
                 summary.append(item)
-        return sort_table_dict(summary, "queue_start")
+        return summary
 
     def job_summary(self, **kwargs) -> dict:
         """
@@ -1033,73 +966,3 @@ class Cromwell:
         """
         result = self.get(workflow_id, "status")
         return result["status"]
-
-
-def parse_cromwell_task_dir(task_dir):
-    """
-    Given path of a task, return task fields.
-    """
-    result = {"call_root": task_dir, "cached": False, "shard": -1, "name": "None"}
-    if isinstance(task_dir, float):
-        return result
-
-    if task_dir.endswith("/execution"):
-        cut = task_dir.find("/execution")
-        result["call_root"] = result["call_root"][:cut]
-    else:
-        task_dir = f"{task_dir}/execution"
-
-    try:
-        (root_dir, subdir) = task_dir.split("cromwell-executions/")
-    except ValueError:
-        # Aws calls it execution without the "s"
-        (root_dir, subdir) = task_dir.split("cromwell-execution/")
-    except Exception as e:
-        logging.warning(f"Problem splitting directory {type(e).__name__}: {e}")
-        return result
-    result["call_root_rel_path"] = subdir
-    fields = deque(subdir.split("/"))
-    result["wdl_name"] = fields.popleft()
-    result["name"] = result["wdl_name"]
-    result["cromwell_run_id"] = fields.popleft()
-    if not fields[0].startswith("call-"):
-        logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
-        return result
-    result["task_name"] = fields.popleft().split("-")[-1]
-    result["name"] = f"{result['name']}.{result['task_name']}"
-    if fields[0].startswith("shard-"):
-        result["shard"] = int(fields.popleft().split("-")[-1])
-        result["name"] = f"{result['name']}[{result['shard']}]"
-    if fields[0] == "execution":
-        return result
-    elif fields[0] == "cacheCopy":
-        result["cached"] = True
-        return result
-
-    # Could be a while but let's fail after 5 subworkflows instead of looping forever
-    for _ in range(5):
-        # subworkflow
-        result["subworkflow_name"] = fields.popleft()
-        if "." in result["subworkflow_name"]:
-            result["subworkflow_name"] = result["subworkflow_name"].split(".")[-1]
-        shard_num_loc = result["name"].rfind("[")
-        if shard_num_loc != -1:
-            result["name"] = result["name"][:shard_num_loc]
-        result["name"] = f"{result['name']}:{result['subworkflow_name']}"
-        result["subworkflow_cromwell_run_id"] = fields.popleft()
-        if not fields[0].startswith("call-"):
-            logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
-            return result
-        result["sub_task_name"] = fields.popleft().split("-")[-1]
-        result["name"] = f"{result['name']}.{result['sub_task_name']}"
-        if fields[0].startswith("shard-"):
-            result["sub_shard"] = int(fields.popleft().split("-")[-1])
-            result["name"] = f"{result['name']}[{result['sub_shard']}]"
-        if fields[0] == "execution":
-            return result
-        elif fields[0] == "cacheCopy":
-            result["cached"] = True
-            return result
-
-    logging.warning(f"parse_cromwell_task_dir error @ {subdir}")
-    return result

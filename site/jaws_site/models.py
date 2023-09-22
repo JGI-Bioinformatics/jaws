@@ -3,7 +3,15 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, DateTime, String, Integer, Boolean, ForeignKey
+from sqlalchemy import (
+    Column,
+    DateTime,
+    String,
+    Integer,
+    SmallInteger,
+    Boolean,
+    ForeignKey,
+)
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from jaws_site.database import Base
 
@@ -72,11 +80,16 @@ class Task_Log(Base):
     cromwell_run_id = Column(String(36), nullable=False)
     cromwell_job_id = Column(Integer, nullable=False)
     task_dir = Column(String(256), nullable=False)
+    req_cpu = Column(SmallInteger, nullable=True)
+    req_memory_gb = Column(SmallInteger, nullable=True)
+    req_time_m = Column(SmallInteger, nullable=True)
     status = Column(String(32), nullable=False)
     queue_start = Column(DateTime, nullable=False)
     run_start = Column(DateTime, nullable=True)
     run_end = Column(DateTime, nullable=True)
-    rc = Column(Integer, nullable=True)
+    queue_minutes = Column(SmallInteger, nullable=True)
+    run_minutes = Column(SmallInteger, nullable=True)
+    rc = Column(SmallInteger, nullable=True)
 
 
 class Transfer(Base):

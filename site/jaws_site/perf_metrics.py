@@ -7,7 +7,6 @@ from pathlib import Path
 from functools import lru_cache
 from jaws_site import runs
 from jaws_rpc import rpc_client_basic
-from jaws_site.cromwell import parse_cromwell_task_dir
 
 import numpy as np
 import pandas as pd
@@ -83,9 +82,6 @@ class PerformanceMetrics:
         csv_data["jaws_run_id"] = csv_data.cromwell_run_id.apply(self.get_run_id)
         # Filter out anything that didn't get a jaws_run_id returned
         csv_data = csv_data[csv_data.jaws_run_id != "None"]
-
-        # Add task_name to the dataframe
-        csv_data["task_name"] = csv_data.current_dir.apply(parse_cromwell_task_dir_name)
 
         # Drops the current_dir, since we shouldn't need it anymore
         # csv_data = csv_data.drop(columns=["current_dir"])
@@ -326,11 +322,3 @@ def remove_beginning_path(working_dir):
         )
 
     return dir_name
-
-
-@lru_cache()
-def parse_cromwell_task_dir_name(results):
-    """Get's just the name from parse_cromwell_task_dir
-    Needed for pandas apply since we just want the name in that column
-    """
-    return parse_cromwell_task_dir(results)["name"]

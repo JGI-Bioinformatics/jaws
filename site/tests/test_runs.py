@@ -812,40 +812,14 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
 
 
 def test_task_summary(
-    requests_mock, mock_metadata, mock_sqlalchemy_session, monkeypatch
+    requests_mock, mock_metadata, mock_sqlalchemy_session, mock_task_log, monkeypatch
 ):
-    def mock_task_log(self):
-        return {
-            "header": [
-                "TASK_DIR",
-                "STATUS",
-                "QUEUE_START",
-                "RUN_START",
-                "RUN_END",
-                "RC",
-                "QUEUE_DUR",
-                "RUN_DUR",
-            ],
-            "data": [
-                [
-                    "call-test",
-                    "done",
-                    "01-01-2022 01:00:00",
-                    "01-01-2022 01:01:00",
-                    "01-01-2022 01:11:00",
-                    0,
-                    "00:01:00",
-                    "00:10:00",
-                ]
-            ],
-        }
-
-    monkeypatch.setattr(Run, "task_log", mock_task_log)
 
     data = initRunModel(cromwell_run_id="ABCD-EFGH")
     run = Run(mock_sqlalchemy_session, data)
 
     actual = run.task_summary()
+    print(actual)  # ECCE
     expected = [
         {
             "name": "test",
@@ -861,12 +835,12 @@ def test_task_summary(
             "run_start": "01-01-2022 01:01:00",
             "run_end": "01-01-2022 01:11:00",
             "rc": 0,
-            "queue_duration": "00:01:00",
-            "run_duration": "00:10:00",
+            "queue_minutes": 1,
+            "run_minutes": 10,
             "call_root": "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH/call-test",
-            "requested_time": "00:30:00",
+            "requested_time_minutes": 30,
             "requested_cpu": 15,
-            "requested_memory": "10 GB",
+            "requested_memory_gb": 10,
         },
     ]
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
@@ -882,7 +856,9 @@ def test_add_prefix_to_paths(mock_sqlalchemy_session):
         "filelist": ["JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
         "dict_val_files": {"foo": "JGI/1/2/foo.txt"},
-        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},  # we don't substitute for dict keys
+        "dict_key_files": {
+            "JGI/1/2/bar.txt": "bar"
+        },  # we don't substitute for dict keys
     }
     expected = {
         "string": "foo",
