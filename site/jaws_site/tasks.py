@@ -44,7 +44,6 @@ class TaskLog:
         :return: sqlalchemy query object
         :rtype: obj
         """
-        table = []
         try:
             query = (
                 self.session.query(models.Task_Log)
@@ -94,7 +93,7 @@ class TaskLog:
             run_minutes = None
             if queue_start and run_start:
                 queue_dur = run_start - queue_start
-                queue_minutes = roun(queue_dur.total_seconds() / 60, 0)
+                queue_minutes = round(queue_dur.total_seconds() / 60, 0)
             if run_start and run_end:
                 run_dur = run_end - run_start
                 run_minutes = round(run_dur.total_seconds() / 60, 0)
@@ -217,7 +216,7 @@ class TaskLog:
                 "requested_gb": self.memory_gb(task["requested_memory"]),
                 "failure_message": task["failure_message"],
             }
-            if cached is True:
+            if about["cached"] is True:
                 cached_tasks[task_dir] = about
             else:
                 task_metadata[task_dir] = about
