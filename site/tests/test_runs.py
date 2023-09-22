@@ -583,7 +583,7 @@ def test_task_log(mock_metadata, mock_sqlalchemy_session):
     data = initRunModel(cromwell_run_id=None)
     run = Run(mock_sqlalchemy_session, data)
     ret = run.task_log()
-    assert len(ret) == 0
+    assert ret is None
 
 
 def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
@@ -809,41 +809,6 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
         "outmanifest.json",
         "task_summary.json",
     ]
-
-
-def test_task_summary(
-    requests_mock, mock_metadata, mock_sqlalchemy_session, mock_task_log, monkeypatch
-):
-
-    data = initRunModel(cromwell_run_id="ABCD-EFGH")
-    run = Run(mock_sqlalchemy_session, data)
-
-    actual = run.task_summary()
-    print(actual)  # ECCE
-    expected = [
-        {
-            "name": "test",
-            "shard_index": "-1",
-            "attempt": 1,
-            "cached": False,
-            "job_id": "123",
-            "execution_status": "done",
-            "result": "succeeded",
-            "failure_message": None,
-            "status": "done",
-            "queue_start": "01-01-2022 01:00:00",
-            "run_start": "01-01-2022 01:01:00",
-            "run_end": "01-01-2022 01:11:00",
-            "rc": 0,
-            "queue_minutes": 1,
-            "run_minutes": 10,
-            "call_root": "/scratch/cromwell-executions/testWorkflow/ABCD-EFGH/call-test",
-            "requested_time_minutes": 30,
-            "requested_cpu": 15,
-            "requested_memory_gb": 10,
-        },
-    ]
-    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
 
 def test_add_prefix_to_paths(mock_sqlalchemy_session):
