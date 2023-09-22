@@ -33,8 +33,6 @@ import glob
 import json
 import io
 import re
-from dateutil import parser
-from collections import deque
 import boto3
 import botocore
 
