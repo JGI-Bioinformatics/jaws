@@ -195,24 +195,21 @@ class TaskLog:
         else:
             return None
 
-    def add_metadata(self, metadata: dict):
+    def _add_cached_taks(self, task_summary: list) -> None:
         """
-        Add fields from the Cromwell metadata:
-        - requested cpu
-        - requested memory (in GB)
-        - requested time (in minutes)
-        And update the status using the Cromwell "executionStatus",  which shall differ from return code when a
-        task's expected outputs cannot be reaped (e.g. missing file).
+        Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
+        They shall not include cpu-hours data so won't affect resource calculations.
+        New rows are inserted but not committed as this is part of a larger transaction; see: add_metadata().
+        :param task_summary: list of task metadata, produced by JAWS Cromwell class
+        :ptype task_summary: list
         """
-        # Extract and preprocess desired fields from Cromwell metadata.
-        # Cached tasks shall be added.
-        summary = metadata.task_summary()
-        task_metadata = {}
-        for task in summary:
+        for task in task_summary:
             call_root = task["call_root"]
             p = call_root.split("/")
             i = p.index(self.cromwell_run_id) + 1
             task_dir = "/".join(p[i:])
+            if task["cached"] is not True:
+                continue
             about = {
                 # "name": task["name"],  # TODO: add to model?
                 "result": task["result"],
@@ -225,25 +222,57 @@ class TaskLog:
                 "requested_gb": self.memory_gb(task["requested_memory"]),
                 "failure_message": task["failure_message"],
             }
-            if about["cached"] is True:
-                # insert records for cached tasks
-                log_entry = models.Task_Log(
-                    cromwell_run_id=self.cromwell_run_id,
-                    cromwell_job_id=about["job_id"],
-                    task_dir=task_dir,
-                    status=about["result"],
-                    queue_start=None,
-                    cached=about["cached"],
-                    shard_index=about["shard_index"],
-                    requested_minutes=about["requested_minutes"],
-                    requested_cpu=about["requested_cpu"],
-                    requested_gb=about["requested_gb"],
-                )
-                self.session.add(log_entry)
-            else:
-                # otherwise save, to be added below
-                task_metadata[task_dir] = about
+            log_entry = models.Task_Log(
+                cromwell_run_id=self.cromwell_run_id,
+                cromwell_job_id=about["job_id"],
+                task_dir=task_dir,
+                status=about["result"],
+                queue_start=None,
+                cached=True,
+                shard_index=about["shard_index"],
+                requested_minutes=about["requested_minutes"],
+                requested_cpu=about["requested_cpu"],
+                requested_gb=about["requested_gb"],
+            )
+            self.session.add(log_entry)
 
+    @staticmethod
+    def _summary_by_relpath(self, task_summary: list) -> dict:
+        """
+        Reorganized the jaws-cromwell task-summary into a dictionary using relative paths of tasks as the keys.
+        """
+        task_metadata = {}
+        for task in task_summary:
+            call_root = task["call_root"]
+            p = call_root.split("/")
+            i = p.index(self.cromwell_run_id) + 1
+            task_dir = "/".join(p[i:])
+            if task["cached"] is True:
+                continue
+            task_metadata[task_dir] = {
+                # "name": task["name"],  # TODO: add to model?
+                "result": task["result"],
+                "job_id": task["job_id"],
+                "cached": task["cached"],
+                "shard_index": task["shard_index"],
+                "execution_status": task["execution_status"],
+                "requested_minutes": self.time_minutes(task["requested_time"]),
+                "requested_cpu": int(task["requested_cpu"]),
+                "requested_gb": self.memory_gb(task["requested_memory"]),
+                "failure_message": task["failure_message"],
+            }
+        return task_metadata
+
+    def _update_with_cromwell_metadata(self, task_summary: list) -> None:
+        """
+        Add fields from the Cromwell metadata:
+        - requested cpu
+        - requested memory (in GB)
+        - requested time (in minutes)
+        And update the status using the Cromwell "executionStatus",  which shall differ from return code when a
+        task's expected outputs cannot be reaped (e.g. missing file).
+        """
+        task_metadata = self._summary_by_relpath(task_summary)
         for row in self.data:
             task_dir = row.task_dir
             if task_dir not in task_metadata:
@@ -262,8 +291,17 @@ class TaskLog:
             elif status == "Aborted":
                 row.status = "cancelled"
 
+    def add_metadata(self, metadata):
+        """ """
+        summary = metadata.task_summary()
+        savepoint = self.session.begin_nested()
         try:
+            self._insert_cached_tasks(summary)
+            self._update_with_cromwell_metadata(summary)
             self.session.commit()
         except SQLAlchemyError as error:
-            self.session.rollback()
-            raise TaskDbError(error)
+            savepoint.rollback()
+            self.logger.exception(
+                f"Unable to update Run {self.data.id} Tasks with metadata: {error}"
+            )
+            raise TaskDbError(f"Unable to update with metadata: {error}")
