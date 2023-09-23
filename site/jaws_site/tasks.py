@@ -100,9 +100,6 @@ class TaskLog:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
         for row in self.data:
-            task_dir = row.task_dir
-            status = row.status
-            rc = row.rc
             queue_start = row.queue_start
             run_start = row.run_start
             run_end = row.run_end
@@ -113,19 +110,24 @@ class TaskLog:
             run_end_str = self._utc_to_local_str(run_end)
             table.append(
                 [
-                    task_dir,
-                    status,
+                    row.task_dir,
+                    row.status,
                     queued_str,
                     run_start_str,
                     run_end_str,
-                    rc,
+                    row.rc,
                     queue_minutes,
                     run_minutes,
+                    row.cached,
+                    row.name,
+                    row.req_cpu,
+                    row.req_mem_gb,
+                    row.req_minutes,
                 ]
             )
         result = {
             "header": [
-                "TASK",
+                "TASK_DIR",
                 "STATUS",
                 "QUEUE_START",
                 "RUN_START",
@@ -133,6 +135,11 @@ class TaskLog:
                 "RC",
                 "QUEUE_MINUTES",
                 "RUN_MINUTES",
+                "CACHED",
+                "TASK_NAME",
+                "REQ_CPU",
+                "REQ_GB",
+                "REQ_MINUTES",
             ],
             "data": table,
         }
@@ -220,9 +227,9 @@ class TaskLog:
                     status=status,
                     queue_start=None,
                     cached=True,
-                    requested_minutes=self.time_minutes(summary["requested_time"]),
-                    requested_cpu=int(summary["requested_cpu"]),
-                    requested_gb=self.memory_gb(summary["requested_memory"]),
+                    req_cpu=int(summary["requested_cpu"]),
+                    req_mem_gb=self.memory_gb(summary["requested_memory"]),
+                    req_minutes=self.time_minutes(summary["requested_time"]),
                 )
                 self.session.add(log_entry)
 
@@ -240,9 +247,9 @@ class TaskLog:
             task_dir = row.task_dir
             if task_dir in task_summary:
                 summary = task_summary[task_dir]
-                row.requested_minutes = self.time_minutes(summary["requested_time"])
-                row.requested_cpu = int(summary["requested_cpu"])
-                row.requested_gb = self.memory_gb(summary["requested_memory"])
+                row.req_cpu = int(summary["requested_cpu"])
+                row.req_mem_gb = self.memory_gb(summary["requested_memory"])
+                row.req_minutes = self.time_minutes(summary["requested_time"])
                 status = summary["execution_status"]
                 if status == "Done":
                     row.status = "succeeded"
