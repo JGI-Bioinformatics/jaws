@@ -504,46 +504,22 @@ class Task:
         feature of Cromwell is turned on, but it's only available with "gcs" backend as of 5/25/2022.
         For simplicity, we use only the last attempt by default.
         """
-        last_attempts = kwargs.get("last_attempts", False)
-        if last_attempts is True:
-            return self.summary_last_attempts()
-        else:
-            return self.summary_all_attempts()
-
-    def summary_all_attempts(self):
-        result = []
-        for shard_index in self.calls.keys():
-            for attempt in self.calls[shard_index].keys():
-                call = self.calls[shard_index][attempt]
-                result.append(call.summary())
-        for shard_index in self.subworkflows.keys():
-            subworkflow_name = self.name
-            for attempt in self.subworkflows[shard_index].keys():
-                sub_meta = self.subworkflows[shard_index][attempt]
-                for item in sub_meta.task_summary(last_attempts=False):
-                    renamed_item = item
-                    name = item["name"]
-                    renamed_item["name"] = f"{subworkflow_name}:{name}"
-                    result.append(renamed_item)
-        return result
-
-    def summary_last_attempts(self):
+        last_attempts = kwargs.get("last_attempts", True)
         result = []
         for shard_index in self.calls.keys():
             attempts = sorted(self.calls[shard_index].keys())
-            attempt = attempts[-1]
-            call = self.calls[shard_index][attempt]
-            result.append(call.summary())
+            if last_attempts:
+                attempts = [attempts[-1]]
+            for attempt in attempts:
+                call = self.calls[shard_index][attempt]
+                result.append(call.summary())
         for shard_index in self.subworkflows.keys():
-            subworkflow_name = self.name
             attempts = sorted(self.subworkflows[shard_index].keys())
-            attempt = attempts[-1]
-            sub_meta = self.subworkflows[shard_index][attempt]
-            for item in sub_meta.task_summary(last_attempts=True):
-                renamed_item = item
-                name = item["name"]
-                renamed_item["name"] = f"{subworkflow_name}:{name}"
-                result.append(renamed_item)
+            if last_attempts:
+                attempts = [attempts[-1]]
+            for attempt in attempts:
+                sub_meta = self.subworkflows[shard_index][attempt]
+                result.extend(sub_meta.task_summary(last_attempts=last_attempts))
         return result
 
 
@@ -717,10 +693,18 @@ class Metadata:
         :return: List of task information dictionaries
         :rtype: list
         """
+        last_attempts = kwargs.get("last_attempts", True)
         summary = []
         for task_name, task in self.tasks.items():
-            for item in task.summary(**kwargs):
-                summary.append(item)
+            summary.extend(task.summary(last_attempts=last_attempts))
+
+        relpaths = kwargs.get("relpaths", True)
+        root = self.workflow_root()
+        if relpaths and root:
+            for i in range(0, len(summary)):
+                if "call_root" in summary[i]:
+                    abspath = summary[i]["call_root"]
+                    summary[i]["call_root"] = os.path.relpath(abspath, start=root)
         return summary
 
     def job_summary(self, **kwargs) -> dict:

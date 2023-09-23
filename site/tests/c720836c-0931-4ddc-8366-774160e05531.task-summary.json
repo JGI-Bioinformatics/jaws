@@ -1,5 +1,33 @@
 [
   {
+    "name": "hello_and_goodbye.goodbye",
+    "shard_index": -1,
+    "attempt": 1,
+    "cached": false,
+    "job_id": "12134",
+    "execution_status": "Done",
+    "result": "succeeded",
+    "failure_message": null,
+    "call_root": "call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye",
+    "requested_time": "00:10:00",
+    "requested_cpu": 32,
+    "requested_memory": "10 GB"
+  },
+  {
+    "name": "hello_and_goodbye.hello",
+    "shard_index": -1,
+    "attempt": 1,
+    "cached": false,
+    "job_id": "12133",
+    "execution_status": "Done",
+    "result": "succeeded",
+    "failure_message": null,
+    "call_root": "call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello",
+    "requested_time": "00:10:00",
+    "requested_cpu": 32,
+    "requested_memory": "10 GB"
+  },
+  {
     "name": "main_workflow.hello",
     "shard_index": -1,
     "attempt": 1,
@@ -28,35 +56,7 @@
     "requested_memory": "10 GB"
   },
   {
-    "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.goodbye",
-    "shard_index": -1,
-    "attempt": 1,
-    "cached": false,
-    "job_id": "12134",
-    "execution_status": "Done",
-    "result": "succeeded",
-    "failure_message": null,
-    "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye",
-    "requested_time": "00:10:00",
-    "requested_cpu": 32,
-    "requested_memory": "10 GB"
-  },
-  {
-    "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-    "shard_index": -1,
-    "attempt": 1,
-    "cached": false,
-    "job_id": "12133",
-    "execution_status": "Done",
-    "result": "succeeded",
-    "failure_message": null,
-    "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello",
-    "requested_time": "00:10:00",
-    "requested_cpu": 32,
-    "requested_memory": "10 GB"
-  },
-  {
-    "name": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.goodbye",
+    "name": "hello_and_goodbye.goodbye",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -64,13 +64,13 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye",
+    "call_root": "call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye",
     "requested_time": "00:10:00",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   },
   {
-    "name": "main_workflow.hello_and_goodbye_2:hello_and_goodbye.hello",
+    "name": "hello_and_goodbye.hello",
     "shard_index": -1,
     "attempt": 1,
     "cached": false,
@@ -78,7 +78,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/c720836c-0931-4ddc-8366-774160e05531/call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello",
+    "call_root": "call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello",
     "requested_time": "00:10:00",
     "requested_cpu": 32,
     "requested_memory": "10 GB"

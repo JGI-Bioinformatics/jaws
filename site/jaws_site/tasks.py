@@ -275,21 +275,19 @@ class TaskLog:
         task_metadata = self._summary_by_relpath(task_summary)
         for row in self.data:
             task_dir = row.task_dir
-            if task_dir not in task_metadata:
-                # cached tasks won't have a record; skip.
-                continue
-            # add the cromwell metadata items to the row
-            row.requested_cpu = task_metadata["requested_cpu"]
-            row.requested_gb = task_metadata["requested_gb"]
-            row.requested_minutes = task_metadata["requested_minutes"]
-            # TODO
-            status = task_metadata["execution_status"]
-            if status == "Done":
-                row.status = "succeeded"
-            elif status == "Failed":
-                row.status = "failed"
-            elif status == "Aborted":
-                row.status = "cancelled"
+            if task_dir in task_metadata:
+                # add the cromwell metadata items to the row
+                row.requested_cpu = task_metadata["requested_cpu"]
+                row.requested_gb = task_metadata["requested_gb"]
+                row.requested_minutes = task_metadata["requested_minutes"]
+                # TODO
+                status = task_metadata["execution_status"]
+                if status == "Done":
+                    row.status = "succeeded"
+                elif status == "Failed":
+                    row.status = "failed"
+                elif status == "Aborted":
+                    row.status = "cancelled"
 
     def add_metadata(self, metadata):
         """ """
