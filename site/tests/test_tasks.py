@@ -123,3 +123,13 @@ def test_time_minutes():
 
     minutes = task_log.time_minutes("01:02:00")
     assert minutes == 62
+
+
+def test_memory_gb():
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+
+    gb = task_log.memory_gb("1 TB")
+    assert gb == 1024

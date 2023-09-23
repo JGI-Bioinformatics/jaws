@@ -10,7 +10,7 @@ from jaws_site import models
 DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
-memory_re = re.compile(r"^\s*(\d+)\s*(\w+)\s*$")
+memory_re = re.compile(r"^\s*(\d*\.?\d*)\s*(\w+)\s*$")
 
 
 class TaskDbError(Exception):
@@ -215,14 +215,14 @@ class TaskLog:
         """
         m = memory_re.match(memory_str)
         if m:
-            gb = m.group(1)
+            gb = float(m.group(1))
             units = m.group(2).upper()
             if units in ("KB", "KIB"):
                 gb = gb / 1024**2
             elif units in ("MB", "MIB"):
                 gb = gb / 1024
             elif units in ("GB", "GIB"):
-                gb = float(gb)
+                pass
             elif units in ("TB", "TIB"):
                 gb = gb * 1024
             else:
