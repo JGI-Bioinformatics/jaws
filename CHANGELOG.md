@@ -1,6 +1,8 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- task-summary has been deprecated as it's been merged with the task-log (#1719)
+- cached tasks are now added to the task-log after a run completes (#1727)
 
 ## 2.0.1  Summary [09/19/2023 - staging]
 - cancelling a run now updates the task-log (#1664)
