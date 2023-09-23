@@ -96,23 +96,6 @@ class TaskLog:
         )
         return local_timestamp.strftime(DATETIME_FMT)
 
-    @staticmethod
-    def delta_minutes(start, end) -> int:
-        """
-        Return the difference between two timestamps, rounded to the nearest minute.
-        :param start: start time
-        :ptype: datetime.datetime
-        :param end: end time
-        :ptype end: datetime.datetime
-        :return: difference in minutes (rounded)
-        :rtype: int
-        """
-        if start and end:
-            duration = end - start
-            return round(duration.total_seconds() / 60, 0)
-        else:
-            return None
-
     def table(self, **kwargs):
         """
         Convert the timestamps to local timezone strings and return with header.
@@ -141,8 +124,6 @@ class TaskLog:
                     req_mem_gb,
                     req_minutes,
                 ) = row
-                queue_minutes = self.delta_minutes(queue_start, run_start)
-                run_minutes = self.delta_minutes(run_start, run_end)
                 queued_str = self._utc_to_local_str(queue_start)
                 run_start_str = self._utc_to_local_str(run_start)
                 run_end_str = self._utc_to_local_str(run_end)

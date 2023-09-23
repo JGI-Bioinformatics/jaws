@@ -117,6 +117,23 @@ class TaskLogger:
             self.logger.exception(f"Unable to update Task Log job {job_id}: {error}")
         return True
 
+    @staticmethod
+    def delta_minutes(start, end) -> int:
+        """
+        Return the difference between two timestamps, rounded to the nearest minute.
+        :param start: start time
+        :ptype: datetime.datetime
+        :param end: end time
+        :ptype end: datetime.datetime
+        :return: difference in minutes (rounded)
+        :rtype: int
+        """
+        if start and end:
+            duration = end - start
+            return round(duration.total_seconds() / 60, 0)
+        else:
+            return None
+
     def _update(self, **kwargs) -> bool:
         cromwell_run_id = kwargs.get("cromwell_run_id")
         task_dir = kwargs.get("task_dir")
@@ -148,15 +165,12 @@ class TaskLogger:
             if status == "running":
                 row.run_start = timestamp
                 row.status = "running"
-                duration = row.run_start - row.queue_start
-                row.queue_minutes = round(duration.total_seconds() / 60, 0)
+                row.queue_minutes = self.delta_minutes(row.queue_start, row.run_start)
             else:
                 row.run_end = timestamp
                 row.rc = kwargs.get("rc", None)
                 row.status = "done"
-                if row.run_start is not None:
-                    duration = row.run_end - row.run_start
-                    row.run_minutes = round(duration.total_seconds() / 60, 0)
+                row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
             self.session.commit()
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
