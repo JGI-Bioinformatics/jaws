@@ -412,7 +412,7 @@ class Task:
     If a Task is a subworkflow, it's Call object will contain a Metadata object.
     """
 
-    def __init__(self, name, data, url=None):
+    def __init__(self, name, data, **kwargs):
         """
         Initialize a Task object, which may contain multiple shards or a subworkflow.
 
@@ -423,7 +423,7 @@ class Task:
         """
         self.name = name
         self.data = data
-        self.url = url
+        self.url = kwargs.get("url")
         self.calls = {}
         self.subworkflows = {}
         for call_data in data:
@@ -519,7 +519,7 @@ class Task:
                 attempts = [attempts[-1]]
             for attempt in attempts:
                 sub_meta = self.subworkflows[shard_index][attempt]
-                result.extend(sub_meta.task_summary(last_attempts=last_attempts))
+                result.extend(sub_meta.task_summary(last_attempts=last_attempts, relpaths=False))
         return result
 
 
@@ -689,23 +689,37 @@ class Metadata:
 
     def task_summary(self, **kwargs):
         """
-        Return list of all tasks, including any subworkflows.
-        :return: List of task information dictionaries
+        Return select info about each task, including any subworkflows.
+        :return: List of task info dictionaries.
         :rtype: list
         """
         last_attempts = kwargs.get("last_attempts", True)
+        relpaths = kwargs.get("relpaths", True)
         summary = []
         for task_name, task in self.tasks.items():
             summary.extend(task.summary(last_attempts=last_attempts))
-
-        relpaths = kwargs.get("relpaths", True)
-        root = self.workflow_root()
-        if relpaths and root:
+        if relpaths is True:
+            root = self.workflow_root() + "/"
             for i in range(0, len(summary)):
                 if "call_root" in summary[i]:
-                    abspath = summary[i]["call_root"]
-                    summary[i]["call_root"] = os.path.relpath(abspath, start=root)
+                    summary[i]["call_root"] = summary[i]["call_root"].removeprefix(root)
         return summary
+
+    def task_summary_dict(self, **kwargs):
+        """
+        Return select info about each task, including any subworkflows.
+        :return: Dictionary of task information dictionaries where relpath of call_root is key.
+        :rtype: dict
+        """
+        workflow_root = self.workflow_root()
+        summary = self.task_summary(**kwargs)
+        result = {}
+        for task in summary:
+            call_root = task["call_root"]
+            del task["call_root"]
+            relpath = call_root.removeprefix(workflow_root)
+            result[relpath] = task
+        return result
 
     def job_summary(self, **kwargs) -> dict:
         """

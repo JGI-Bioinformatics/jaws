@@ -206,7 +206,7 @@ def test_task_summary(requests_mock):
         json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
-    actual = metadata.task_summary(relpaths=False)
+    actual = metadata.task_summary(relpaths=True)
     expected = __load_example_output_from_file(
         example_cromwell_run_id_2, "task-summary"
     )
@@ -220,6 +220,19 @@ def test_task_summary(requests_mock):
     actual = metadata.task_summary(relpaths=False)
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
+    )
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+def test_task_summary_dict(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
+    )
+    metadata = crom.get_metadata(example_cromwell_run_id_2)
+    actual = metadata.task_summary_dict(relpaths=True)
+    expected = __load_example_output_from_file(
+        example_cromwell_run_id_2, "task-summary-dict"
     )
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
