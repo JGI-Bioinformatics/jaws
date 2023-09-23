@@ -80,6 +80,29 @@ class TaskLog:
         else:
             return rows
 
+    def _select_all_cpu_minutes(self):
+        """
+        Select the cpus reserved and the minutes consumed for every task.
+        :return: table
+        :rtype: list
+        """
+        try:
+            query = (
+                self.session.query(models.Task_Log)
+                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Task_Log.id)
+            )
+        except NoResultFound:
+            return []
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+        cpu_minutes = []
+        for row in query:
+            if row.req_cpu and row.run_minutes:
+                cpu_minutes.append([row.req_cpu, row.run_minutes])
+        return cpu_minutes
+
     def _utc_to_local_str(self, timestamp) -> str:
         """Convert UTC time to the local time zone. This should handle daylight savings.
         :param timestamp: a datetime object, UTC timezone
@@ -104,46 +127,45 @@ class TaskLog:
         if "local_tz" in kwargs:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
-        if rows is not None:
-            for row in rows:
-                (
-                    id,
-                    cromwell_run_id,
-                    cromwell_job_id,
+        for row in rows:
+            (
+                id,
+                cromwell_run_id,
+                cromwell_job_id,
+                task_dir,
+                status,
+                queue_start,
+                run_start,
+                run_end,
+                queue_minutes,
+                run_minutes,
+                rc,
+                cached,
+                name,
+                req_cpu,
+                req_mem_gb,
+                req_minutes,
+            ) = row
+            queued_str = self._utc_to_local_str(queue_start)
+            run_start_str = self._utc_to_local_str(run_start)
+            run_end_str = self._utc_to_local_str(run_end)
+            table.append(
+                [
                     task_dir,
                     status,
-                    queue_start,
-                    run_start,
-                    run_end,
+                    queued_str,
+                    run_start_str,
+                    run_end_str,
+                    rc,
                     queue_minutes,
                     run_minutes,
-                    rc,
                     cached,
                     name,
                     req_cpu,
                     req_mem_gb,
                     req_minutes,
-                ) = row
-                queued_str = self._utc_to_local_str(queue_start)
-                run_start_str = self._utc_to_local_str(run_start)
-                run_end_str = self._utc_to_local_str(run_end)
-                table.append(
-                    [
-                        task_dir,
-                        status,
-                        queued_str,
-                        run_start_str,
-                        run_end_str,
-                        rc,
-                        queue_minutes,
-                        run_minutes,
-                        cached,
-                        name,
-                        req_cpu,
-                        req_mem_gb,
-                        req_minutes,
-                    ]
-                )
+                ]
+            )
         result = {
             "header": [
                 "TASK_DIR",
@@ -308,3 +330,15 @@ class TaskLog:
                 f"Unable to update Run {self.data.id} Tasks with metadata: {error}"
             )
             raise TaskDbError(f"Unable to update with metadata: {error}")
+
+    def cpu_hours(self) -> float:
+        """
+        Calculate the total resources consumed (i.e. reserved).
+        :return: Total CPU*hours of all tasks.
+        :rtype: float
+        """
+        rows = self._select_all_cpu_minutes()
+        cpu_minutes = 0
+        for row in rows:
+            cpu_minutes = cpu_minutes + row[0] * row[1]
+        return round(cpu_minutes / 60, 1)

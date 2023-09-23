@@ -133,3 +133,22 @@ def test_memory_gb():
 
     gb = task_log.memory_gb("1 TB")
     assert gb == 1024
+
+
+def test_cpu_hours(monkeypatch) -> float:
+    def mock__select_all_cpu_minutes(self):
+        return [
+            [1, 60],
+            [2, 100],
+        ]
+
+    monkeypatch.setattr(
+        TaskLog, "_select_all_cpu_minutes", mock__select_all_cpu_minutes
+    )
+
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+    cpu_hrs = task_log.cpu_hours()
+    assert cpu_hrs == 4.3
