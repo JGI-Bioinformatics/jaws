@@ -198,14 +198,13 @@ class TaskLog:
         # Cached tasks shall be added.
         summary = metadata.task_summary()
         task_metadata = {}
-        cached_tasks = {}
         for task in summary:
             call_root = task["call_root"]
             p = call_root.split("/")
             i = p.index(self.cromwell_run_id) + 1
             task_dir = "/".join(p[i:])
             about = {
-                # "name": task["name"],
+                # "name": task["name"],  # TODO: add to model?
                 "result": task["result"],
                 "job_id": task["job_id"],
                 "cached": task["cached"],
@@ -217,19 +216,34 @@ class TaskLog:
                 "failure_message": task["failure_message"],
             }
             if about["cached"] is True:
-                cached_tasks[task_dir] = about
+                # insert records for cached tasks
+                log_entry = models.Task_Log(
+                    cromwell_run_id=self.cromwell_run_id,
+                    cromwell_job_id=about["job_id"],
+                    task_dir=task_dir,
+                    status=about["result"],
+                    queue_start=None,
+                    cached=about["cached"],
+                    shard_index=about["shard_index"],
+                    requested_minutes=about["requested_minutes"],
+                    requested_cpu=about["requested_cpu"],
+                    requested_gb=about["requested_gb"],
+                )
+                self.session.add(log_entry)
             else:
+                # otherwise save, to be added below
                 task_metadata[task_dir] = about
 
-        # update rows
         for row in self.data:
             task_dir = row.task_dir
             if task_dir not in task_metadata:
+                # cached tasks won't have a record; skip.
                 continue
+            # add the cromwell metadata items to the row
             row.requested_cpu = task_metadata["requested_cpu"]
             row.requested_gb = task_metadata["requested_gb"]
             row.requested_minutes = task_metadata["requested_minutes"]
-            # ECCE:
+            # TODO
             status = task_metadata["execution_status"]
             if status == "Done":
                 row.status = "succeeded"
@@ -237,22 +251,6 @@ class TaskLog:
                 row.status = "failed"
             elif status == "Aborted":
                 row.status = "cancelled"
-
-        # insert cached tasks
-        for task_dir, about in cached_tasks.items():
-            log_entry = models.Task_Log(
-                cromwell_run_id=self.cromwell_run_id,
-                cromwell_job_id=about["job_id"],
-                task_dir=task_dir,
-                status=about["result"],
-                queue_start=None,
-                cached=about["cached"],
-                shard_index=about["shard_index"],
-                requested_minutes=about["requested_minutes"],
-                requested_cpu=about["requested_cpu"],
-                requested_gb=about["requested_gb"],
-            )
-            self.session.add(log_entry)
 
         try:
             self.session.commit()
