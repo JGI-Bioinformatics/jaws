@@ -32,7 +32,7 @@ class TaskLog:
         else:
             self.logger = logger
         self.set_local_tz(kwargs.get("local_tz", DEFAULT_TZ))
-        self.data = self._select_rows()
+        self.data = None  # load lazily
 
     def set_local_tz(self, local_tz=DEFAULT_TZ):
         self.local_tz = local_tz
@@ -52,12 +52,33 @@ class TaskLog:
             )
         except NoResultFound:
             # it's possible for a newly created run to not have any task-log messages yet
-            return []
+            return None
         except SQLAlchemyError as error:
             self.logger.error(f"Unable to select task_logs: {error}")
             raise TaskDbError(error)
         else:
             return query
+
+    def _select_all_rows(self):
+        """
+        Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
+        :return: table
+        :rtype: list
+        """
+        try:
+            rows = (
+                self.session.query(models.Task_Log)
+                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Task_Log.id)
+                .all()
+            )
+        except NoResultFound:
+            return []
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+        else:
+            return rows
 
     def _utc_to_local_str(self, timestamp) -> str:
         """Convert UTC time to the local time zone. This should handle daylight savings.
@@ -96,35 +117,52 @@ class TaskLog:
         """
         Convert the timestamps to local timezone strings and return with header.
         """
+        rows = self._select_all_rows()
         if "local_tz" in kwargs:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
-        for row in self.data:
-            queue_start = row.queue_start
-            run_start = row.run_start
-            run_end = row.run_end
-            queue_minutes = self.delta_minutes(queue_start, run_start)
-            run_minutes = self.delta_minutes(run_start, run_end)
-            queued_str = self._utc_to_local_str(queue_start)
-            run_start_str = self._utc_to_local_str(run_start)
-            run_end_str = self._utc_to_local_str(run_end)
-            table.append(
-                [
-                    row.task_dir,
-                    row.status,
-                    queued_str,
-                    run_start_str,
-                    run_end_str,
-                    row.rc,
+        if rows is not None:
+            for row in rows:
+                (
+                    id,
+                    cromwell_run_id,
+                    cromwell_job_id,
+                    task_dir,
+                    status,
+                    queue_start,
+                    run_start,
+                    run_end,
                     queue_minutes,
                     run_minutes,
-                    row.cached,
-                    row.name,
-                    row.req_cpu,
-                    row.req_mem_gb,
-                    row.req_minutes,
-                ]
-            )
+                    rc,
+                    cached,
+                    name,
+                    req_cpu,
+                    req_mem_gb,
+                    req_minutes,
+                ) = row
+                queue_minutes = self.delta_minutes(queue_start, run_start)
+                run_minutes = self.delta_minutes(run_start, run_end)
+                queued_str = self._utc_to_local_str(queue_start)
+                run_start_str = self._utc_to_local_str(run_start)
+                run_end_str = self._utc_to_local_str(run_end)
+                table.append(
+                    [
+                        task_dir,
+                        status,
+                        queued_str,
+                        run_start_str,
+                        run_end_str,
+                        rc,
+                        queue_minutes,
+                        run_minutes,
+                        cached,
+                        name,
+                        req_cpu,
+                        req_mem_gb,
+                        req_minutes,
+                    ]
+                )
         result = {
             "header": [
                 "TASK_DIR",
@@ -145,14 +183,27 @@ class TaskLog:
         }
         return result
 
+    def _select_num_started(self):
+        try:
+            query = (
+                self.session.query(models.Task_Log)
+                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
+                .filter(models.Task_Log.run_start.isnot(None))
+                .all()
+            )
+        except NoResultFound:
+            return 0
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+        else:
+            return len(query)
+
     def did_run_start(self):
         """
         Check if any task has started running by checking the task log.
         """
-        for row in self.data:
-            if row.run_start is not None:
-                return True
-        return False
+        return self._select_num_started() > 0
 
     @staticmethod
     def time_minutes(duration: str) -> int:
@@ -243,26 +294,28 @@ class TaskLog:
         task's expected outputs cannot be reaped (e.g. missing file).
         Rows are updated but the changes are not committed as this is part of a larger transaction; see: add_metadata()
         """
-        for row in self.data:
-            task_dir = row.task_dir
-            if task_dir in task_summary:
-                summary = task_summary[task_dir]
-                row.req_cpu = int(summary["requested_cpu"])
-                row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                row.req_minutes = self.time_minutes(summary["requested_time"])
-                status = summary["execution_status"]
-                if status == "Done":
-                    row.status = "succeeded"
-                elif status == "Failed":
-                    row.status = "failed"
-                elif status == "Aborted":
-                    row.status = "cancelled"
+        if self.data is not None:
+            for row in self.data:
+                task_dir = row.task_dir
+                if task_dir in task_summary:
+                    summary = task_summary[task_dir]
+                    row.req_cpu = int(summary["requested_cpu"])
+                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
+                    row.req_minutes = self.time_minutes(summary["requested_time"])
+                    status = summary["execution_status"]
+                    if status == "Done":
+                        row.status = "succeeded"
+                    elif status == "Failed":
+                        row.status = "failed"
+                    elif status == "Aborted":
+                        row.status = "cancelled"
 
     def add_metadata(self, summary: dict):
         """
         :param summary: JAWS Cromwell Metadata.task_log_summary() output
         :ptype summary: dict
         """
+        self.data = self._select_rows()
         savepoint = self.session.begin_nested()
         try:
             self._insert_cached_tasks(summary)
