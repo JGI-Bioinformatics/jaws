@@ -829,7 +829,8 @@ class Run:
         try:
             task_log = self.task_log()
             # this copies desired fields from the cromwell metadata into the task-log table
-            task_log.add_metadata(metadata)
+            task_log_summary_dict = metadata.task_log_summary_dict()
+            task_log.add_metadata(task_log_summary_dict)
             task_log_table = task_log.table()
         except Exception as error:
             logger.error(

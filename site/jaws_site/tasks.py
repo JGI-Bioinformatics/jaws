@@ -234,6 +234,7 @@ class TaskLog:
         - requested time (in minutes)
         And update the status using the Cromwell "executionStatus",  which shall differ from return code when a
         task's expected outputs cannot be reaped (e.g. missing file).
+        Rows are updated but the changes are not committed as this is part of a larger transaction; see: add_metadata()
         """
         for row in self.data:
             task_dir = row.task_dir
@@ -250,9 +251,11 @@ class TaskLog:
                 elif status == "Aborted":
                     row.status = "cancelled"
 
-    def add_metadata(self, metadata):
-        """ """
-        summary = metadata.task_summary_dict()
+    def add_metadata(self, summary: dict):
+        """
+        :param summary: JAWS Cromwell Metadata.task_log_summary() output
+        :ptype summary: dict
+        """
         savepoint = self.session.begin_nested()
         try:
             self._insert_cached_tasks(summary)
