@@ -165,6 +165,7 @@ def initRunModel(**kwargs):
         updated=kwargs.get("updated", datetime.utcnow()),
         workflow_root=kwargs.get("workflow_root", None),
         workflow_name=kwargs.get("workflow_name", None),
+        cpu_hours=kwargs.get("cpu_hours", None)
     )
 
 
@@ -194,6 +195,7 @@ class MockRunModel:
         self.updated = kwargs.get("updated", datetime.utcnow())
         self.workflow_root = kwargs.get("workflow_root", None)
         self.workflow_name = kwargs.get("workflow_name", None)
+        self.cpu_hours = kwargs.get("cpu_hours", None)
 
 
 class MockRun:

@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     String,
+    Float,
     Integer,
     SmallInteger,
     Boolean,
@@ -57,6 +58,7 @@ class Run(Base):
     workflow_name = Column(String(64), nullable=True)
     wdl_basename = Column(String(64), nullable=False)
     json_basename = Column(String(64), nullable=False)
+    cpu_hours = Column(Float, nullable=True)
 
 
 class Run_Log(Base):
