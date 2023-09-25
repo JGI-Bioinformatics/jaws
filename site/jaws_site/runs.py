@@ -45,6 +45,8 @@ logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 
+MAX_ERROR_STRING_LEN = 1024
+
 
 class RunDbError(Exception):
     pass
@@ -686,6 +688,8 @@ class Run:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
+        if reason is not None:
+            reason = reason[:MAX_ERROR_STRING_LEN]
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
@@ -822,9 +826,7 @@ class Run:
             task_log.add_metadata(task_log_summary_dict)
             task_log_table = task_log.table()
         except Exception as error:
-            logger.error(
-                f"Run {self.data.id}: Failed to generate task-log: {error}"
-            )
+            logger.error(f"Run {self.data.id}: Failed to generate task-log: {error}")
             self.update_run_status("failed", "Failed to generate task-log")
             return
         else:

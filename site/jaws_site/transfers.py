@@ -19,6 +19,7 @@ logger = logging.getLogger(__package__)
 
 
 FILES_PER_THREAD = 10000
+MAX_ERROR_STRING_LEN = 1024
 
 
 def mkdir(path, mode=None):
@@ -154,6 +155,8 @@ class Transfer:
         Update Transfers' status.
         """
         logger.info(f"Transfers {self.data.id}: now {new_status}")
+        if reason is not None:
+            reason = reason[:MAX_ERROR_STRING_LEN]
         timestamp = datetime.utcnow()
         try:
             self.data.status = new_status
