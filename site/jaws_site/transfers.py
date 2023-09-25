@@ -304,8 +304,6 @@ class Transfer:
             raise
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
-            if not (os.path.exists(src_path) and os.path.isfile(src_path)):
-                continue
             src_file_size = os.path.getsize(src_path)
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
             try:
