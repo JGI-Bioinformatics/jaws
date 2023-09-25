@@ -19,6 +19,7 @@ logger = logging.getLogger(__package__)
 
 
 FILES_PER_THREAD = 10000
+MAX_ERROR_STRING_LEN = 1024
 
 
 def mkdir(path, mode=None):
@@ -154,6 +155,8 @@ class Transfer:
         Update Transfers' status.
         """
         logger.info(f"Transfers {self.data.id}: now {new_status}")
+        if reason is not None:
+            reason = reason[:MAX_ERROR_STRING_LEN]
         timestamp = datetime.utcnow()
         try:
             self.data.status = new_status
@@ -530,7 +533,7 @@ def calculate_parallelism(num_files):
 
 def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     """
-    Given list of files, copy them in parallel using rsync.  There should not be any folders in the list.
+    Given list of files, copy them in parallel using rsync.  Copies regular files only, skips others.
     :param manifest: list of file relative paths
     :ptype manifest: list
     :param src: source root directory
@@ -542,14 +545,9 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     paths = []
     for rel_path in manifest:
         s = os.path.join(src, rel_path)
-        if not os.path.exists(s):
-            raise FileNotFoundError(f"Cannot rsync {s}. File does not exist")
-        if os.path.isdir(s):
-            raise IsADirectoryError(
-                "parallel_rsync_files_only does not support folders"
-            )
-        d = os.path.join(dest, rel_path)
-        paths.append((s, d))
+        if os.path.exists(s) and os.path.isfile(s):
+            d = os.path.join(dest, rel_path)
+            paths.append((s, d))
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 

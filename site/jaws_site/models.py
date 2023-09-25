@@ -109,4 +109,4 @@ class Transfer(Base):
     src_base_dir = Column(String(1024), nullable=False)
     dest_base_dir = Column(String(1024), nullable=False)
     manifest_json = Column(MEDIUMTEXT, nullable=False)
-    reason = Column(String(256), nullable=True)
+    reason = Column(String(1024), nullable=True)

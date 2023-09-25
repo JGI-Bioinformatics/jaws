@@ -15,6 +15,7 @@
 - fixed bug when Cromwell submission fails during input processing, before a folder is created, and was not recognized by JAWS (#1711)
 - corrected outputs folder permissions (#1712)
 - fixed bug where path substitution was applied to inputs json dict keys (#1713)
+- fixed transfer error when file was named pipe instead of regular file (#1725)
 
 ## 2.0.0 Summary [08/23/2023]
 ### Internal Facing Changes
