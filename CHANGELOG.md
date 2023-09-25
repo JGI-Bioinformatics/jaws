@@ -1,10 +1,10 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
-- task-summary has been deprecated as it's been merged with the task-log (#1719)
-- cached tasks are now added to the task-log after a run completes (#1727)
 
 ## 2.0.1  Summary [09/19/2023 - staging]
+- task-summary has been deprecated as it's been merged with the task-log (#1719)
+- cached tasks are now added to the task-log after a run completes (#1727)
 - cancelling a run now updates the task-log (#1664)
 - task-log format has changed (!1520)
 - task-summary shall use timestamps from the task log instead of Cromwell metadata (#1611)
