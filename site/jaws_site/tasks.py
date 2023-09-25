@@ -46,9 +46,9 @@ class TaskLog:
         """
         try:
             query = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
-                .order_by(models.Task_Log.id)
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Tasks.id)
             )
         except NoResultFound:
             # it's possible for a newly created run to not have any task-log messages yet
@@ -67,9 +67,9 @@ class TaskLog:
         """
         try:
             rows = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
-                .order_by(models.Task_Log.id)
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Tasks.id)
                 .all()
             )
         except NoResultFound:
@@ -88,9 +88,9 @@ class TaskLog:
         """
         try:
             query = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
-                .order_by(models.Task_Log.id)
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Tasks.id)
             )
         except NoResultFound:
             return []
@@ -189,9 +189,9 @@ class TaskLog:
     def _select_num_started(self):
         try:
             query = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
-                .filter(models.Task_Log.run_start.isnot(None))
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .filter(models.Tasks.run_start.isnot(None))
                 .all()
             )
         except NoResultFound:
@@ -273,7 +273,7 @@ class TaskLog:
                     status = "failed"
                 elif status == "Aborted":
                     status = "cancelled"
-                log_entry = models.Task_Log(
+                log_entry = models.Tasks(
                     task_dir=task_dir,
                     name=summary["name"],
                     cromwell_run_id=self.cromwell_run_id,

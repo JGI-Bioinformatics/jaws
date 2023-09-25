@@ -210,6 +210,7 @@ class Run:
             "status": self.data.status,
             "result": self.data.result,
             "compute_site_id": self.config["site_id"],
+            "cpu_hours": self.data.cpu_hours,
         }
         return summary
 
@@ -813,18 +814,6 @@ class Run:
             logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
             write_json_file(outfiles_file, outfiles)
 
-        # write run summary
-        try:
-            summary = self.summary()
-        except Exception as error:
-            logger.error(f"Run {self.data.id}: Failed to generate summary: {error}")
-            self.update_run_status("failed", "Failed to generate summary")
-            return
-        else:
-            summary_file = os.path.join(root, "summary.json")
-            logger.debug(f"Run {self.data.id}: Writing {summary_file}")
-            write_json_file(summary_file, summary)
-
         # update and write task log
         try:
             task_log = self.task_log()
@@ -843,6 +832,21 @@ class Run:
             logger.debug(f"Run {self.data.id}: Writing {task_log_file}")
             write_json_file(task_log_file, task_log_table)
 
+        # add cpu-hours to run summary
+        self.data.cpu_hours = task_log.cpu_hours()
+
+        # write run summary
+        try:
+            summary = self.summary()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate summary: {error}")
+            self.update_run_status("failed", "Failed to generate summary")
+            return
+        else:
+            summary_file = os.path.join(root, "summary.json")
+            logger.debug(f"Run {self.data.id}: Writing {summary_file}")
+            write_json_file(summary_file, summary)
+
         # write output manifest (i.e. files to return to user)
         try:
             failed_folders = metadata.failed_folders()
@@ -852,22 +856,21 @@ class Run:
             )
             self.update_run_status("failed", "Failed to generate output manifest")
             return
-        else:
-            manifest = [
-                *infiles,
-                *outfiles,
-                *failed_folders,
-                "metadata.json",
-                "errors.json",
-                "outputs.json",
-                "output_manifest.json",
-                "summary.json",
-                "task_log.json",
-            ]
-            manifest_file = os.path.join(root, "output_manifest.json")
-            logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
-            write_json_file(manifest_file, manifest)
 
+        manifest = [
+            *infiles,
+            *outfiles,
+            *failed_folders,
+            "metadata.json",
+            "errors.json",
+            "outputs.json",
+            "output_manifest.json",
+            "summary.json",
+            "task_log.json",
+        ]
+        manifest_file = os.path.join(root, "output_manifest.json")
+        logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
+        write_json_file(manifest_file, manifest)
         self.update_run_status("complete")
 
     def output_manifest(self) -> list:

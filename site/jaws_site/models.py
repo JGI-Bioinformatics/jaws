@@ -74,7 +74,7 @@ class Run_Log(Base):
     sent = Column(Boolean, default=False, nullable=False)
 
 
-class Task_Log(Base):
+class Tasks(Base):
     __tablename__ = "tasks"
     id = Column(Integer, primary_key=True)  # auto-increment
     cromwell_run_id = Column(String(36), nullable=False)
