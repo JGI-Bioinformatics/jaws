@@ -304,6 +304,8 @@ class Transfer:
             raise
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
+            if not (os.path.exists(src_path) and os.path.isfile(src_path)):
+                continue
             src_file_size = os.path.getsize(src_path)
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
             try:
@@ -533,7 +535,7 @@ def calculate_parallelism(num_files):
 
 def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     """
-    Given list of files, copy them in parallel using rsync.  There should not be any folders in the list.
+    Given list of files, copy them in parallel using rsync.  Copies regular files only, skips others.
     :param manifest: list of file relative paths
     :ptype manifest: list
     :param src: source root directory
@@ -545,14 +547,9 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     paths = []
     for rel_path in manifest:
         s = os.path.join(src, rel_path)
-        if not os.path.exists(s):
-            raise FileNotFoundError(f"Cannot rsync {s}. File does not exist")
-        if os.path.isdir(s):
-            raise IsADirectoryError(
-                "parallel_rsync_files_only does not support folders"
-            )
-        d = os.path.join(dest, rel_path)
-        paths.append((s, d))
+        if os.path.exists(s) and os.path.isfile(s):
+            d = os.path.join(dest, rel_path)
+            paths.append((s, d))
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
