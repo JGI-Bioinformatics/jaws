@@ -256,7 +256,7 @@ class TaskLog:
         else:
             return None
 
-    def _insert_cached_taks(self, task_summary: list) -> None:
+    def _insert_cached_tasks(self, task_summary: list) -> None:
         """
         Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
         They shall not include cpu-hours data so won't affect resource calculations.
