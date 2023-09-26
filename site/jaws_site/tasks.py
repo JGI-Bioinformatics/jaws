@@ -99,8 +99,8 @@ class TaskLog:
             raise TaskDbError(error)
         cpu_minutes = []
         for row in query:
-            if row.requested_cpu and row.run_minutes:
-                cpu_minutes.append([row.requested_cpu, row.run_minutes])
+            if row.req_cpu and row.run_minutes:
+                cpu_minutes.append([row.req_cpu, row.run_minutes])
         return cpu_minutes
 
     def _utc_to_local_str(self, timestamp) -> str:
@@ -140,9 +140,9 @@ class TaskLog:
                 run_minutes,
                 cached,
                 name,
-                requested_cpu,
-                requested_mem_gb,
-                requested_minutes,
+                req_cpu,
+                req_mem_gb,
+                req_minutes,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -158,9 +158,9 @@ class TaskLog:
                     run_minutes,
                     cached,
                     name,
-                    requested_cpu,
-                    requested_mem_gb,
-                    requested_minutes,
+                    req_cpu,
+                    req_mem_gb,
+                    req_minutes,
                 ]
             )
         result = {
@@ -276,9 +276,9 @@ class TaskLog:
                     status=status,
                     queue_start=None,
                     cached=True,
-                    requested_cpu=int(summary["requested_cpu"]),
-                    requested_mem_gb=self.memory_gb(summary["requested_memory"]),
-                    requested_minutes=self.time_minutes(summary["requested_time"]),
+                    req_cpu=int(summary["req_cpu"]),
+                    req_mem_gb=self.memory_gb(summary["req_memory"]),
+                    req_minutes=self.time_minutes(summary["req_time"]),
                 )
                 self.session.add(log_entry)
 
@@ -297,9 +297,9 @@ class TaskLog:
                 task_dir = row.task_dir
                 if task_dir in task_summary:
                     summary = task_summary[task_dir]
-                    row.requested_cpu = int(summary["requested_cpu"])
-                    row.requested_mem_gb = self.memory_gb(summary["requested_memory"])
-                    row.requested_minutes = self.time_minutes(summary["requested_time"])
+                    row.req_cpu = int(summary["req_cpu"])
+                    row.req_mem_gb = self.memory_gb(summary["req_memory"])
+                    row.req_minutes = self.time_minutes(summary["req_time"])
                     status = summary["execution_status"]
                     if status == "Done":
                         row.status = "succeeded"

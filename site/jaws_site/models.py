@@ -89,9 +89,9 @@ class Tasks(Base):
     run_minutes = Column(SmallInteger, nullable=True)
     cached = Column(Boolean, nullable=True)
     name = Column(String(256), nullable=True)
-    requested_cpu = Column(SmallInteger, nullable=True)
-    requested_mem_gb = Column(SmallInteger, nullable=True)
-    requested_minutes = Column(SmallInteger, nullable=True)
+    req__cpu = Column(SmallInteger, nullable=True)
+    req__mem_gb = Column(SmallInteger, nullable=True)
+    req__minutes = Column(SmallInteger, nullable=True)
 
 
 class Transfer(Base):
