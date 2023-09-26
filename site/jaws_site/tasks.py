@@ -99,8 +99,8 @@ class TaskLog:
             raise TaskDbError(error)
         cpu_minutes = []
         for row in query:
-            if row.req_cpu and row.run_minutes:
-                cpu_minutes.append([row.req_cpu, row.run_minutes])
+            if row.requested_cpu and row.run_minutes:
+                cpu_minutes.append([row.requested_cpu, row.run_minutes])
         return cpu_minutes
 
     def _utc_to_local_str(self, timestamp) -> str:
@@ -131,7 +131,6 @@ class TaskLog:
             (
                 id,
                 cromwell_run_id,
-                cromwell_job_id,
                 task_dir,
                 status,
                 queue_start,
@@ -139,12 +138,11 @@ class TaskLog:
                 run_end,
                 queue_minutes,
                 run_minutes,
-                rc,
                 cached,
                 name,
-                req_cpu,
-                req_mem_gb,
-                req_minutes,
+                requested_cpu,
+                requested_mem_gb,
+                requested_minutes,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -156,14 +154,13 @@ class TaskLog:
                     queued_str,
                     run_start_str,
                     run_end_str,
-                    rc,
                     queue_minutes,
                     run_minutes,
                     cached,
                     name,
-                    req_cpu,
-                    req_mem_gb,
-                    req_minutes,
+                    requested_cpu,
+                    requested_mem_gb,
+                    requested_minutes,
                 ]
             )
         result = {
@@ -173,14 +170,13 @@ class TaskLog:
                 "QUEUE_START",
                 "RUN_START",
                 "RUN_END",
-                "RC",
-                "QUEUE_MINUTES",
-                "RUN_MINUTES",
+                "QUEUE_MIN",
+                "RUN_MIN",
                 "CACHED",
                 "TASK_NAME",
                 "REQ_CPU",
                 "REQ_GB",
-                "REQ_MINUTES",
+                "REQ_MIN",
             ],
             "data": table,
         }
@@ -256,7 +252,7 @@ class TaskLog:
         else:
             return None
 
-    def _insert_cached_tasks(self, task_summary: list) -> None:
+    def _insert_cached_tasks(self, task_summary: dict) -> None:
         """
         Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
         They shall not include cpu-hours data so won't affect resource calculations.
@@ -277,17 +273,16 @@ class TaskLog:
                     task_dir=task_dir,
                     name=summary["name"],
                     cromwell_run_id=self.cromwell_run_id,
-                    cromwell_job_id=summary["job_id"],
                     status=status,
                     queue_start=None,
                     cached=True,
-                    req_cpu=int(summary["requested_cpu"]),
-                    req_mem_gb=self.memory_gb(summary["requested_memory"]),
-                    req_minutes=self.time_minutes(summary["requested_time"]),
+                    requested_cpu=int(summary["requested_cpu"]),
+                    requested_mem_gb=self.memory_gb(summary["requested_memory"]),
+                    requested_minutes=self.time_minutes(summary["requested_time"]),
                 )
                 self.session.add(log_entry)
 
-    def _update_with_cromwell_metadata(self, task_summary: list) -> None:
+    def _update_with_cromwell_metadata(self, task_summary: dict) -> None:
         """
         Add fields from the Cromwell metadata:
         - requested cpu
@@ -302,9 +297,9 @@ class TaskLog:
                 task_dir = row.task_dir
                 if task_dir in task_summary:
                     summary = task_summary[task_dir]
-                    row.req_cpu = int(summary["requested_cpu"])
-                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                    row.req_minutes = self.time_minutes(summary["requested_time"])
+                    row.requested_cpu = int(summary["requested_cpu"])
+                    row.requested_mem_gb = self.memory_gb(summary["requested_memory"])
+                    row.requested_minutes = self.time_minutes(summary["requested_time"])
                     status = summary["execution_status"]
                     if status == "Done":
                         row.status = "succeeded"
