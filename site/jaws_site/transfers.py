@@ -25,13 +25,14 @@ MAX_ERROR_STRING_LEN = 1024
 def mkdir(path, mode=None):
     if mode is None:
         mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-    p = path.split('/')
-    curr = '/'
-    for i in range(1, len(p)):
-        curr = os.path.join(curr, p[i])
-        if not os.path.exists(curr):
-            os.mkdir(curr)
-            os.chmod(curr, mode)
+    if os.path.isdir(path):
+        return
+    else:
+        (head, tail) = os.path.split(path)
+        mkdir(head, mode)
+        if not os.path.exists(path):
+            os.mkdir(path)
+            os.chmod(path, mode)
 
 
 class TransferError(Exception):
