@@ -733,7 +733,7 @@ class Run:
                 f"Run {self.data.id}: Failed to copy WDL to output dir: {error}"
             )
         else:
-            infiles.append(wdl_path)
+            infiles.append(self.data.wdl_basename)
 
         # copy subworkflows zip (if exists)
         src_subworkflows_path = os.path.join(
@@ -748,7 +748,7 @@ class Run:
                     f"Run {self.data.id}: Failed to copy subworkflows-ZIP to output dir: {error}"
                 )
             else:
-                infiles.append(subworkflows_path)
+                infiles.append("subworkflows.zip")
 
         # copy inputs json
         src_inputs_json_path = os.path.join(
@@ -762,7 +762,7 @@ class Run:
                 f"Run {self.data.id}: Failed to copy inputs-JSON to output dir: {error}"
             )
         else:
-            infiles.append(inputs_json_path)
+            infiles.append(self.data.json_basename)
 
         # get Cromwell metadata
         try:

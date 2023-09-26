@@ -25,14 +25,14 @@ MAX_ERROR_STRING_LEN = 1024
 def mkdir(path, mode=None):
     if mode is None:
         mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-    if not path or os.path.exists(path):
-        return []
-    (head, tail) = os.path.split(path)
-    res = mkdir(head, mode)
-    os.mkdir(path)
-    os.chmod(path, mode)
-    res += [path]
-    return res
+    if os.path.isdir(path):
+        return
+    else:
+        (head, tail) = os.path.split(path)
+        mkdir(head, mode)
+        if not os.path.exists(path):
+            os.mkdir(path)
+            os.chmod(path, mode)
 
 
 class TransferError(Exception):
@@ -410,25 +410,25 @@ class Transfer:
         """
         Copy files and folders (recursively).
         """
+        logger.debug(f"Transfer {self.data.id}: Begin local copy")
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
-        if not os.path.isdir(dest):
-            try:
-                mkdir(dest)
-            except IOError as error:
-                logger.error(f"Transfer {self.data.id} failed: {error}")
-                raise IOError(f"Transfer {self.data.id} failed: {error}")
-        logger.debug(f"Transfer {self.data.id} begin local rsync of {src} to {dest}")
+        try:
+            mkdir(dest)
+        except IOError as error:
+            logger.error(f"Transfer {self.data.id} failed: {error}")
+            raise IOError(f"Transfer {self.data.id} failed: {error}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-
+        logger.debug(f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads")
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
+        logger.debug(f"Transfer {self.data.id}: Chmod files")
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
         parallel_chmod(dest, file_mode, folder_mode, parallelism=parallelism)
