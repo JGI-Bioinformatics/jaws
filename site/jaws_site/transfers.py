@@ -415,13 +415,15 @@ class Transfer:
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
+        logger.debug(f"Transfer {self.data.id}: Copy {src} -> {dest}")
         if not os.path.isdir(dest):
             try:
                 mkdir(dest)
             except IOError as error:
                 logger.error(f"Transfer {self.data.id} failed: {error}")
                 raise IOError(f"Transfer {self.data.id} failed: {error}")
-        logger.debug(f"Transfer {self.data.id} begin local rsync of {src} to {dest}")
+        else:
+            logger.debug(f"Transfer {self.data.id}: Destination dir already exists: {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
