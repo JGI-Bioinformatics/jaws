@@ -29,9 +29,7 @@ def mkdir(path, mode=None):
     curr = '/'
     for i in range(1, len(p)):
         curr = os.path.join(curr, p[i])
-        print(f"[{i}] {curr}")
         if not os.path.exists(curr):
-            print('mkdir')
             os.mkdir(curr)
             os.chmod(curr, mode)
 
@@ -417,21 +415,21 @@ class Transfer:
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
         logger.debug(f"Transfer {self.data.id}: Copy {src} -> {dest}")
-        if not os.path.isdir(dest):
-            try:
-                mkdir(dest)
-            except IOError as error:
-                logger.error(f"Transfer {self.data.id} failed: {error}")
-                raise IOError(f"Transfer {self.data.id} failed: {error}")
+        try:
+            mkdir(dest)
+        except IOError as error:
+            logger.error(f"Transfer {self.data.id} failed: {error}")
+            raise IOError(f"Transfer {self.data.id} failed: {error}")
         else:
-            logger.debug(f"Transfer {self.data.id}: Destination dir already exists: {dest}")
+            logger.debug(f"Transfer {self.data.id}: created outdir: {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-
+        logger.debug(f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads")
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
+        logger.debug(f"Transfer {self.data.id}: Chmod files")
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
         parallel_chmod(dest, file_mode, folder_mode, parallelism=parallelism)
