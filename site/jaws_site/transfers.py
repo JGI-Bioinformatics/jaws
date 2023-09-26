@@ -410,19 +410,17 @@ class Transfer:
         """
         Copy files and folders (recursively).
         """
+        logger.debug(f"Transfer {self.data.id}: Begin local copy")
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
-        logger.debug(f"Transfer {self.data.id}: Copy {src} -> {dest}")
         try:
             mkdir(dest)
         except IOError as error:
             logger.error(f"Transfer {self.data.id} failed: {error}")
             raise IOError(f"Transfer {self.data.id} failed: {error}")
-        else:
-            logger.debug(f"Transfer {self.data.id}: created outdir: {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
