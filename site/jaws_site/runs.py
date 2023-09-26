@@ -822,8 +822,8 @@ class Run:
         try:
             task_log = self.task_log()
             # this copies desired fields from the cromwell metadata into the task-log table
-            task_log_summary_dict = metadata.task_log_summary_dict()
-            task_log.add_metadata(task_log_summary_dict)
+            task_summary_dict = metadata.task_summary_dict()
+            task_log.add_metadata(task_summary_dict)
             task_log_table = task_log.table()
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to generate task-log: {error}")
