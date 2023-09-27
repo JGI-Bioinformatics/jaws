@@ -147,6 +147,14 @@ class TaskLog:
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
             run_end_str = self._utc_to_local_str(run_end)
+            cpu_hours = None
+            if (
+                req_cpu is not None
+                and req_cpu > 0
+                and run_minutes is not None
+                and run_minutes > 0
+            ):
+                cpu_hours = round(req_cpu * run_minutes / 60, 3)
             new_table.append(
                 [
                     task_dir,
@@ -161,6 +169,7 @@ class TaskLog:
                     req_cpu,
                     req_mem_gb,
                     req_minutes,
+                    cpu_hours,
                 ]
             )
         result = {
@@ -177,6 +186,7 @@ class TaskLog:
                 "REQ_CPU",
                 "REQ_GB",
                 "REQ_MIN",
+                "CPU_HRS",
             ],
             "data": new_table,
         }
@@ -351,4 +361,4 @@ class TaskLog:
         cpu_minutes = 0
         for row in rows:
             cpu_minutes = cpu_minutes + row[0] * row[1]
-        return round(cpu_minutes / 60, 1)
+        return round(cpu_minutes / 60, 2)
