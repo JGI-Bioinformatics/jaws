@@ -216,7 +216,9 @@ class Call:
         self.call_root = self.data.get("callRoot", None)
         self.execution_dir = None
         self.job_id = self.data.get("jobId", None)
+        self.requested_time = None
         self.requested_time_minutes = None
+        self.requested_memory = None
         self.requested_memory_gb = None
         self.requested_cpu = None
         self.failure_message = None
@@ -230,9 +232,8 @@ class Call:
         if "runtimeAttributes" in self.data:
             self.requested_time = self.data["runtimeAttributes"].get("time", None)
             self.requested_memory = self.data["runtimeAttributes"].get("memory", None)
-            self.requested_cpu = self.data["runtimeAttributes"].get("cpu", None)
-            if self.requested_cpu is not None:
-                self.requested_cpu = int(self.requested_cpu)
+            if "cpu" in self.data["runtimeAttributes"]:
+                self.requested_cpu = int(self.data["runtimeAttributes"]["cpu"])
 
         if "failures" in self.data:
             # save last failure message only
@@ -519,7 +520,9 @@ class Task:
                 attempts = [attempts[-1]]
             for attempt in attempts:
                 sub_meta = self.subworkflows[shard_index][attempt]
-                result.extend(sub_meta.task_summary(last_attempts=last_attempts, relpaths=False))
+                result.extend(
+                    sub_meta.task_summary(last_attempts=last_attempts, relpaths=False)
+                )
         return result
 
 
