@@ -31,12 +31,10 @@ def test_did_run_start(monkeypatch):
 
 
 def test_table(monkeypatch):
-    def mock__select_all_rows(self):
+    def mock_select(self):
         return [
             [
-                123,
-                "ABCD-EFGH-IJKL-MNOP",
-                "2421",
+                9999,
                 "call-do_something",
                 "done",
                 datetime.strptime("2023-04-24 11:00:00", DATETIME_FMT),
@@ -44,7 +42,6 @@ def test_table(monkeypatch):
                 datetime.strptime("2023-04-24 11:03:00", DATETIME_FMT),
                 1,
                 2,
-                0,
                 None,
                 None,
                 None,
@@ -60,14 +57,13 @@ def test_table(monkeypatch):
             "QUEUE_START",
             "RUN_START",
             "RUN_END",
-            "RC",
-            "QUEUE_MINUTES",
-            "RUN_MINUTES",
+            "QUEUE_MIN",
+            "RUN_MIN",
             "CACHED",
             "TASK_NAME",
             "REQ_CPU",
             "REQ_GB",
-            "REQ_MINUTES",
+            "REQ_MIN",
         ],
         "data": [
             [
@@ -76,7 +72,6 @@ def test_table(monkeypatch):
                 "2023-04-24 11:00:00",
                 "2023-04-24 11:01:00",
                 "2023-04-24 11:03:00",
-                0,
                 1,
                 2,
                 None,
@@ -88,7 +83,7 @@ def test_table(monkeypatch):
         ],
     }
 
-    monkeypatch.setattr(TaskLog, "_select_all_rows", mock__select_all_rows)
+    monkeypatch.setattr(TaskLog, "select", mock_select)
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
@@ -98,10 +93,10 @@ def test_table(monkeypatch):
 
 
 def test__utc_to_local_str(monkeypatch):
-    def mock__select_rows(self):
+    def mock_select(self):
         return []
 
-    monkeypatch.setattr(TaskLog, "_select_rows", mock__select_rows)
+    monkeypatch.setattr(TaskLog, "select", mock_select)
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"

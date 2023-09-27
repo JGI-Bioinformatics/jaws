@@ -790,6 +790,7 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
             "cromwell_run_id": cromwell_run_id,
             "workflow_name": "fq_count",
             "workflow_root": str(workflow_root),
+            "cpu_hours": 14.1,
         }
     ]
     mock_sqlalchemy_session.output(log_query_results)

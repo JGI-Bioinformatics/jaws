@@ -14,7 +14,7 @@ class TaskLoggerDbError(Exception):
 
 
 class TaskLogger:
-    def __init__(self, session, logger=None) -> None:
+    def __init__(self, config, session, logger=None) -> None:
         """
         The task logger receives RabbitMQ messages and saves them in the RDb.
         :param config: Configuration parameters
@@ -22,6 +22,7 @@ class TaskLogger:
         :param self.session: Database self.session handle
         :ptype self.session: sqlalchemy.orm.self.sessionmaker
         """
+        self.config = config
         self.session = session
         if logger is None:
             self.logger = logging.getLogger(__package__)
@@ -35,27 +36,23 @@ class TaskLogger:
         status = params.get("status")
 
         if status == "queued":
-            return self._queued(**params)
-        elif status == "cancelled":
-            return self._cancelled(**params)
-        elif status in ("running", "completed", "done"):
+            return self._insert(**params)
+        elif status in ("running", "done"):
             return self._update(**params)
         else:
             self.logger.error(f"Invalid log status: {status}")
             return True
 
-    def _queued(self, **kwargs) -> bool:
+    def _insert(self, **kwargs) -> bool:
         """
         Insert new row.
         """
         cromwell_run_id = kwargs.get("cromwell_run_id")
-        cromwell_job_id = kwargs.get("cromwell_job_id")
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
         try:
             log_entry = models.Tasks(
                 cromwell_run_id=cromwell_run_id,
-                cromwell_job_id=cromwell_job_id,
                 task_dir=task_dir,
                 status="queued",
                 queue_start=timestamp,
@@ -74,47 +71,6 @@ class TaskLogger:
             self.logger.exception(
                 f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
             )
-        return True
-
-    def _cancelled(self, **kwargs) -> bool:
-        """
-        Select by job_id and save cancelled timestamp.
-        """
-        job_id = kwargs.get("job_id")
-        timestamp = kwargs.get("timestamp")
-        try:
-            row = (
-                self.session.query(models.Tasks)
-                .filter(models.Tasks.job_id == job_id)
-                .one_or_none()
-            )
-        except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            self.logger.error(f"Unable to connect to db: {error}")
-            return False
-        except Exception as error:
-            err_msg = (
-                f"Unexpected error; unable to select task log for job {job_id}: {error}"
-            )
-            self.logger.error(err_msg)
-            return True
-
-        if row is None:
-            self.logger.error(f"Task log job {job_id} not found!")
-            return True
-
-        try:
-            row.run_end = timestamp
-            row.status = "cancelled"
-            self.session.commit()
-        except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            self.session.rollback()
-            self.logger.error(f"Unable to connect to db: {error}")
-            return False
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            self.logger.exception(f"Unable to update Task Log job {job_id}: {error}")
         return True
 
     @staticmethod
@@ -139,6 +95,8 @@ class TaskLogger:
         task_dir = kwargs.get("task_dir")
         status = kwargs.get("status")
         timestamp = kwargs.get("timestamp")
+
+        # select row for this task
         try:
             row = (
                 self.session.query(models.Tasks)
@@ -158,7 +116,8 @@ class TaskLogger:
             return True
 
         if row is None:
-            self.logger.error(f"Task log {cromwell_run_id} {task_dir} not found!")
+            # this can only happen if the queued message was lost
+            self.logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
             return True
 
         try:
@@ -168,7 +127,6 @@ class TaskLogger:
                 row.queue_minutes = self.delta_minutes(row.queue_start, row.run_start)
             else:
                 row.run_end = timestamp
-                row.rc = kwargs.get("rc", None)
                 row.status = "done"
                 row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
             self.session.commit()
@@ -180,23 +138,23 @@ class TaskLogger:
         except SQLAlchemyError as error:
             self.session.rollback()
             self.logger.exception(
-                f"Unable to update Task Log {cromwell_run_id} {task_dir}: {error}"
+                f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
             )
         return True
 
-    def receive_messages(self, config):
+    def receive_messages(self):
         """
         Receive and consume task-log messages indefinately.
         """
-        host = config.get("RMQ", "host")
-        port = config.get("RMQ", "port")
-        vhost = config.get("RMQ", "vhost")
-        user = config.get("RMQ", "user")
-        password = config.get("RMQ", "password")
+        host = self.config.get("RMQ", "host")
+        port = self.config.get("RMQ", "port")
+        vhost = self.config.get("RMQ", "vhost")
+        user = self.config.get("RMQ", "user")
+        password = self.config.get("RMQ", "password")
         ttl = int(
-            config.get("RMQ", "ttl", 3600000)
-        )  # must match value in sender's config
-        site_id = config.get("SITE", "id")
+            self.config.get("RMQ", "ttl", 3600000)
+        )  # must match value in sender's self.config
+        site_id = self.config.get("SITE", "id")
         queue = f"{site_id}_tasks"
 
         def callback(ch, method, properties, body):

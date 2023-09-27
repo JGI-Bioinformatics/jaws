@@ -80,15 +80,13 @@ class Tasks(Base):
     __tablename__ = "tasks"
     id = Column(Integer, primary_key=True)  # auto-increment
     cromwell_run_id = Column(String(36), nullable=False)
-    cromwell_job_id = Column(String(16), nullable=True)
     task_dir = Column(String(256), nullable=False)
     status = Column(String(32), nullable=False)
-    queue_start = Column(DateTime, nullable=False)
+    queue_start = Column(DateTime, nullable=True)
     run_start = Column(DateTime, nullable=True)
     run_end = Column(DateTime, nullable=True)
     queue_minutes = Column(SmallInteger, nullable=True)
     run_minutes = Column(SmallInteger, nullable=True)
-    rc = Column(SmallInteger, nullable=True)
     cached = Column(Boolean, nullable=True)
     name = Column(String(256), nullable=True)
     req_cpu = Column(SmallInteger, nullable=True)

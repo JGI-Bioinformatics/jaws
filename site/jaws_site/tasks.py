@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 import pytz
 import re
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
@@ -32,18 +33,20 @@ class TaskLog:
         else:
             self.logger = logger
         self.set_local_tz(kwargs.get("local_tz", DEFAULT_TZ))
-        self.data = None  # load lazily
+        self.data = None
 
     def set_local_tz(self, local_tz=DEFAULT_TZ):
         self.local_tz = local_tz
         self.local_tz_obj = pytz.timezone(local_tz)
 
-    def _select_rows(self):
+    def select(self):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
-        :return: sqlalchemy query object
-        :rtype: obj
+        :return: table
+        :rtype: list
         """
+        if self.data is not None:
+            return self.data
         try:
             query = (
                 self.session.query(models.Tasks)
@@ -51,34 +54,32 @@ class TaskLog:
                 .order_by(models.Tasks.id)
             )
         except NoResultFound:
-            # it's possible for a newly created run to not have any task-log messages yet
-            return None
-        except SQLAlchemyError as error:
-            self.logger.error(f"Unable to select task_logs: {error}")
-            raise TaskDbError(error)
-        else:
-            return query
-
-    def _select_all_rows(self):
-        """
-        Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
-        :return: table
-        :rtype: list
-        """
-        try:
-            rows = (
-                self.session.query(models.Tasks)
-                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
-                .order_by(models.Tasks.id)
-                .all()
-            )
-        except NoResultFound:
             return []
         except SQLAlchemyError as error:
             self.logger.error(f"Unable to select task_logs: {error}")
             raise TaskDbError(error)
-        else:
-            return rows
+
+        table = []
+        for row in query:
+            table.append(
+                [
+                    row.id,
+                    row.task_dir,
+                    row.status,
+                    row.queue_start,
+                    row.run_start,
+                    row.run_end,
+                    row.queue_minutes,
+                    row.run_minutes,
+                    row.cached,
+                    row.name,
+                    row.req_cpu,
+                    row.req_mem_gb,
+                    row.req_minutes,
+                ]
+            )
+        self.data = table
+        return table
 
     def _select_all_cpu_minutes(self):
         """
@@ -123,15 +124,13 @@ class TaskLog:
         """
         Convert the timestamps to local timezone strings and return with header.
         """
-        rows = self._select_all_rows()
         if "local_tz" in kwargs:
             self.set_local_tz(kwargs.get("local_tz"))
-        table = []
+        new_table = []
+        rows = self.select()
         for row in rows:
             (
-                id,
-                cromwell_run_id,
-                cromwell_job_id,
+                row_id,
                 task_dir,
                 status,
                 queue_start,
@@ -139,7 +138,6 @@ class TaskLog:
                 run_end,
                 queue_minutes,
                 run_minutes,
-                rc,
                 cached,
                 name,
                 req_cpu,
@@ -149,14 +147,13 @@ class TaskLog:
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
             run_end_str = self._utc_to_local_str(run_end)
-            table.append(
+            new_table.append(
                 [
                     task_dir,
                     status,
                     queued_str,
                     run_start_str,
                     run_end_str,
-                    rc,
                     queue_minutes,
                     run_minutes,
                     cached,
@@ -173,16 +170,15 @@ class TaskLog:
                 "QUEUE_START",
                 "RUN_START",
                 "RUN_END",
-                "RC",
-                "QUEUE_MINUTES",
-                "RUN_MINUTES",
+                "QUEUE_MIN",
+                "RUN_MIN",
                 "CACHED",
                 "TASK_NAME",
                 "REQ_CPU",
                 "REQ_GB",
-                "REQ_MINUTES",
+                "REQ_MIN",
             ],
-            "data": table,
+            "data": new_table,
         }
         return result
 
@@ -217,14 +213,14 @@ class TaskLog:
         :return: time in minutes
         :rtype: int
         """
-        m = time_re.match(duration)
-        if m:
-            minutes = (
-                float(m.group(1)) * 60 + float(m.group(2)) + float(m.group(3)) / 60
-            )
-            return round(minutes, 0)
-        else:
-            return None
+        if duration is not None:
+            m = time_re.match(duration)
+            if m:
+                minutes = (
+                    float(m.group(1)) * 60 + float(m.group(2)) + float(m.group(3)) / 60
+                )
+                return round(minutes, 0)
+        return None
 
     @staticmethod
     def memory_gb(memory_str: str) -> float:
@@ -235,38 +231,38 @@ class TaskLog:
         :return: memory in gigabytes
         :rtype: float
         """
-        m = memory_re.match(memory_str)
-        if m:
-            gb = float(m.group(1))
-            units = m.group(2).upper()
-            if units in ("KB", "KIB"):
-                gb = gb / 1024**2
-            elif units in ("MB", "MIB"):
-                gb = gb / 1024
-            elif units in ("GB", "GIB"):
-                pass
-            elif units in ("TB", "TIB"):
-                gb = gb * 1024
-            else:
-                gb = gb / 1024**3
-            if gb > 32767:
-                # max value for signed SMALLINT
-                gb = 32767
-            return round(gb, 0)
-        else:
-            return None
+        if memory_str is not None:
+            m = memory_re.match(memory_str)
+            if m:
+                gb = float(m.group(1))
+                units = m.group(2).upper()
+                if units in ("KB", "KIB"):
+                    gb = gb / 1024**2
+                elif units in ("MB", "MIB"):
+                    gb = gb / 1024
+                elif units in ("GB", "GIB"):
+                    pass
+                elif units in ("TB", "TIB"):
+                    gb = gb * 1024
+                else:
+                    gb = gb / 1024**3
+                if gb > 32767:
+                    # max value for signed SMALLINT
+                    gb = 32767
+                return round(gb, 0)
+        return None
 
-    def _insert_cached_tasks(self, task_summary: list) -> None:
+    def _insert_cached_tasks(self, summary: dict) -> None:
         """
         Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
         They shall not include cpu-hours data so won't affect resource calculations.
         New rows are inserted but not committed as this is part of a larger transaction; see: add_metadata().
-        :param task_summary: list of task metadata, produced by JAWS Cromwell class
-        :ptype task_summary: list
+        :param summary: list of task metadata, produced by JAWS Cromwell class
+        :ptype summary: list
         """
-        for task_dir, summary in task_summary.items():
-            if summary["cached"] is True:
-                status = summary["execution_status"]
+        for task_dir, info in summary.items():
+            if info["cached"] is True:
+                status = info["execution_status"]
                 if status == "Done":
                     status = "succeeded"
                 elif status == "Failed":
@@ -275,60 +271,74 @@ class TaskLog:
                     status = "cancelled"
                 log_entry = models.Tasks(
                     task_dir=task_dir,
-                    name=summary["name"],
+                    name=info["name"],
                     cromwell_run_id=self.cromwell_run_id,
-                    cromwell_job_id=summary["job_id"],
                     status=status,
-                    queue_start=None,
                     cached=True,
-                    req_cpu=int(summary["requested_cpu"]),
-                    req_mem_gb=self.memory_gb(summary["requested_memory"]),
-                    req_minutes=self.time_minutes(summary["requested_time"]),
+                    req_cpu=int(info["req_cpu"]),
+                    req_mem_gb=self.memory_gb(info["req_memory"]),
+                    req_minutes=self.time_minutes(info["req_time"]),
                 )
                 self.session.add(log_entry)
 
-    def _update_with_cromwell_metadata(self, task_summary: list) -> None:
+    def prepare_metadata(self, summary: dict) -> list:
         """
-        Add fields from the Cromwell metadata:
-        - requested cpu
-        - requested memory (in GB)
-        - requested time (in minutes)
-        And update the status using the Cromwell "executionStatus",  which shall differ from return code when a
-        task's expected outputs cannot be reaped (e.g. missing file).
-        Rows are updated but the changes are not committed as this is part of a larger transaction; see: add_metadata()
+        Prepare bulk update list
         """
-        if self.data is not None:
-            for row in self.data:
-                task_dir = row.task_dir
-                if task_dir in task_summary:
-                    summary = task_summary[task_dir]
-                    row.req_cpu = int(summary["requested_cpu"])
-                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                    row.req_minutes = self.time_minutes(summary["requested_time"])
-                    status = summary["execution_status"]
-                    if status == "Done":
-                        row.status = "succeeded"
-                    elif status == "Failed":
-                        row.status = "failed"
-                    elif status == "Aborted":
-                        row.status = "cancelled"
+        updates = []
+        rows = self.select()
+        for row in rows:
+            (
+                row_id,
+                task_dir,
+                status,
+                queue_start,
+                run_start,
+                run_end,
+                queue_minutes,
+                run_minutes,
+                cached,
+                name,
+                req_cpu,
+                req_mem_gb,
+                req_minutes,
+            ) = row
+            if task_dir not in summary:
+                continue
+            status = None
+            if summary[task_dir]["execution_status"] == "Done":
+                status = "succeeded"
+            elif summary[task_dir]["execution_status"] == "Failed":
+                status = "failed"
+            elif summary[task_dir]["execution_status"] == "Aborted":
+                status = "cancelled"
+            update = {
+                "id": row_id,
+                "status": status,
+                "cached": bool(summary[task_dir]["cached"]),
+                "name": summary[task_dir]["name"],
+                "req_cpu": int(summary[task_dir]["requested_cpu"]),
+                "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
+                "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
+            }
+            updates.append(update)
+        return updates
 
     def add_metadata(self, summary: dict):
         """
         :param summary: JAWS Cromwell Metadata.task_log_summary() output
         :ptype summary: dict
         """
-        self.data = self._select_rows()
         savepoint = self.session.begin_nested()
+        self._insert_cached_tasks(summary)
+        updates = self.prepare_metadata(summary)
+        self.logger.debug(f"UPDATES: {updates}")
         try:
-            self._insert_cached_tasks(summary)
-            self._update_with_cromwell_metadata(summary)
             self.session.commit()
+            self.session.execute(update(models.Tasks), updates)
         except SQLAlchemyError as error:
             savepoint.rollback()
-            self.logger.exception(
-                f"Unable to update Run {self.data.id} Tasks with metadata: {error}"
-            )
+            self.logger.exception(f"Unable to update Tasks with metadata: {error}")
             raise TaskDbError(f"Unable to update with metadata: {error}")
 
     def cpu_hours(self) -> float:
