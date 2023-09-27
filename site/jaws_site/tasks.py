@@ -310,11 +310,11 @@ class TaskLog:
                 task_dir = row.task_dir
                 if task_dir in task_summary:
                     summary = task_summary[task_dir]
-                    row.cached = summary["cached"]
+                    #row.cached = bool(summary["cached"])
                     row.name = summary["name"]
-                    row.req_cpu = int(summary["requested_cpu"])
-                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                    row.req_minutes = self.time_minutes(summary["requested_time"])
+                    #row.req_cpu = int(summary["requested_cpu"])
+                    #row.req_mem_gb = self.memory_gb(summary["requested_memory"])
+                    #row.req_minutes = self.time_minutes(summary["requested_time"])
                     status = summary["execution_status"]
                     if status == "Done":
                         row.status = "succeeded"
