@@ -2,7 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 - Change dori site's max ram to 1500
-- Add "cpu_hours" to run status info after run completes (site#1719)
+- Add "cpu_hours" to run status info and task log after run completes (site#1719)
 
 ## 2.0.1  Summary [09/19/2023 - staging]
 - task-summary has been deprecated as it's been merged with the task-log (#1719); command was renamed from "task-log" to simply "tasks"
