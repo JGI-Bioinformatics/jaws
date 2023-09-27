@@ -314,11 +314,11 @@ class TaskLog:
                 status = "cancelled"
             update = {
                 "id": row_id,
-                "cached": bool(summary[task_dir]["cached"]),
+                # "cached": bool(summary[task_dir]["cached"]),
                 # "name": summary[task_dir]["name"],
-                "req_cpu": int(summary[task_dir]["requested_cpu"]),
-                "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
-                "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
+                # "req_cpu": int(summary[task_dir]["requested_cpu"]),
+                # "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
+                # "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
                 "status": status,
             }
             updates.append(update)
