@@ -296,9 +296,9 @@ class TaskLog:
                 task_dir = row.task_dir
                 if task_dir in task_summary:
                     summary = task_summary[task_dir]
-                    row.req_cpu = int(summary["requested_cpu"])
-                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                    row.req_minutes = self.time_minutes(summary["requested_time"])
+                    # row.req_cpu = int(summary["requested_cpu"])
+                    # row.req_mem_gb = self.memory_gb(summary["requested_memory"])
+                    # row.req_minutes = self.time_minutes(summary["requested_time"])
                     status = summary["execution_status"]
                     if status == "Done":
                         row.status = "succeeded"
@@ -316,7 +316,7 @@ class TaskLog:
         savepoint = self.session.begin_nested()
         try:
             self._insert_cached_tasks(summary)
-            self._update_with_cromwell_metadata(summary)
+            # self._update_with_cromwell_metadata(summary)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()

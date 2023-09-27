@@ -117,7 +117,7 @@ class TaskLogger:
 
         if row is None:
             # this can only happen if the queued message was lost
-            self.logger.error(f"Task log {cromwell_run_id} {task_dir} not found!")
+            self.logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
             return True
 
         try:
@@ -138,7 +138,7 @@ class TaskLogger:
         except SQLAlchemyError as error:
             self.session.rollback()
             self.logger.exception(
-                f"Unable to update Task Log {cromwell_run_id} {task_dir}: {error}"
+                f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
             )
         return True
 
