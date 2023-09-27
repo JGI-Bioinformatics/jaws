@@ -128,39 +128,23 @@ class TaskLog:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
         for row in rows:
-            (
-                id,
-                cromwell_run_id,
-                task_dir,
-                status,
-                queue_start,
-                run_start,
-                run_end,
-                queue_minutes,
-                run_minutes,
-                cached,
-                name,
-                req_cpu,
-                req_mem_gb,
-                req_minutes,
-            ) = row
-            queued_str = self._utc_to_local_str(queue_start)
-            run_start_str = self._utc_to_local_str(run_start)
-            run_end_str = self._utc_to_local_str(run_end)
+            queued_str = self._utc_to_local_str(row.queue_start)
+            run_start_str = self._utc_to_local_str(row.run_start)
+            run_end_str = self._utc_to_local_str(row.run_end)
             table.append(
                 [
-                    task_dir,
-                    status,
+                    row.task_dir,
+                    row.status,
                     queued_str,
                     run_start_str,
                     run_end_str,
-                    queue_minutes,
-                    run_minutes,
-                    cached,
-                    name,
-                    req_cpu,
-                    req_mem_gb,
-                    req_minutes,
+                    row.queue_minutes,
+                    row.run_minutes,
+                    row.cached,
+                    row.name,
+                    row.req_cpu,
+                    row.req_mem_gb,
+                    row.req_minutes,
                 ]
             )
         result = {
@@ -274,7 +258,6 @@ class TaskLog:
                     name=summary["name"],
                     cromwell_run_id=self.cromwell_run_id,
                     status=status,
-                    queue_start=None,
                     cached=True,
                     req_cpu=int(summary["req_cpu"]),
                     req_mem_gb=self.memory_gb(summary["req_memory"]),
