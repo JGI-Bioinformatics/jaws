@@ -310,7 +310,7 @@ class TaskLog:
                     info = summary[task_dir]
                     self.logger.debug(f"GOT: {info}")
                     # rec.cached = bool(info["cached"])
-                    # rec.name = info["name"]
+                    rec.name = info["name"]
                     # rec.req_cpu = int(info["requested_cpu"])
                     # rec.req_mem_gb = self.memory_gb(info["requested_memory"])
                     # rec.req_minutes = self.time_minutes(info["requested_time"])
