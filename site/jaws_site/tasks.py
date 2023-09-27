@@ -331,7 +331,7 @@ class TaskLog:
         """
         savepoint = self.session.begin_nested()
         self._insert_cached_tasks(summary)
-        updates = self.prepare_metadat(summary)
+        updates = self.prepare_metadata(summary)
         try:
             self.session.commit()
             self.session.execute(update(models.Tasks), updates)
