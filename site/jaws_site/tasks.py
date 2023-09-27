@@ -275,9 +275,9 @@ class TaskLog:
                     cromwell_run_id=self.cromwell_run_id,
                     status=status,
                     cached=True,
-                    req_cpu=int(info["req_cpu"]),
-                    req_mem_gb=self.memory_gb(info["req_memory"]),
-                    req_minutes=self.time_minutes(info["req_time"]),
+                    req_cpu=int(info["requested_cpu"]),
+                    req_mem_gb=self.memory_gb(info["requested_memory"]),
+                    req_minutes=self.time_minutes(info["requested_time"]),
                 )
                 self.session.add(log_entry)
 
