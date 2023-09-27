@@ -704,7 +704,7 @@ class Metadata:
         if relpaths is True:
             root = self.workflow_root() + "/"
             for i in range(0, len(summary)):
-                if "call_root" in summary[i]:
+                if "call_root" in summary[i] and summary[i]["call_root"] is not None:
                     summary[i]["call_root"] = summary[i]["call_root"].removeprefix(root)
         return summary
 
