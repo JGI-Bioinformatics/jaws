@@ -128,23 +128,39 @@ class TaskLog:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
         for row in rows:
-            queued_str = self._utc_to_local_str(row.queue_start)
-            run_start_str = self._utc_to_local_str(row.run_start)
-            run_end_str = self._utc_to_local_str(row.run_end)
+            (
+                row_id,
+                cromwell_run_id,
+                task_dir,
+                status,
+                queue_start,
+                run_start,
+                run_end,
+                queue_minutes,
+                run_minutes,
+                cached,
+                name,
+                req_cpu,
+                req_mem_gb,
+                req_minutes,
+            ) = row
+            queued_str = self._utc_to_local_str(queue_start)
+            run_start_str = self._utc_to_local_str(run_start)
+            run_end_str = self._utc_to_local_str(run_end)
             table.append(
                 [
-                    row.task_dir,
-                    row.status,
+                    task_dir,
+                    status,
                     queued_str,
                     run_start_str,
                     run_end_str,
-                    row.queue_minutes,
-                    row.run_minutes,
-                    row.cached,
-                    row.name,
-                    row.req_cpu,
-                    row.req_mem_gb,
-                    row.req_minutes,
+                    queue_minutes,
+                    run_minutes,
+                    cached,
+                    name,
+                    req_cpu,
+                    req_mem_gb,
+                    req_minutes,
                 ]
             )
         result = {
