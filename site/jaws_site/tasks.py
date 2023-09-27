@@ -32,7 +32,6 @@ class TaskLog:
         else:
             self.logger = logger
         self.set_local_tz(kwargs.get("local_tz", DEFAULT_TZ))
-        self.data = None  # load lazily
 
     def set_local_tz(self, local_tz=DEFAULT_TZ):
         self.local_tz = local_tz
@@ -296,7 +295,7 @@ class TaskLog:
                 )
                 self.session.add(log_entry)
 
-    def _update_with_cromwell_metadata(self, task_summary: dict) -> None:
+    def _update_with_cromwell_metadata(self, data, task_summary: dict) -> None:
         """
         Add fields from the Cromwell metadata:
         - requested cpu
@@ -306,8 +305,8 @@ class TaskLog:
         task's expected outputs cannot be reaped (e.g. missing file).
         Rows are updated but the changes are not committed as this is part of a larger transaction; see: add_metadata()
         """
-        if self.data is not None:
-            for row in self.data:
+        if data is not None:
+            for row in data:
                 task_dir = row.task_dir
                 if task_dir in task_summary:
                     summary = task_summary[task_dir]
@@ -329,16 +328,16 @@ class TaskLog:
         :param summary: JAWS Cromwell Metadata.task_log_summary() output
         :ptype summary: dict
         """
-        self.data = self._select_rows()
+        data = self._select_rows()
         savepoint = self.session.begin_nested()
         try:
+            self._update_with_cromwell_metadata(data, summary)
             self._insert_cached_tasks(summary)
-            self._update_with_cromwell_metadata(summary)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
             self.logger.exception(
-                f"Unable to update Run {self.data.id} Tasks with metadata: {error}"
+                f"Unable to update Tasks with metadata: {error}"
             )
             raise TaskDbError(f"Unable to update with metadata: {error}")
 
