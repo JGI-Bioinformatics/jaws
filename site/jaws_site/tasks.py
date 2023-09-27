@@ -295,34 +295,6 @@ class TaskLog:
                 )
                 self.session.add(log_entry)
 
-    def _update_with_cromwell_metadata(self, data, task_summary: dict) -> None:
-        """
-        Add fields from the Cromwell metadata:
-        - requested cpu
-        - requested memory (in GB)
-        - requested time (in minutes)
-        And update the status using the Cromwell "executionStatus",  which shall differ from return code when a
-        task's expected outputs cannot be reaped (e.g. missing file).
-        Rows are updated but the changes are not committed as this is part of a larger transaction; see: add_metadata()
-        """
-        if data is not None:
-            for row in data:
-                task_dir = row.task_dir
-                if task_dir in task_summary:
-                    summary = task_summary[task_dir]
-                    # row.cached = bool(summary["cached"])
-                    row.name = summary["name"]
-                    # row.req_cpu = int(summary["requested_cpu"])
-                    # row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                    # row.req_minutes = self.time_minutes(summary["requested_time"])
-                    status = summary["execution_status"]
-                    if status == "Done":
-                        row.status = "succeeded"
-                    elif status == "Failed":
-                        row.status = "failed"
-                    elif status == "Aborted":
-                        row.status = "cancelled"
-
     def add_metadata(self, summary: dict):
         """
         :param summary: JAWS Cromwell Metadata.task_log_summary() output
@@ -330,9 +302,26 @@ class TaskLog:
         """
         data = self._select_rows()
         savepoint = self.session.begin_nested()
+        self._insert_cached_tasks(summary)
+        if data is not None:
+            for rec in data:
+                task_dir = rec.task_dir
+                if task_dir in summary:
+                    info = summary[task_dir]
+                    self.logger.debug(f"GOT: {info}")
+                    # rec.cached = bool(info["cached"])
+                    # rec.name = info["name"]
+                    # rec.req_cpu = int(info["requested_cpu"])
+                    # rec.req_mem_gb = self.memory_gb(info["requested_memory"])
+                    # rec.req_minutes = self.time_minutes(info["requested_time"])
+                    # status = info["execution_status"]
+                    # if status == "Done":
+                    #     rec.status = "succeeded"
+                    # elif status == "Failed":
+                    #     rec.status = "failed"
+                    # elif status == "Aborted":
+                    #     rec.status = "cancelled"
         try:
-            self._update_with_cromwell_metadata(data, summary)
-            self._insert_cached_tasks(summary)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
