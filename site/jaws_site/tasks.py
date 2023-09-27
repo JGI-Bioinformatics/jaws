@@ -12,6 +12,8 @@ DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
 memory_re = re.compile(r"^\s*(\d*\.?\d*)\s*(\w+)\s*$")
+DEFAULT_CPU = 1
+DEFAULT_MEM_GB = 5
 
 
 class TaskDbError(Exception):
@@ -283,8 +285,8 @@ class TaskLog:
                     cromwell_run_id=self.cromwell_run_id,
                     status=status,
                     cached=True,
-                    req_cpu=int(info.get("requested_cpu", None)),
-                    req_mem_gb=self.memory_gb(info.get("requested_memory", None)),
+                    req_cpu=int(info.get("requested_cpu", DEFAULT_CPU)),
+                    req_mem_gb=self.memory_gb(info.get("requested_memory", DEFAULT_MEM_GB)),
                     req_minutes=self.time_minutes(info.get("requested_time", None)),
                 )
                 self.session.add(log_entry)
@@ -325,9 +327,9 @@ class TaskLog:
                 "status": status,
                 "cached": bool(summary[task_dir]["cached"]),
                 "name": summary[task_dir]["name"],
-                "req_cpu": int(summary[task_dir]["requested_cpu"]),
-                "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
-                "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
+                "req_cpu": int(summary[task_dir].get("requested_cpu", DEFAULT_CPU)),
+                "req_mem_gb": self.memory_gb(summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)),
+                "req_minutes": self.time_minutes(summary[task_dir].get("requested_time", None)),
             }
             updates.append(update)
         return updates
