@@ -143,7 +143,7 @@ class TaskLog:
         rows = self._select_table()
         if "local_tz" in kwargs:
             self.set_local_tz(kwargs.get("local_tz"))
-        table = []
+        new_table = []
         for row in rows:
             (
                 task_dir,
@@ -162,7 +162,7 @@ class TaskLog:
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
             run_end_str = self._utc_to_local_str(run_end)
-            table.append(
+            new_table.append(
                 [
                     task_dir,
                     status,
@@ -193,7 +193,7 @@ class TaskLog:
                 "REQ_GB",
                 "REQ_MIN",
             ],
-            "data": table,
+            "data": new_table,
         }
         return result
 
