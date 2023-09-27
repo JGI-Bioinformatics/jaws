@@ -46,7 +46,20 @@ class TaskLog:
         """
         try:
             query = (
-                self.session.query(models.Tasks)
+                self.session.query(
+                    models.Tasks.task_dir,
+                    models.Tasks.status,
+                    models.Tasks.queue_start,
+                    models.Tasks.run_start,
+                    models.Tasks.run_end,
+                    models.Tasks.queue_minutes,
+                    models.Tasks.run_minutes,
+                    models.Tasks.cached,
+                    models.Tasks.name,
+                    models.Tasks.req_cpu,
+                    models.Tasks.req_mem_gb,
+                    models.Tasks.req_minutes,
+                )
                 .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
                 .order_by(models.Tasks.id)
             )
@@ -129,8 +142,6 @@ class TaskLog:
         table = []
         for row in rows:
             (
-                row_id,
-                cromwell_run_id,
                 task_dir,
                 status,
                 queue_start,
@@ -296,9 +307,11 @@ class TaskLog:
                 task_dir = row.task_dir
                 if task_dir in task_summary:
                     summary = task_summary[task_dir]
-                    # row.req_cpu = int(summary["requested_cpu"])
-                    # row.req_mem_gb = self.memory_gb(summary["requested_memory"])
-                    # row.req_minutes = self.time_minutes(summary["requested_time"])
+                    row.cached = summary["cached"]
+                    row.name = summary["name"]
+                    row.req_cpu = int(summary["requested_cpu"])
+                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
+                    row.req_minutes = self.time_minutes(summary["requested_time"])
                     status = summary["execution_status"]
                     if status == "Done":
                         row.status = "succeeded"
