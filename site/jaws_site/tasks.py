@@ -150,9 +150,7 @@ class TaskLog:
             cpu_hours = None
             if (
                 req_cpu is not None
-                and req_cpu > 0
                 and run_minutes is not None
-                and run_minutes > 0
             ):
                 cpu_hours = round(req_cpu * run_minutes / 60, 3)
             new_table.append(
