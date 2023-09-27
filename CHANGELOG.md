@@ -4,7 +4,7 @@
 - Change dori site's max ram to 1500
 
 ## 2.0.1  Summary [09/19/2023 - staging]
-- task-summary has been deprecated as it's been merged with the task-log (#1719)
+- task-summary has been deprecated as it's been merged with the task-log (#1719); command was renamed from "task-log" to simply "tasks"
 - cached tasks are now added to the task-log after a run completes (#1727)
 - cancelling a run now updates the task-log (#1664)
 - task-log format has changed (!1520)
