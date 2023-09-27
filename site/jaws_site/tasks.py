@@ -333,7 +333,7 @@ class TaskLog:
         savepoint = self.session.begin_nested()
         try:
             self._insert_cached_tasks(summary)
-            # self._update_with_cromwell_metadata(summary)
+            self._update_with_cromwell_metadata(summary)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
