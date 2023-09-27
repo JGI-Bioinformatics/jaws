@@ -46,20 +46,7 @@ class TaskLog:
         """
         try:
             query = (
-                self.session.query(
-                    models.Tasks.task_dir,
-                    models.Tasks.status,
-                    models.Tasks.queue_start,
-                    models.Tasks.run_start,
-                    models.Tasks.run_end,
-                    models.Tasks.queue_minutes,
-                    models.Tasks.run_minutes,
-                    models.Tasks.cached,
-                    models.Tasks.name,
-                    models.Tasks.req_cpu,
-                    models.Tasks.req_mem_gb,
-                    models.Tasks.req_minutes,
-                )
+                self.session.query(models.Tasks.task_dir)
                 .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
                 .order_by(models.Tasks.id)
             )
@@ -72,26 +59,43 @@ class TaskLog:
         else:
             return query
 
-    def _select_all_rows(self):
+    def _select_table(self):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
         :return: table
         :rtype: list
         """
         try:
-            rows = (
+            query = (
                 self.session.query(models.Tasks)
                 .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
                 .order_by(models.Tasks.id)
-                .all()
             )
         except NoResultFound:
             return []
         except SQLAlchemyError as error:
             self.logger.error(f"Unable to select task_logs: {error}")
             raise TaskDbError(error)
-        else:
-            return rows
+
+        table = []
+        for row in query:
+            table.append(
+                [
+                    row.task_dir,
+                    row.status,
+                    row.queue_start,
+                    row.run_start,
+                    row.run_end,
+                    row.queue_minutes,
+                    row.run_minutes,
+                    row.cached,
+                    row.name,
+                    row.req_cpu,
+                    row.req_mem_gb,
+                    row.req_minutes,
+                ]
+            )
+        return table
 
     def _select_all_cpu_minutes(self):
         """
@@ -136,7 +140,7 @@ class TaskLog:
         """
         Convert the timestamps to local timezone strings and return with header.
         """
-        rows = self._select_all_rows()
+        rows = self._select_table()
         if "local_tz" in kwargs:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
