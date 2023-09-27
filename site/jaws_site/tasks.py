@@ -314,8 +314,8 @@ class TaskLog:
                 status = "cancelled"
             update = {
                 "id": row_id,
-                "cached": summary[task_dir]["cached"],
-                "name": summary[task_dir]["name"],
+                "cached": bool(summary[task_dir]["cached"]),
+                # "name": summary[task_dir]["name"],
                 "req_cpu": int(summary[task_dir]["requested_cpu"]),
                 "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
                 "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
@@ -332,6 +332,7 @@ class TaskLog:
         savepoint = self.session.begin_nested()
         self._insert_cached_tasks(summary)
         updates = self.prepare_metadata(summary)
+        self.logger.debug(f"UPDATES: {updates}")
         try:
             self.session.commit()
             self.session.execute(update(models.Tasks), updates)
