@@ -31,11 +31,9 @@ def test_did_run_start(monkeypatch):
 
 
 def test_table(monkeypatch):
-    def mock__select_all_rows(self):
+    def mock__select_table(self):
         return [
             [
-                123,
-                "ABCD-EFGH-IJKL-MNOP",
                 "call-do_something",
                 "done",
                 datetime.strptime("2023-04-24 11:00:00", DATETIME_FMT),
@@ -84,7 +82,7 @@ def test_table(monkeypatch):
         ],
     }
 
-    monkeypatch.setattr(TaskLog, "_select_all_rows", mock__select_all_rows)
+    monkeypatch.setattr(TaskLog, "_select_table", mock__select_table)
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
