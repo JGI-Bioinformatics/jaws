@@ -87,13 +87,13 @@ def resubmit_run(params, session):
         return success(result)
 
 
-def run_task_log(params, session):
+def tasks(params, session):
     """Retrieve task log from Cromwell metadata"""
     logger.info(f"User {params['user_id']}: Task-log Run {params['run_id']}")
     try:
-        task_log = TaskLog(session, params["cromwell_run_id"], logger)
+        tasks = TaskLog(session, params["cromwell_run_id"], logger)
         local_tz = params.get("local_tz", DEFAULT_TZ)
-        result = task_log.table(local_tz=local_tz)
+        result = tasks.table(local_tz=local_tz)
     except Exception as error:
         return failure(error)
     else:
@@ -182,8 +182,8 @@ operations = {
         "function": cancel_run,
         "required_params": ["user_id", "run_id"],
     },
-    "run_task_log": {
-        "function": run_task_log,
+    "tasks": {
+        "function": tasks,
         "required_params": ["user_id", "run_id"],
     },
     "submit_transfer": {
