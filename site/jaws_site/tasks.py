@@ -231,26 +231,26 @@ class TaskLog:
         :return: memory in gigabytes
         :rtype: float
         """
-        m = memory_re.match(memory_str)
-        if m:
-            gb = float(m.group(1))
-            units = m.group(2).upper()
-            if units in ("KB", "KIB"):
-                gb = gb / 1024**2
-            elif units in ("MB", "MIB"):
-                gb = gb / 1024
-            elif units in ("GB", "GIB"):
-                pass
-            elif units in ("TB", "TIB"):
-                gb = gb * 1024
-            else:
-                gb = gb / 1024**3
-            if gb > 32767:
-                # max value for signed SMALLINT
-                gb = 32767
-            return round(gb, 0)
-        else:
-            return None
+        if memory_str is not None:
+            m = memory_re.match(memory_str)
+            if m:
+                gb = float(m.group(1))
+                units = m.group(2).upper()
+                if units in ("KB", "KIB"):
+                    gb = gb / 1024**2
+                elif units in ("MB", "MIB"):
+                    gb = gb / 1024
+                elif units in ("GB", "GIB"):
+                    pass
+                elif units in ("TB", "TIB"):
+                    gb = gb * 1024
+                else:
+                    gb = gb / 1024**3
+                if gb > 32767:
+                    # max value for signed SMALLINT
+                    gb = 32767
+                return round(gb, 0)
+        return None
 
     def _insert_cached_tasks(self, summary: dict) -> None:
         """
@@ -318,7 +318,7 @@ class TaskLog:
                 "cached": bool(summary[task_dir]["cached"]),
                 "name": summary[task_dir]["name"],
                 "req_cpu": int(summary[task_dir]["requested_cpu"]),
-                # "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
+                "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
                 "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
             }
             updates.append(update)
