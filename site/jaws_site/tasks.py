@@ -213,14 +213,14 @@ class TaskLog:
         :return: time in minutes
         :rtype: int
         """
-        m = time_re.match(duration)
-        if m:
-            minutes = (
-                float(m.group(1)) * 60 + float(m.group(2)) + float(m.group(3)) / 60
-            )
-            return round(minutes, 0)
-        else:
-            return None
+        if duration is not None:
+            m = time_re.match(duration)
+            if m:
+                minutes = (
+                    float(m.group(1)) * 60 + float(m.group(2)) + float(m.group(3)) / 60
+                )
+                return round(minutes, 0)
+        return None
 
     @staticmethod
     def memory_gb(memory_str: str) -> float:
@@ -319,7 +319,7 @@ class TaskLog:
                 "name": summary[task_dir]["name"],
                 "req_cpu": int(summary[task_dir]["requested_cpu"]),
                 # "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
-                # "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
+                "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
             }
             updates.append(update)
         return updates
