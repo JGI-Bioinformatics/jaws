@@ -997,6 +997,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             data["workflow_name"] = run.data.workflow_name
         elif log.status_to == "complete":
             data["output_manifest"] = run.output_manifest()
+            data["cpu_hours"] = run.data.cpu_hours
         try:
             response = central_rpc_client.request("update_run_log", data)
         except Exception as error:
