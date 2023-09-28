@@ -315,13 +315,11 @@ class TaskLog:
             ) = row
             if task_dir not in summary:
                 continue
-            status = None
+            status = "cancelled"
             if summary[task_dir]["execution_status"] == "Done":
                 status = "succeeded"
             elif summary[task_dir]["execution_status"] == "Failed":
                 status = "failed"
-            elif summary[task_dir]["execution_status"] == "Aborted":
-                status = "cancelled"
             update = {
                 "id": row_id,
                 "status": status,
