@@ -12,6 +12,8 @@ DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
 memory_re = re.compile(r"^\s*(\d*\.?\d*)\s*(\w+)\s*$")
+DEFAULT_CPU = 1
+DEFAULT_MEM_GB = 5
 
 
 class TaskDbError(Exception):
@@ -147,6 +149,12 @@ class TaskLog:
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
             run_end_str = self._utc_to_local_str(run_end)
+            cpu_hours = None
+            if (
+                req_cpu is not None
+                and run_minutes is not None
+            ):
+                cpu_hours = round(req_cpu * run_minutes / 60, 3)
             new_table.append(
                 [
                     task_dir,
@@ -161,6 +169,7 @@ class TaskLog:
                     req_cpu,
                     req_mem_gb,
                     req_minutes,
+                    cpu_hours,
                 ]
             )
         result = {
@@ -177,6 +186,7 @@ class TaskLog:
                 "REQ_CPU",
                 "REQ_GB",
                 "REQ_MIN",
+                "CPU_HRS",
             ],
             "data": new_table,
         }
@@ -275,9 +285,9 @@ class TaskLog:
                     cromwell_run_id=self.cromwell_run_id,
                     status=status,
                     cached=True,
-                    req_cpu=int(info["req_cpu"]),
-                    req_mem_gb=self.memory_gb(info["req_memory"]),
-                    req_minutes=self.time_minutes(info["req_time"]),
+                    req_cpu=int(info.get("requested_cpu", DEFAULT_CPU)),
+                    req_mem_gb=self.memory_gb(info.get("requested_memory", DEFAULT_MEM_GB)),
+                    req_minutes=self.time_minutes(info.get("requested_time", None)),
                 )
                 self.session.add(log_entry)
 
@@ -305,21 +315,19 @@ class TaskLog:
             ) = row
             if task_dir not in summary:
                 continue
-            status = None
+            status = "cancelled"
             if summary[task_dir]["execution_status"] == "Done":
                 status = "succeeded"
             elif summary[task_dir]["execution_status"] == "Failed":
                 status = "failed"
-            elif summary[task_dir]["execution_status"] == "Aborted":
-                status = "cancelled"
             update = {
                 "id": row_id,
                 "status": status,
                 "cached": bool(summary[task_dir]["cached"]),
                 "name": summary[task_dir]["name"],
-                "req_cpu": int(summary[task_dir]["requested_cpu"]),
-                "req_mem_gb": self.memory_gb(summary[task_dir]["requested_memory"]),
-                "req_minutes": self.time_minutes(summary[task_dir]["requested_time"]),
+                "req_cpu": int(summary[task_dir].get("requested_cpu", DEFAULT_CPU)),
+                "req_mem_gb": self.memory_gb(summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)),
+                "req_minutes": self.time_minutes(summary[task_dir].get("requested_time", None)),
             }
             updates.append(update)
         return updates
@@ -351,4 +359,4 @@ class TaskLog:
         cpu_minutes = 0
         for row in rows:
             cpu_minutes = cpu_minutes + row[0] * row[1]
-        return round(cpu_minutes / 60, 1)
+        return round(cpu_minutes / 60, 2)

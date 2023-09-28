@@ -64,6 +64,7 @@ def test_table(monkeypatch):
             "REQ_CPU",
             "REQ_GB",
             "REQ_MIN",
+            "CPU_HRS",
         ],
         "data": [
             [
@@ -74,6 +75,7 @@ def test_table(monkeypatch):
                 "2023-04-24 11:03:00",
                 1,
                 2,
+                None,
                 None,
                 None,
                 None,
@@ -146,4 +148,4 @@ def test_cpu_hours(monkeypatch) -> float:
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
     task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
     cpu_hrs = task_log.cpu_hours()
-    assert cpu_hrs == 4.3
+    assert cpu_hrs == 4.33
