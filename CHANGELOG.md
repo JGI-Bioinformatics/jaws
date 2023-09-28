@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- cancelling runs shall set "result" field too (#1724)
 
 
 ## 2.0.1  Summary [09/19/2023 - staging]
