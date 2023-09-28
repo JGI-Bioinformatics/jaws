@@ -298,6 +298,7 @@ class Run:
             logger.debug(f"Run {self.data.id}: Cromwell abort successful: {result}")
 
         try:
+            self.data.result = "cancelled"
             self.update_run_status("cancelled")
         except Exception as error:
             logger.error(f"Failed to cancel Run {self.data.id}: {error}")
