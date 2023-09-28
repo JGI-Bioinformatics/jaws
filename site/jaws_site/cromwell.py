@@ -719,9 +719,10 @@ class Metadata:
         result = {}
         for task in summary:
             call_root = task["call_root"]
-            del task["call_root"]
-            relpath = call_root.removeprefix(workflow_root)
-            result[relpath] = task
+            if call_root is not None:
+                del task["call_root"]
+                relpath = call_root.removeprefix(workflow_root)
+                result[relpath] = task
         return result
 
     def job_summary(self, **kwargs) -> dict:
