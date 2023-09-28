@@ -5,7 +5,7 @@
 
 ## 2.0.1  Summary [09/19/2023 - staging]
 - Change dori site's max ram to 1500
-- Add "cpu_hours" to run status info and task log after run completes (site#1719)
+- Add "cpu_hours" to run status info and task log after run completes (#1719)
 - task-summary has been deprecated as it's been merged with the task-log (#1719); command was renamed from "task-log" to simply "tasks"
 - cached tasks are now added to the task-log after a run completes (#1727)
 - cancelling a run now updates the task-log (#1664)
@@ -17,7 +17,6 @@
 - runs' output folders shall once again contain a copy of the WDL, inputs-JSON, and subworkflows-ZIP (#1710)
 - fixed bug when Cromwell submission fails during input processing, before a folder is created, and was not recognized by JAWS (#1711)
 - corrected outputs folder permissions (#1712)
-- fixed bug where path substitution was applied to inputs json dict keys (#1713)
 - fixed transfer error when file was named pipe instead of regular file (#1725)
 
 ## 2.0.0 Summary [08/23/2023]
