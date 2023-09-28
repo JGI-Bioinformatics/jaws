@@ -298,7 +298,6 @@ class Run:
             logger.debug(f"Run {self.data.id}: Cromwell abort successful: {result}")
 
         try:
-            self.data.result = "cancelled"
             self.update_run_status("cancelled")
         except Exception as error:
             logger.error(f"Failed to cancel Run {self.data.id}: {error}")
@@ -999,6 +998,8 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         elif log.status_to == "complete":
             data["output_manifest"] = run.output_manifest()
             data["cpu_hours"] = run.data.cpu_hours
+        elif log.status_to in ("succeeded", "failed", "cancelled"):
+            data["result"] = run.data.result
         try:
             response = central_rpc_client.request("update_run_log", data)
         except Exception as error:
