@@ -2,6 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 - cancelling runs shall set "result" field too (#1724)
+- fixed bug where if WDL name started with compute-site name, unexpected path substitution occurred (#1713)
 
 
 ## 2.0.1  Summary [09/19/2023 - staging]
