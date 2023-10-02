@@ -822,29 +822,37 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
     ]
 
 
-def test_add_prefix_to_paths(mock_sqlalchemy_session):
-    test_site_id = "JGI"
-    test_site_inputs_dir = "s3://JAWS/inputs"
+def test_rel_to_abs(mock_sqlalchemy_session, monkeypatch):
+    def mock_isfile(path):
+        return True
+
+    def mock_touch(path, **kwargs):
+        assert kwargs.get("exist_ok", False) is True
+
+    monkeypatch.setattr(os.path, "isfile", mock_isfile)
+    monkeypatch.setattr(pathlib.Path, "touch", mock_touch)
+
+    test_site_inputs_dir = "/JAWS/inputs"
     test_inputs = {
         "string": "foo",
-        "infile": "JGI/a/b/c/infile.txt",
+        "infile": "./JGI/a/b/c/infile.txt",
         "somelist": ["apple", "orange"],
-        "filelist": ["JGI/x/bar"],
+        "filelist": ["./JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
-        "dict_val_files": {"foo": "JGI/1/2/foo.txt"},
+        "dict_val_files": {"foo": "./JGI/1/2/foo.txt"},
         "dict_key_files": {
-            "JGI/1/2/bar.txt": "bar"
-        },  # we don't substitute for dict keys
+            "./JGI/1/2/bar.txt": "bar"
+        },
     }
     expected = {
         "string": "foo",
-        "infile": "s3://JAWS/inputs/JGI/a/b/c/infile.txt",
+        "infile": "/JAWS/inputs/JGI/a/b/c/infile.txt",
         "somelist": ["apple", "orange"],
-        "filelist": ["s3://JAWS/inputs/JGI/x/bar"],
+        "filelist": ["/JAWS/inputs/JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
-        "dict_val_files": {"foo": "s3://JAWS/inputs/JGI/1/2/foo.txt"},
-        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},
+        "dict_val_files": {"foo": "/JAWS/inputs/JGI/1/2/foo.txt"},
+        "dict_key_files": {"/JAWS/inputs/JGI/1/2/bar.txt": "bar"},
     }
     run = Run(mock_sqlalchemy_session, initRunModel())
-    actual = run.add_prefix_to_paths(test_inputs, test_site_id, test_site_inputs_dir)
+    actual = run.rel_to_abs(test_inputs, test_site_inputs_dir)
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False

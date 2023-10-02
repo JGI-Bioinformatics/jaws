@@ -421,7 +421,7 @@ class Run:
         inputs = json.load(fh)
         return inputs
 
-    def rel_to_abs(self, data: any) -> any:
+    def rel_to_abs(self, data: any, root: str) -> any:
         """
         Recursively traverse data structure and replace FILE variables' relative paths
         (indicated by starting with "./") to absolute paths, using this site's inputs dir.
@@ -434,7 +434,7 @@ class Run:
         """
         if type(data) is str:
             if data.startswith("./"):
-                abspath = os.path.normpath(os.path.join(self.config["inputs_dir"], data))
+                abspath = os.path.normpath(os.path.join(root, data))
                 if not os.path.isfile(abspath):
                     raise RunFileNotFoundError(f"File not found: {abspath}")
                 # touch to ensure atime is changed to now
@@ -445,13 +445,13 @@ class Run:
         elif type(data) is list:
             new_data = []
             for item in data:
-                new_data.append(self.rel_to_abs(item))
+                new_data.append(self.rel_to_abs(item, root))
             return new_data
         elif type(data) is dict:
             new_data = {}
             for key, value in data.items():
-                new_key = self.rel_to_abs(key)
-                new_value = self.rel_to_abs(value)
+                new_key = self.rel_to_abs(key, root)
+                new_value = self.rel_to_abs(value, root)
                 new_data[new_key] = new_value
             return new_data
         else:
@@ -463,7 +463,7 @@ class Run:
         :return: input parameters
         :rtype: dict
         """
-        return self.rel_to_abs(self.read_inputs())
+        return self.rel_to_abs(self.read_inputs(), self.config["inputs_dir"])
 
     def inputs_fh(self):
         """
