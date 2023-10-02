@@ -16,9 +16,11 @@ from tests.conftest import MockSession, MockRunModel, initRunModel
 from jaws_site.cromwell import CromwellServiceError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 from unittest.mock import patch
+import os
+import pathlib
+import io
 
 # from unittest.mock import MagicMock
-import io
 
 
 def test_constructor():
@@ -166,20 +168,28 @@ def test_s3_parse_path():
 
 def test_inputs(monkeypatch):
     def mock_read_inputs(self):
-        example_inputs = {"fasta_file": "CORI/mydata/genome.fasta", "min_score": 95}
+        example_inputs = {"fasta_file": "./CORI/mydata/genome.fasta", "min_score": 95}
         return example_inputs
 
+    def mock_isfile(path):
+        return True
+
+    def mock_touch(path, **kwargs):
+        assert kwargs.get("exist_ok", False) is True
+
     monkeypatch.setattr(jaws_site.runs.Run, "read_inputs", mock_read_inputs)
+    monkeypatch.setattr(os.path, "isfile", mock_isfile)
+    monkeypatch.setattr(pathlib.Path, "touch", mock_touch)
 
     mock_session = MockSession()
     mock_data = MockRunModel(input_site_id="CORI")
     run = Run(mock_session, mock_data)
-    run.config["inputs_dir"] = "s3://inputs"
+    run.config["inputs_dir"] = "/jaws/inputs"
     inputs = run.inputs()
 
     # print(inputs)
 
-    assert inputs["fasta_file"] == "s3://inputs/CORI/mydata/genome.fasta"
+    assert inputs["fasta_file"] == "/jaws/inputs/CORI/mydata/genome.fasta"
     assert inputs["min_score"] == 95
 
 
