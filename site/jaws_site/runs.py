@@ -18,7 +18,6 @@
 
 
 import os
-from pathlib import Path
 import logging
 import json
 import io
@@ -46,6 +45,16 @@ logger = logging.getLogger(__package__)
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 
 MAX_ERROR_STRING_LEN = 1024
+
+
+def set_atime_now(path: str) -> None:
+    """
+    Set the file's access time to now.
+    """
+    if not os.path.isfile(path):
+        raise IOError(f"File not found: {path}")
+    stat = os.stat(path)
+    os.utime(path, times=(datetime.now().timestamp(), stat.st_mtime))
 
 
 class RunDbError(Exception):
@@ -425,7 +434,7 @@ class Run:
         """
         Recursively traverse data structure and replace FILE variables' relative paths
         (indicated by starting with "./") to absolute paths, using this site's inputs dir.
-        Also touch the files to ensure their accessed timestamps are current.
+        Also change the access times to ensure the files are not purged.
         Raise on missing file.
         :param prefix: The path to the input data folder
         :ptype prefix: str
@@ -437,8 +446,10 @@ class Run:
                 abspath = os.path.normpath(os.path.join(root, data))
                 if not os.path.isfile(abspath):
                     raise RunFileNotFoundError(f"File not found: {abspath}")
-                # touch to ensure atime is changed to now
-                Path(abspath).touch(exist_ok=True)
+                try:
+                    set_atime_now(abspath)
+                except PermissionError as error:
+                    logger.error(f"Run {self.data.id}: Unable to change atime for {abspath}: {error}")
                 return abspath
             else:
                 return data
