@@ -446,7 +446,10 @@ class Run:
                 abspath = os.path.normpath(os.path.join(root, data))
                 if not os.path.isfile(abspath):
                     raise RunFileNotFoundError(f"File not found: {abspath}")
-                set_atime_now(abspath)
+                try:
+                    set_atime_now(abspath)
+                except PermissionError as error:
+                    logger.error(f"Run {self.data.id}: Unable to change atime for {abspath}: permission error")
                 return abspath
             else:
                 return data
