@@ -182,6 +182,12 @@ allowing long-running processes to operate over an extended period. Apptainer in
 than run such a monitoring, logging and entering the shell of an already running instance (`apptainer shell`). For
 more information, consult the Apptainer [documentation](https://apptainer.org/docs/user/main/running_services.html#instances-running-services).
 
+### Checking image_version.yml to confirm deployment
+The image_version.yml file is used to ensure that the code inside the container
+matches our expectation on what is deployed in the container. This is located at `/usr/app`. To enter a container,
+you will want to run the `apptainer shell` command. For examples on how to use this
+look at the `apptainer shell` [documenation](https://apptainer.org/docs/user/main/cli/apptainer_shell.html).
+
 ### Shim Scripts
 #### Apptainer Run Shim
 The shim is used for initiation services using `apptainer run` on Tahoma and LRC:
@@ -352,6 +358,41 @@ on Perlmutter.
 
 For more info of scrontab, check out the NERSC documentation [here](https://docs.nersc.gov/jobs/workflow/scrontab/#scrontab-slurm-crontab)
 
+## Environments
+GitLab Environments provide a powerful way to manage and track the progress of your deployments across various 
+environments like staging, testing, and production. 
+Essentially, an environment in GitLab is a named destination to which your code is deployed and can be linked with 
+specific branches or tags.
+
+### Setting Up Environments
+In your .gitlab-ci.yml file, utilize the environment keyword to define an environment:
+```yaml
+deploy-jaws-jgi-prod:
+  extends: .jgi-deployment
+  stage: release-jaws
+  variables:
+    JAWS_DEPLOYMENT_NAME: "prod"
+  environment:
+    name: "jgi/production"
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
+```
+
+### Viewing and Managing Environments
+To view and manage your environments:
+
+Navigate to your Project: In GitLab, select the desired project.
+
+View Environments:
+
+Go to "Operate" in the sidebar.
+Click on "Environments" to access the Environments dashboard.
+
+
+Environments dashboard is a neat way to determine what is deployed at which location
+and under which deployment. If you are unsure what code is deployed at the site, make sure
+to check the dashboard.
 
 ## Starting the gitlab-runner on LRC
 

@@ -1,0 +1,8 @@
+commit_count:  3292
+commit_hash:   6e74dee5
+subject:       add it to image-build stage
+committer:     Mario Melara <maamelara@gmail.com>
+commiter_date: 2023-10-03 15:26:24 -0700
+author:        Mario Melara <maamelara@gmail.com>
+author_date:   2023-10-03 15:26:24 -0700
+ref_names:     HEAD -> 1733-image-version, origin/1733-image-version

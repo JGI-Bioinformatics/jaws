@@ -8,6 +8,7 @@ From: python:3.10
 %files
   rpc/* /usr/app/rpc/
   site/* /usr/app/site/
+  image_version.yml /usr/app/image_version.yml
 
 %post
     pip install --upgrade pip
