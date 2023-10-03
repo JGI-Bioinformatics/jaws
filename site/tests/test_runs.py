@@ -17,7 +17,6 @@ from jaws_site.cromwell import CromwellServiceError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 from unittest.mock import patch
 import os
-import pathlib
 import io
 
 # from unittest.mock import MagicMock
@@ -174,12 +173,12 @@ def test_inputs(monkeypatch):
     def mock_isfile(path):
         return True
 
-    def mock_touch(path, **kwargs):
-        assert kwargs.get("exist_ok", False) is True
+    def mock_set_atime_now(path):
+        pass
 
     monkeypatch.setattr(jaws_site.runs.Run, "read_inputs", mock_read_inputs)
     monkeypatch.setattr(os.path, "isfile", mock_isfile)
-    monkeypatch.setattr(pathlib.Path, "touch", mock_touch)
+    monkeypatch.setattr(jaws_site.runs, "set_atime_now", mock_set_atime_now)
 
     mock_session = MockSession()
     mock_data = MockRunModel(input_site_id="CORI")
@@ -826,11 +825,11 @@ def test_rel_to_abs(mock_sqlalchemy_session, monkeypatch):
     def mock_isfile(path):
         return True
 
-    def mock_touch(path, **kwargs):
-        assert kwargs.get("exist_ok", False) is True
+    def mock_set_atime_now(path):
+        pass
 
     monkeypatch.setattr(os.path, "isfile", mock_isfile)
-    monkeypatch.setattr(pathlib.Path, "touch", mock_touch)
+    monkeypatch.setattr(jaws_site.runs, "set_atime_now", mock_set_atime_now)
 
     test_site_inputs_dir = "/JAWS/inputs"
     test_inputs = {
