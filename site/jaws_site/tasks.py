@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 import pytz
+import re
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
@@ -8,6 +9,8 @@ from jaws_site import models
 
 DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
+time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
+memory_re = re.compile(r"^\s*(\d*\.?\d*)\s*(\w+)\s*$")
 
 
 class TaskDbError(Exception):
@@ -29,7 +32,7 @@ class TaskLog:
         else:
             self.logger = logger
         self.set_local_tz(kwargs.get("local_tz", DEFAULT_TZ))
-        self.data = self._select_rows()
+        self.data = None  # load lazily
 
     def set_local_tz(self, local_tz=DEFAULT_TZ):
         self.local_tz = local_tz
@@ -37,46 +40,68 @@ class TaskLog:
 
     def _select_rows(self):
         """
-        Select rows, copy into a table, and calculate queue and run durations.  All timestamps are datetime objects in UTC, durations are timedelta objects.
+        Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
+        :return: sqlalchemy query object
+        :rtype: obj
         """
-        table = []
         try:
             query = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.cromwell_run_id == self.cromwell_run_id)
-                .order_by(models.Task_Log.id)
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Tasks.id)
             )
         except NoResultFound:
             # it's possible for a newly created run to not have any task-log messages yet
+            return None
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+        else:
+            return query
+
+    def _select_all_rows(self):
+        """
+        Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
+        :return: table
+        :rtype: list
+        """
+        try:
+            rows = (
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Tasks.id)
+                .all()
+            )
+        except NoResultFound:
             return []
         except SQLAlchemyError as error:
             self.logger.error(f"Unable to select task_logs: {error}")
             raise TaskDbError(error)
+        else:
+            return rows
 
-        for row in query:
-            queue_start = row.queue_start
-            run_start = row.run_start
-            run_end = row.run_end
-            queue_dur = None
-            run_dur = None
-            if queue_start and run_start:
-                queue_dur = run_start - queue_start
-            if run_start and run_end:
-                run_dur = run_end - run_start
-
-            table.append(
-                [
-                    row.task_dir,
-                    row.status,
-                    queue_start,
-                    run_start,
-                    run_end,
-                    row.rc,
-                    queue_dur,
-                    run_dur,
-                ]
+    def _select_all_cpu_minutes(self):
+        """
+        Select the cpus reserved and the minutes consumed for every task.
+        :return: table
+        :rtype: list
+        """
+        try:
+            query = (
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .order_by(models.Tasks.id)
             )
-        return table
+        except NoResultFound:
+            return []
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+        cpu_minutes = []
+        for row in query:
+            if row.req_cpu and row.run_minutes:
+                cpu_minutes.append([row.req_cpu, row.run_minutes])
+        return cpu_minutes
 
     def _utc_to_local_str(self, timestamp) -> str:
         """Convert UTC time to the local time zone. This should handle daylight savings.
@@ -98,19 +123,28 @@ class TaskLog:
         """
         Convert the timestamps to local timezone strings and return with header.
         """
+        rows = self._select_all_rows()
         if "local_tz" in kwargs:
             self.set_local_tz(kwargs.get("local_tz"))
         table = []
-        for row in self.data:
+        for row in rows:
             (
+                id,
+                cromwell_run_id,
+                cromwell_job_id,
                 task_dir,
                 status,
                 queue_start,
                 run_start,
                 run_end,
+                queue_minutes,
+                run_minutes,
                 rc,
-                queue_dur,
-                run_dur,
+                cached,
+                name,
+                req_cpu,
+                req_mem_gb,
+                req_minutes,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -123,31 +157,188 @@ class TaskLog:
                     run_start_str,
                     run_end_str,
                     rc,
-                    str(queue_dur),
-                    str(run_dur),
+                    queue_minutes,
+                    run_minutes,
+                    cached,
+                    name,
+                    req_cpu,
+                    req_mem_gb,
+                    req_minutes,
                 ]
             )
         result = {
             "header": [
-                "TASK",
+                "TASK_DIR",
                 "STATUS",
                 "QUEUE_START",
                 "RUN_START",
                 "RUN_END",
                 "RC",
-                "QUEUE_DUR",
-                "RUN_DUR",
+                "QUEUE_MINUTES",
+                "RUN_MINUTES",
+                "CACHED",
+                "TASK_NAME",
+                "REQ_CPU",
+                "REQ_GB",
+                "REQ_MINUTES",
             ],
             "data": table,
         }
         return result
 
+    def _select_num_started(self):
+        try:
+            query = (
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .filter(models.Tasks.run_start.isnot(None))
+                .all()
+            )
+        except NoResultFound:
+            return 0
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+        else:
+            return len(query)
+
     def did_run_start(self):
         """
         Check if any task has started running by checking the task log.
         """
-        for row in self.data:
-            run_start = row[3]
-            if run_start is not None:
-                return True
-        return False
+        return self._select_num_started() > 0
+
+    @staticmethod
+    def time_minutes(duration: str) -> int:
+        """
+        Convert time duration to minutes.
+        :param duration: time duration in hh:mm:ss format
+        :ptype duration: str
+        :return: time in minutes
+        :rtype: int
+        """
+        m = time_re.match(duration)
+        if m:
+            minutes = (
+                float(m.group(1)) * 60 + float(m.group(2)) + float(m.group(3)) / 60
+            )
+            return round(minutes, 0)
+        else:
+            return None
+
+    @staticmethod
+    def memory_gb(memory_str: str) -> float:
+        """
+        Convert memory to gigabytes.
+        :param memory_str: number and units (e.g. "5 GB", "512 MB", "0.5 TB")
+        :ptype memory_str: str
+        :return: memory in gigabytes
+        :rtype: float
+        """
+        m = memory_re.match(memory_str)
+        if m:
+            gb = float(m.group(1))
+            units = m.group(2).upper()
+            if units in ("KB", "KIB"):
+                gb = gb / 1024**2
+            elif units in ("MB", "MIB"):
+                gb = gb / 1024
+            elif units in ("GB", "GIB"):
+                pass
+            elif units in ("TB", "TIB"):
+                gb = gb * 1024
+            else:
+                gb = gb / 1024**3
+            if gb > 32767:
+                # max value for signed SMALLINT
+                gb = 32767
+            return round(gb, 0)
+        else:
+            return None
+
+    def _insert_cached_taks(self, task_summary: list) -> None:
+        """
+        Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
+        They shall not include cpu-hours data so won't affect resource calculations.
+        New rows are inserted but not committed as this is part of a larger transaction; see: add_metadata().
+        :param task_summary: list of task metadata, produced by JAWS Cromwell class
+        :ptype task_summary: list
+        """
+        for task_dir, summary in task_summary.items():
+            if summary["cached"] is True:
+                status = summary["execution_status"]
+                if status == "Done":
+                    status = "succeeded"
+                elif status == "Failed":
+                    status = "failed"
+                elif status == "Aborted":
+                    status = "cancelled"
+                log_entry = models.Tasks(
+                    task_dir=task_dir,
+                    name=summary["name"],
+                    cromwell_run_id=self.cromwell_run_id,
+                    cromwell_job_id=summary["job_id"],
+                    status=status,
+                    queue_start=None,
+                    cached=True,
+                    req_cpu=int(summary["requested_cpu"]),
+                    req_mem_gb=self.memory_gb(summary["requested_memory"]),
+                    req_minutes=self.time_minutes(summary["requested_time"]),
+                )
+                self.session.add(log_entry)
+
+    def _update_with_cromwell_metadata(self, task_summary: list) -> None:
+        """
+        Add fields from the Cromwell metadata:
+        - requested cpu
+        - requested memory (in GB)
+        - requested time (in minutes)
+        And update the status using the Cromwell "executionStatus",  which shall differ from return code when a
+        task's expected outputs cannot be reaped (e.g. missing file).
+        Rows are updated but the changes are not committed as this is part of a larger transaction; see: add_metadata()
+        """
+        if self.data is not None:
+            for row in self.data:
+                task_dir = row.task_dir
+                if task_dir in task_summary:
+                    summary = task_summary[task_dir]
+                    row.req_cpu = int(summary["requested_cpu"])
+                    row.req_mem_gb = self.memory_gb(summary["requested_memory"])
+                    row.req_minutes = self.time_minutes(summary["requested_time"])
+                    status = summary["execution_status"]
+                    if status == "Done":
+                        row.status = "succeeded"
+                    elif status == "Failed":
+                        row.status = "failed"
+                    elif status == "Aborted":
+                        row.status = "cancelled"
+
+    def add_metadata(self, summary: dict):
+        """
+        :param summary: JAWS Cromwell Metadata.task_log_summary() output
+        :ptype summary: dict
+        """
+        self.data = self._select_rows()
+        savepoint = self.session.begin_nested()
+        try:
+            self._insert_cached_tasks(summary)
+            self._update_with_cromwell_metadata(summary)
+            self.session.commit()
+        except SQLAlchemyError as error:
+            savepoint.rollback()
+            self.logger.exception(
+                f"Unable to update Run {self.data.id} Tasks with metadata: {error}"
+            )
+            raise TaskDbError(f"Unable to update with metadata: {error}")
+
+    def cpu_hours(self) -> float:
+        """
+        Calculate the total resources consumed (i.e. reserved).
+        :return: Total CPU*hours of all tasks.
+        :rtype: float
+        """
+        rows = self._select_all_cpu_minutes()
+        cpu_minutes = 0
+        for row in rows:
+            cpu_minutes = cpu_minutes + row[0] * row[1]
+        return round(cpu_minutes / 60, 1)

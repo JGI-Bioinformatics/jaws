@@ -8,21 +8,10 @@ DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 
 def test_did_run_start(monkeypatch):
     # test 1: yes
-    def mock__select_rows(self):
-        return [
-            [
-                "call-count_seqs",
-                "done",
-                datetime.strptime("2023-04-03 17:20:35", DATETIME_FMT),
-                datetime.strptime("2023-04-03 17:20:52", DATETIME_FMT),
-                datetime.strptime("2023-04-03 17:20:55", DATETIME_FMT),
-                0,
-                "0:0:17",
-                "0:0:03",
-            ],
-        ]
+    def mock__select_num_started(self):
+        return 1
 
-    monkeypatch.setattr(TaskLog, "_select_rows", mock__select_rows)
+    monkeypatch.setattr(TaskLog, "_select_num_started", mock__select_num_started)
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
@@ -30,21 +19,10 @@ def test_did_run_start(monkeypatch):
     assert task_log.did_run_start() is True
 
     # test 2: No
-    def mock__select_rows(self):
-        return [
-            [
-                "call-count_seqs",
-                "queued",
-                datetime.strptime("2023-04-03 17:20:35", DATETIME_FMT),
-                None,
-                None,
-                None,
-                None,
-                None,
-            ],
-        ]
+    def mock__select_num_started(self):
+        return 0
 
-    monkeypatch.setattr(TaskLog, "_select_rows", mock__select_rows)
+    monkeypatch.setattr(TaskLog, "_select_num_started", mock__select_num_started)
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
@@ -53,30 +31,43 @@ def test_did_run_start(monkeypatch):
 
 
 def test_table(monkeypatch):
-    def mock__select_rows(self):
+    def mock__select_all_rows(self):
         return [
             [
+                123,
+                "ABCD-EFGH-IJKL-MNOP",
+                "2421",
                 "call-do_something",
                 "done",
                 datetime.strptime("2023-04-24 11:00:00", DATETIME_FMT),
                 datetime.strptime("2023-04-24 11:01:00", DATETIME_FMT),
                 datetime.strptime("2023-04-24 11:03:00", DATETIME_FMT),
+                1,
+                2,
                 0,
-                "0:01:00",
-                "0:02:00",
+                None,
+                None,
+                None,
+                None,
+                None,
             ],
         ]
 
     expected = {
         "header": [
-            "TASK",
+            "TASK_DIR",
             "STATUS",
             "QUEUE_START",
             "RUN_START",
             "RUN_END",
             "RC",
-            "QUEUE_DUR",
-            "RUN_DUR",
+            "QUEUE_MINUTES",
+            "RUN_MINUTES",
+            "CACHED",
+            "TASK_NAME",
+            "REQ_CPU",
+            "REQ_GB",
+            "REQ_MINUTES",
         ],
         "data": [
             [
@@ -86,13 +77,18 @@ def test_table(monkeypatch):
                 "2023-04-24 11:01:00",
                 "2023-04-24 11:03:00",
                 0,
-                "0:01:00",
-                "0:02:00",
+                1,
+                2,
+                None,
+                None,
+                None,
+                None,
+                None,
             ]
         ],
     }
 
-    monkeypatch.setattr(TaskLog, "_select_rows", mock__select_rows)
+    monkeypatch.setattr(TaskLog, "_select_all_rows", mock__select_all_rows)
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
@@ -109,10 +105,50 @@ def test__utc_to_local_str(monkeypatch):
     mock_session = MockSession()
     mock_logger = MockLogger()
     mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
-    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger, local_tz="Africa/Algiers")
+    task_log = TaskLog(
+        mock_session, mock_cromwell_run_id, mock_logger, local_tz="Africa/Algiers"
+    )
 
     timestamp = datetime.strptime("2023-04-24 08:00:00", "%Y-%m-%d %H:%M:%S")
-    print(type(timestamp))  # ECCE
     actual = task_log._utc_to_local_str(timestamp)
     expected = "2023-04-24 09:00:00"
     assert actual == expected
+
+
+def test_time_minutes():
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+
+    minutes = task_log.time_minutes("01:02:00")
+    assert minutes == 62
+
+
+def test_memory_gb():
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+
+    gb = task_log.memory_gb("1 TB")
+    assert gb == 1024
+
+
+def test_cpu_hours(monkeypatch) -> float:
+    def mock__select_all_cpu_minutes(self):
+        return [
+            [1, 60],
+            [2, 100],
+        ]
+
+    monkeypatch.setattr(
+        TaskLog, "_select_all_cpu_minutes", mock__select_all_cpu_minutes
+    )
+
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+    cpu_hrs = task_log.cpu_hours()
+    assert cpu_hrs == 4.3

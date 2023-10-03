@@ -3,6 +3,8 @@
 # Inbound changes not assigned to version # yet
 
 ## 2.0.1  Summary [09/19/2023 - staging]
+- task-summary has been deprecated as it's been merged with the task-log (#1719)
+- cached tasks are now added to the task-log after a run completes (#1727)
 - cancelling a run now updates the task-log (#1664)
 - task-log format has changed (!1520)
 - task-summary shall use timestamps from the task log instead of Cromwell metadata (#1611)
@@ -13,6 +15,7 @@
 - fixed bug when Cromwell submission fails during input processing, before a folder is created, and was not recognized by JAWS (#1711)
 - corrected outputs folder permissions (#1712)
 - fixed bug where path substitution was applied to inputs json dict keys (#1713)
+- fixed transfer error when file was named pipe instead of regular file (#1725)
 
 ## 2.0.0 Summary [08/23/2023]
 ### Internal Facing Changes

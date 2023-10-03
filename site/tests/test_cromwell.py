@@ -206,7 +206,7 @@ def test_task_summary(requests_mock):
         json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
     )
     metadata = crom.get_metadata(example_cromwell_run_id_2)
-    actual = metadata.task_summary()
+    actual = metadata.task_summary(relpaths=True)
     expected = __load_example_output_from_file(
         example_cromwell_run_id_2, "task-summary"
     )
@@ -217,9 +217,22 @@ def test_task_summary(requests_mock):
         json=__load_example_output_from_file(example_cromwell_run_id_5, "metadata"),
     )
     metadata = crom.get_metadata(example_cromwell_run_id_5)
-    actual = metadata.task_summary()
+    actual = metadata.task_summary(relpaths=False)
     expected = __load_example_output_from_file(
         example_cromwell_run_id_5, "task-summary"
+    )
+    assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+def test_task_summary_dict(requests_mock):
+    requests_mock.get(
+        f"{example_cromwell_url}/api/workflows/v1/{example_cromwell_run_id_2}/metadata",
+        json=__load_example_output_from_file(example_cromwell_run_id_2, "metadata"),
+    )
+    metadata = crom.get_metadata(example_cromwell_run_id_2)
+    actual = metadata.task_summary_dict(relpaths=True)
+    expected = __load_example_output_from_file(
+        example_cromwell_run_id_2, "task-summary-dict"
     )
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
 
@@ -573,151 +586,6 @@ def test_outfiles(requests_mock):
     )
 
 
-def test_parse_cromwell_task_dir():
-    test_data = [
-        [
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution",  # noqa
-            {
-                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9",  # noqa
-                "cached": False,
-                "shard": 9,
-                "name": "jgi_dap_leo.trimAlign_expt[9]",
-                "call_root_rel_path": "jgi_dap_leo/cda3cb3f-535c-400d-ab61-2e41aeb35a80/call-trimAlign_expt/shard-9/execution",  # noqa
-                "wdl_name": "jgi_dap_leo",
-                "cromwell_run_id": "cda3cb3f-535c-400d-ab61-2e41aeb35a80",
-                "task_name": "trimAlign_expt",
-            },
-        ],
-        [
-            "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
-            {
-                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello",  # noqa
-                "cached": False,
-                "shard": -1,
-                "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-                "call_root_rel_path": "main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/sub.hello_and_goodbye/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
-                "wdl_name": "main_workflow",
-                "cromwell_run_id": "e7f02164-2d3d-4cfb-828a-f3da23c43280",
-                "task_name": "hello_and_goodbye_1",
-                "subworkflow_name": "hello_and_goodbye",
-                "subworkflow_cromwell_run_id": "3327f701-769a-49fe-b407-eb4be3a4a373",
-                "sub_task_name": "hello",
-            },
-        ],
-        [
-            "s3://jaws-site-prod/cromwell-execution/jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms",  # noqa
-            {
-                "call_root": "s3://jaws-site-prod/cromwell-execution/jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms",  # noqa
-                "cached": False,
-                "shard": -1,
-                "name": "jgi_meta.bbcms",
-                "call_root_rel_path": "jgi_meta/bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3/call-bbcms/execution",  # noqa
-                "wdl_name": "jgi_meta",
-                "cromwell_run_id": "bbfad8f4-f5de-43c2-94ef-4bd43f1de4d3",
-                "task_name": "bbcms",
-            },
-        ],
-        [
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5",  # noqa
-            {
-                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5",  # noqa
-                "cached": False,
-                "shard": 5,
-                "name": "inhomo.processTaxon[5]",
-                "call_root_rel_path": "inhomo/8cc6f043-13b1-4e18-b685-b9533e6704cf/call-processTaxon/shard-5/execution",  # noqa
-                "wdl_name": "inhomo",
-                "cromwell_run_id": "8cc6f043-13b1-4e18-b685-b9533e6704cf",
-                "task_name": "processTaxon",
-            },
-        ],
-        [
-            "/tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge",  # noqa
-            {
-                "call_root": "/tahoma/mscjgi/scratch/jaws-prod/cromwell-executions/nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge",  # noqa
-                "cached": False,
-                "shard": -1,
-                "name": "nmdc_metag.annotation:annotation.s_annotate:s_annotate.fasta_merge",
-                "call_root_rel_path": "nmdc_metag/c16846ff-3a7b-444e-a26b-ce484eb205b5/call-annotation/awf.annotation/e0910a3c-6ba1-43e3-8b4b-d275fb0601fb/call-s_annotate/shard-0/sa.s_annotate/1671df94-89d9-4418-a949-737038f458a0/call-fasta_merge/execution",  # noqa
-                "wdl_name": "nmdc_metag",
-                "cromwell_run_id": "c16846ff-3a7b-444e-a26b-ce484eb205b5",
-                "task_name": "annotation",
-                "subworkflow_name": "s_annotate",
-                "subworkflow_cromwell_run_id": "1671df94-89d9-4418-a949-737038f458a0",
-                "sub_task_name": "fasta_merge",
-                "sub_shard": 0,
-            },
-        ],
-        [
-            "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0",  # noqa
-            {
-                "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-prod/cromwell-executions/bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0",  # noqa
-                "cached": False,
-                "shard": 0,
-                "name": "bbmap_shard_wf.alignment[0]",
-                "call_root_rel_path": "bbmap_shard_wf/be518d2a-6232-4f50-b6cf-7e1a3a995ad3/call-alignment/shard-0/execution",  # noqa
-                "wdl_name": "bbmap_shard_wf",
-                "cromwell_run_id": "be518d2a-6232-4f50-b6cf-7e1a3a995ad3",
-                "task_name": "alignment",
-            },
-        ],
-    ]
-
-    for task_dir, expected in test_data[:-1]:
-        actual = cromwell.parse_cromwell_task_dir(task_dir)
-        # print(actual, flush=True)
-        assert actual == expected
-
-    test_data = [
-        "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
-        # noqa
-        {
-            "call_root": "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello",  # noqa
-            # noqa
-            "cached": True,
-            "shard": -1,
-            "name": "main_workflow.hello_and_goodbye_1:hello_and_goodbye.hello",
-            "call_root_rel_path": "main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/call-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
-            # noqa
-            "wdl_name": "main_workflow",
-            "cromwell_run_id": "e7f02164-2d3d-4cfb-828a-f3da23c43280",
-            "task_name": "hello_and_goodbye_1",
-            "subworkflow_name": "cacheCopy",
-            "subworkflow_cromwell_run_id": "3327f701-769a-49fe-b407-eb4be3a4a373",
-            "sub_task_name": "hello",
-        },
-    ]
-
-    actual = cromwell.parse_cromwell_task_dir(test_data[0])
-    assert actual["cached"] is True
-
-    # Test if not fields[0].startswith("call-"):
-    test_data = [
-        "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/callxxx-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
-        # noqa
-        {},
-    ]
-
-    cromwell.parse_cromwell_task_dir(test_data[0])
-
-    # Test no "cromwell-execution"
-    test_data = [
-        "/global/cscratch1/sd/jaws_jtm/jaws-dev/cromwell-executions-xxx/main_workflow/e7f02164-2d3d-4cfb-828a-f3da23c43280/callxxx-hello_and_goodbye_1/cacheCopy/3327f701-769a-49fe-b407-eb4be3a4a373/call-hello/execution",  # noqa
-        # noqa
-        {},
-    ]
-
-    with pytest.raises(ValueError):
-        cromwell.parse_cromwell_task_dir(test_data[0])
-
-    # Test task_dir is float
-    test_data = [
-        1.2222,
-        {},
-    ]
-
-    cromwell.parse_cromwell_task_dir(test_data[0])
-
-
 def test_sort_table():
     test_table = [
         ["bbtools.samtools", False, "Queued", "2022-07-11 17:52:37", "", "", "", ""],
@@ -791,7 +659,7 @@ def test___init():
     data = {"shardIndex": 10, "start": "12:00:00"}
     call = cromwell.Call(data, "task_name")
     assert call.shard_index == 10
-    assert call.name == "task_name[10]"
+    assert call.name == "task_name"
 
     data = {"shardIndex": -1, "start": "12:00:00"}
     call = cromwell.Call(data, "task_name")

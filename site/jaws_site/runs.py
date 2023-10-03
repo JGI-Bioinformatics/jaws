@@ -45,6 +45,8 @@ logger = logging.getLogger(__package__)
 
 cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
 
+MAX_ERROR_STRING_LEN = 1024
+
 
 class RunDbError(Exception):
     pass
@@ -210,73 +212,25 @@ class Run:
             "status": self.data.status,
             "result": self.data.result,
             "compute_site_id": self.config["site_id"],
+            "cpu_hours": self.data.cpu_hours,
         }
-        return summary
-
-    def task_summary(self) -> list:
-        """Produce summary of tasks"""
-        metadata = self.get_metadata()
-
-        # get task log and populate dictionary by task task_dir
-        task_log = self.task_log()
-        tasks = {}
-        for row in task_log["data"]:
-            (
-                task_dir,
-                status,
-                queue_start,
-                run_start,
-                run_end,
-                rc,
-                queue_duration,
-                run_duration,
-            ) = row
-            tasks[task_dir] = {
-                "status": status,
-                "queue_start": queue_start,
-                "run_start": run_start,
-                "run_end": run_end,
-                "rc": rc,
-                "queue_duration": queue_duration,
-                "run_duration": run_duration,
-            }
-
-        # replace Cromwell timestamps with more accurate task-log timestamps
-        summary = metadata.task_summary()
-        for task in summary:
-            p = task["call_root"].split("/")
-            i = p.index(self.data.cromwell_run_id) + 1
-            task_dir = "/".join(p[i:])
-            if task_dir not in tasks:
-                logger.warning(
-                    f"Run {self.data.id}, Task {task_dir} not found in task-log"
-                )
-                continue
-            t = tasks[task_dir]
-            task["status"] = t["status"]
-            task["queue_start"] = t["queue_start"]
-            task["run_start"] = t["run_start"]
-            task["run_end"] = t["run_end"]
-            task["rc"] = t["rc"]
-            task["queue_duration"] = t["queue_duration"]
-            task["run_duration"] = t["run_duration"]
         return summary
 
     def did_run_start(self):
         """
         Check if any task has started running by checking the task log.
         """
-        if not self.data.cromwell_run_id:
-            return False
-        else:
-            task_log = TaskLog(self.session, self.data.cromwell_run_id, logger)
+        task_log = self.task_log()
+        if task_log:
             return task_log.did_run_start()
+        else:
+            return False
 
     def task_log(self):
-        if not self.data.cromwell_run_id:
-            return []
-        task_log = TaskLog(self.session, self.data.cromwell_run_id)
-        return task_log.table()
+        if self.data.cromwell_run_id is None:
+            return None
+        else:
+            return TaskLog(self.session, self.data.cromwell_run_id)
 
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
@@ -734,6 +688,8 @@ class Run:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
+        if reason is not None:
+            reason = reason[:MAX_ERROR_STRING_LEN]
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
@@ -862,6 +818,25 @@ class Run:
             logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
             write_json_file(outfiles_file, outfiles)
 
+        # update and write task log
+        try:
+            task_log = self.task_log()
+            # this copies desired fields from the cromwell metadata into the task-log table
+            task_log_summary_dict = metadata.task_log_summary_dict()
+            task_log.add_metadata(task_log_summary_dict)
+            task_log_table = task_log.table()
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to generate task-log: {error}")
+            self.update_run_status("failed", "Failed to generate task-log")
+            return
+        else:
+            task_log_file = os.path.join(root, "task_log.json")
+            logger.debug(f"Run {self.data.id}: Writing {task_log_file}")
+            write_json_file(task_log_file, task_log_table)
+
+        # add cpu-hours to run summary
+        self.data.cpu_hours = task_log.cpu_hours()
+
         # write run summary
         try:
             summary = self.summary()
@@ -874,20 +849,6 @@ class Run:
             logger.debug(f"Run {self.data.id}: Writing {summary_file}")
             write_json_file(summary_file, summary)
 
-        # write task summary
-        try:
-            task_summary = self.task_summary()
-        except Exception as error:
-            logger.error(
-                f"Run {self.data.id}: Failed to generate task summary: {error}"
-            )
-            self.update_run_status("failed", "Failed to generate task summary")
-            return
-        else:
-            task_summary_file = os.path.join(root, "task_summary.json")
-            logger.debug(f"Run {self.data.id}: Writing {task_summary_file}")
-            write_json_file(task_summary_file, task_summary)
-
         # write output manifest (i.e. files to return to user)
         try:
             failed_folders = metadata.failed_folders()
@@ -897,22 +858,21 @@ class Run:
             )
             self.update_run_status("failed", "Failed to generate output manifest")
             return
-        else:
-            manifest = [
-                *infiles,
-                *outfiles,
-                *failed_folders,
-                "metadata.json",
-                "errors.json",
-                "outputs.json",
-                "output_manifest.json",
-                "summary.json",
-                "task_summary.json",
-            ]
-            manifest_file = os.path.join(root, "output_manifest.json")
-            logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
-            write_json_file(manifest_file, manifest)
 
+        manifest = [
+            *infiles,
+            *outfiles,
+            *failed_folders,
+            "metadata.json",
+            "errors.json",
+            "outputs.json",
+            "output_manifest.json",
+            "summary.json",
+            "task_log.json",
+        ]
+        manifest_file = os.path.join(root, "output_manifest.json")
+        logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
+        write_json_file(manifest_file, manifest)
         self.update_run_status("complete")
 
     def output_manifest(self) -> list:
@@ -940,7 +900,7 @@ class Run:
             return
 
         # read previously generated summary
-        summary_file = f"{self.data.workflow_root}/task_summary.json"
+        summary_file = f"{self.data.workflow_root}/task_log.json"
         summary = self._read_json_file(summary_file)
 
         # publish and if successful, mark as done, else skip until next time

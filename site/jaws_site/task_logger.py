@@ -14,7 +14,7 @@ class TaskLoggerDbError(Exception):
 
 
 class TaskLogger:
-    def __init__(self, config, session, logger=None) -> None:
+    def __init__(self, session, logger=None) -> None:
         """
         The task logger receives RabbitMQ messages and saves them in the RDb.
         :param config: Configuration parameters
@@ -22,7 +22,6 @@ class TaskLogger:
         :param self.session: Database self.session handle
         :ptype self.session: sqlalchemy.orm.self.sessionmaker
         """
-        self.config = config
         self.session = session
         if logger is None:
             self.logger = logging.getLogger(__package__)
@@ -54,7 +53,7 @@ class TaskLogger:
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
         try:
-            log_entry = models.Task_Log(
+            log_entry = models.Tasks(
                 cromwell_run_id=cromwell_run_id,
                 cromwell_job_id=cromwell_job_id,
                 task_dir=task_dir,
@@ -85,8 +84,8 @@ class TaskLogger:
         timestamp = kwargs.get("timestamp")
         try:
             row = (
-                self.session.query(models.Task_Log)
-                .filter(models.Task_Log.job_id == job_id)
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.job_id == job_id)
                 .one_or_none()
             )
         except OperationalError as error:
@@ -118,6 +117,23 @@ class TaskLogger:
             self.logger.exception(f"Unable to update Task Log job {job_id}: {error}")
         return True
 
+    @staticmethod
+    def delta_minutes(start, end) -> int:
+        """
+        Return the difference between two timestamps, rounded to the nearest minute.
+        :param start: start time
+        :ptype: datetime.datetime
+        :param end: end time
+        :ptype end: datetime.datetime
+        :return: difference in minutes (rounded)
+        :rtype: int
+        """
+        if start and end:
+            duration = end - start
+            return round(duration.total_seconds() / 60, 0)
+        else:
+            return None
+
     def _update(self, **kwargs) -> bool:
         cromwell_run_id = kwargs.get("cromwell_run_id")
         task_dir = kwargs.get("task_dir")
@@ -125,10 +141,10 @@ class TaskLogger:
         timestamp = kwargs.get("timestamp")
         try:
             row = (
-                self.session.query(models.Task_Log)
+                self.session.query(models.Tasks)
                 .filter(
-                    models.Task_Log.cromwell_run_id == cromwell_run_id,
-                    models.Task_Log.task_dir == task_dir,
+                    models.Tasks.cromwell_run_id == cromwell_run_id,
+                    models.Tasks.task_dir == task_dir,
                 )
                 .one_or_none()
             )
@@ -149,10 +165,12 @@ class TaskLogger:
             if status == "running":
                 row.run_start = timestamp
                 row.status = "running"
+                row.queue_minutes = self.delta_minutes(row.queue_start, row.run_start)
             else:
                 row.run_end = timestamp
                 row.rc = kwargs.get("rc", None)
                 row.status = "done"
+                row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
             self.session.commit()
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
@@ -166,19 +184,19 @@ class TaskLogger:
             )
         return True
 
-    def receive_messages(self):
+    def receive_messages(self, config):
         """
         Receive and consume task-log messages indefinately.
         """
-        host = self.config.get("RMQ", "host")
-        port = self.config.get("RMQ", "port")
-        vhost = self.config.get("RMQ", "vhost")
-        user = self.config.get("RMQ", "user")
-        password = self.config.get("RMQ", "password")
+        host = config.get("RMQ", "host")
+        port = config.get("RMQ", "port")
+        vhost = config.get("RMQ", "vhost")
+        user = config.get("RMQ", "user")
+        password = config.get("RMQ", "password")
         ttl = int(
-            self.config.get("RMQ", "ttl", 3600000)
+            config.get("RMQ", "ttl", 3600000)
         )  # must match value in sender's config
-        site_id = self.config.get("SITE", "id")
+        site_id = config.get("SITE", "id")
         queue = f"{site_id}_tasks"
 
         def callback(ch, method, properties, body):
