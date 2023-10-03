@@ -449,7 +449,7 @@ class Run:
                 try:
                     set_atime_now(abspath)
                 except PermissionError as error:
-                    logger.error(f"Run {self.data.id}: Unable to change atime for {abspath}: permission error")
+                    logger.error(f"Run {self.data.id}: Unable to change atime for {abspath}: {error}")
                 return abspath
             else:
                 return data
