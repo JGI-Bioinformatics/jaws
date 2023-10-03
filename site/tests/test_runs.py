@@ -16,9 +16,11 @@ from tests.conftest import MockSession, MockRunModel, initRunModel
 from jaws_site.cromwell import CromwellServiceError
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 from unittest.mock import patch
+import os
+import pathlib
+import io
 
 # from unittest.mock import MagicMock
-import io
 
 
 def test_constructor():
@@ -166,20 +168,28 @@ def test_s3_parse_path():
 
 def test_inputs(monkeypatch):
     def mock_read_inputs(self):
-        example_inputs = {"fasta_file": "CORI/mydata/genome.fasta", "min_score": 95}
+        example_inputs = {"fasta_file": "./CORI/mydata/genome.fasta", "min_score": 95}
         return example_inputs
 
+    def mock_isfile(path):
+        return True
+
+    def mock_touch(path, **kwargs):
+        assert kwargs.get("exist_ok", False) is True
+
     monkeypatch.setattr(jaws_site.runs.Run, "read_inputs", mock_read_inputs)
+    monkeypatch.setattr(os.path, "isfile", mock_isfile)
+    monkeypatch.setattr(pathlib.Path, "touch", mock_touch)
 
     mock_session = MockSession()
     mock_data = MockRunModel(input_site_id="CORI")
     run = Run(mock_session, mock_data)
-    run.config["inputs_dir"] = "s3://inputs"
+    run.config["inputs_dir"] = "/jaws/inputs"
     inputs = run.inputs()
 
     # print(inputs)
 
-    assert inputs["fasta_file"] == "s3://inputs/CORI/mydata/genome.fasta"
+    assert inputs["fasta_file"] == "/jaws/inputs/CORI/mydata/genome.fasta"
     assert inputs["min_score"] == 95
 
 
@@ -790,6 +800,7 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
             "cromwell_run_id": cromwell_run_id,
             "workflow_name": "fq_count",
             "workflow_root": str(workflow_root),
+            "cpu_hours": 14.1,
         }
     ]
     mock_sqlalchemy_session.output(log_query_results)
@@ -811,29 +822,37 @@ def test_send_run_status_logs(mock_sqlalchemy_session, mock_rpc_client, tmpdir):
     ]
 
 
-def test_add_prefix_to_paths(mock_sqlalchemy_session):
-    test_site_id = "JGI"
-    test_site_inputs_dir = "s3://JAWS/inputs"
+def test_rel_to_abs(mock_sqlalchemy_session, monkeypatch):
+    def mock_isfile(path):
+        return True
+
+    def mock_touch(path, **kwargs):
+        assert kwargs.get("exist_ok", False) is True
+
+    monkeypatch.setattr(os.path, "isfile", mock_isfile)
+    monkeypatch.setattr(pathlib.Path, "touch", mock_touch)
+
+    test_site_inputs_dir = "/JAWS/inputs"
     test_inputs = {
         "string": "foo",
-        "infile": "JGI/a/b/c/infile.txt",
+        "infile": "./JGI/a/b/c/infile.txt",
         "somelist": ["apple", "orange"],
-        "filelist": ["JGI/x/bar"],
+        "filelist": ["./JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
-        "dict_val_files": {"foo": "JGI/1/2/foo.txt"},
+        "dict_val_files": {"foo": "./JGI/1/2/foo.txt"},
         "dict_key_files": {
-            "JGI/1/2/bar.txt": "bar"
-        },  # we don't substitute for dict keys
+            "./JGI/1/2/bar.txt": "bar"
+        },
     }
     expected = {
         "string": "foo",
-        "infile": "s3://JAWS/inputs/JGI/a/b/c/infile.txt",
+        "infile": "/JAWS/inputs/JGI/a/b/c/infile.txt",
         "somelist": ["apple", "orange"],
-        "filelist": ["s3://JAWS/inputs/JGI/x/bar"],
+        "filelist": ["/JAWS/inputs/JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
-        "dict_val_files": {"foo": "s3://JAWS/inputs/JGI/1/2/foo.txt"},
-        "dict_key_files": {"JGI/1/2/bar.txt": "bar"},
+        "dict_val_files": {"foo": "/JAWS/inputs/JGI/1/2/foo.txt"},
+        "dict_key_files": {"/JAWS/inputs/JGI/1/2/bar.txt": "bar"},
     }
     run = Run(mock_sqlalchemy_session, initRunModel())
-    actual = run.add_prefix_to_paths(test_inputs, test_site_id, test_site_inputs_dir)
+    actual = run.rel_to_abs(test_inputs, test_site_inputs_dir)
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False

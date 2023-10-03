@@ -1,109 +1,78 @@
 # Deployment
-There are multiple scripts that handle the creation of directories, python
-virtual environments, configuration files and supervisord wrapper scripts (shims)
-for starting JAWS services. 
+## Overview
+This document outlines the deployment strategy for our project, which involves a 
+set of Bash scripts and configuration templates aimed to simplify the deployment process. 
+The main driver script deploy.sh orchestrates the deployment by performing various tasks like writing configurations, 
+setting up shims, and initiating services through specified launch tools (e.g., supervisor, systemd).
 
-### Environment Variables and config directory
-In order to deploy JAWS, you will need to set some environment variables. 
-These variables are validated in the `setup_environment.sh` script. Within the
-`config` directory there is a sites (eg jgi, perlmutter, dori) directory that
-defines all the site specific variables and a `deployments` directory that
-defines variables based on the deployment name (eg dev, staging, prod). The
+## Directory Structure
+Here's an outline of the repository directory structure:
+- README.md: General instructions and information about the deployment scripts.
 
-#### defaults.sh
+### configs/
+- **default.sh**: Default configuration script.
+- **deployments**: Contains deployment-related configurations.
+- **sites**: Site-specific configurations.
 
-| Variable                         | Description                                          | defaults                                                                       |
-|----------------------------------|------------------------------------------------------|--------------------------------------------------------------------------------|
-| JAWS_DOCS_URL                    | url for the jaws documentation                       | https://jaws-docs.readthedocs.io/en/latest/                                    |
-| JAWS_LOG_LEVEL                   | logger level (DEBUG, INFO, WARNING, ERROR, CRITICAL) | INFO                                                                           |
-| JAWS_CENTRAL_HOST                | The url for the central server                       | http://jaws.lbl.gov"                                                           | 
-| JAWS_RMQ_HOST                    | hostname for the rabbitmq server                     | rmq.lbl.gov                                                                    |
-| JAWS_RMQ_PORT                    | port for the rabbitmq server                         | 5672                                                                           |
-| JAWS_DB_HOST                     | hostname for the mysql database                      | mysql.lbl.gov                                                                  |
-| JAWS_DB_PORT                     | port for the mysql database                          | 3306                                                                           |
-| JAWS_CONTAINER_TYPE              | container type for workflows to use                  | docker                                                                         |
- | JAWS_DEFAULT_CONTAINER           | default container to pull to run workloads           | ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf |
-| JAWS_PERFORMANCE_METRICS_CLEANUP | clean after number of seconds                        | 600                                                                            |
-| JAWS_LOAD_PYTHON                 | module command for loading python                    |                                                                                |
-| JAWS_PYTHON                      | name of the python executable                        | python3                                                                        |
-| JAWS_FAST_SCRATCH_DIR            | path of the fast scratch filesystem                  |                                                                                |
- | JAWS_BIG_SCRATCH_DIR             | path of the big scratch filesystem                   |
-| JAWS_GITLAB_RUNNER               | path to the gitlab runner executable                 |                                                                                |
-| JAWS_GITLAB_RUNNER_CONFIG        | path to the toml config file                         ||
-| JAWS_RPC_SERVER_NUM_THREADS      | number of threads to run rpc server                  | 5                                                                              |
-| JAWS_SITE_DNS_NAME               | DNS for the site                                     |                                                                                |
-| JAWS_SUPERVISOR_NODAEMON         | run supervisor with nodaemon                         |                                                                                |
-| JAWS_SETFACL                     | whether setfacl can be used on filesystem (1/0)      | 1                                                                              |
-| JAWS_FILE_SYNC_DELAY_SEC         | delay in file sync                                   | 0                                                                              |
+### deploy_tools/
+Scripts related to deployment utilities:
 
+- **scrontab.sh**: Script for deploying through cron.
+- **supervisor.sh**: Script for deploying through Supervisor.
+- **systemd.sh**: Script for deploying through systemd.
 
-#### sites/{SITE}
-The next directory contains several shell files that define the site specific
-environment variables. The following are the sites that we deploy to: 
-- assembly
-- aws
-- dori
-- jgi
-- nmdc
-- perlmutter
-- tahoma
+### templates/
+Contains template files to write actual configurations during deployment:
+Various .sh and .conf and .templ files to generate configurations.
 
-Each site contains the same defined variables with a few exceptions. Here are the following
-site specific variables: 
+## Utility Scripts
+- **install_jaws_site.sh**: Installs the application site.
+- **setup_environment.sh**: Sets up the necessary environment for the application. 
+  These environment variables are in the configs/ directory. See README.md in there for more info.
+- **utils.sh**: General utility functions used in the deployment.
+- **write_configs.sh**: Writes configuration files based on the templates.
+- **write_shims.sh**: Writes shim scripts for compatibility between different launch tools and install methods.
 
-| Variable                        | Description                                               | defaults |
-|---------------------------------|-----------------------------------------------------------|----------|
-| JAWS_INSTALL_BASEDIR            | base directory where JAWS will be installed               |          |
-| JAWS_GLOBUS_EP                  | UUID of the globus endpoint for that site                 |          |
-| JAWS_GLOBUS_HOST_PATH           | path to the base directory of the globus endpoint         |          |
-| JAWS_LOAD_PYTHON                | module command for loading python                         |          |
-| JAWS_PYTHON                     | name of the python executable                             |          |
-| JAWS_GROUP                      | group name that the jaws user is a part of                |          |
-| JAWS_USERS_GROUP                | group name that all users of JGI are a part of            ||
- | JAWS_SCRATCH_BASEDIR            | path to the scratch directory                             |          |
-| JAWS_REF_DATA_DIR               | location of the jaws reference database                   ||
-| JAWS_MAX_RAM_GB                 | max ram in GB that a job can use at that site             ||
-| JAWS_MAX_CPU                    | max cpu that a job can use at that site                   ||
-| JAWS_PERFORMANCE_METRICS_SCRIPT | path to performance script                                ||
-| JAWS_PERFORMANCE_METRICS_DIR    | path to the metrics directory                             ||
-| JAWS_SUPERVISOR_PORT_PROD       | port for supervisor in production                         ||
-| JAWS_AUTH_PORT_PROD             | port for JAWS Central auth in production                  ||
-| JAWS_REST_PORT_PROD             | port for JAWS Central rest in production                  ||
-| JAWS_CROMWELL_PORT_PROD         | port for Cromwell server in production                    ||
-| JAWS_SUPERVISOR_PORT_STAGING    | port for supervisor in staging                            ||
-| JAWS_AUTH_PORT_STAGING          | port for JAWS Central auth in staging                     ||
-| JAWS_REST_PORT_STAGING          | port for JAWS Central rest in staging                     ||
-| JAWS_CROMWELL_PORT_STAGING      | port for Cromwell server in staging                       ||
-| JAWS_SUPERVISOR_PORT_DEV        | port for supervisor in dev                                ||
-| JAWS_AUTH_PORT_DEV              | port for JAWS Central auth in dev                         ||
-| JAWS_REST_PORT_DEV              | port for JAWS Central rest in dev                         ||
-| JAWS_CROMWELL_PORT_DEV          | port for Cromwell server in dev                           ||
-| JAWS_QUEUE_WAIT_LARGE           | sbatch command string to get queue information from Slurm ||
+## Main Driver Script: deploy.sh
+### Functionality
+**Setting Flags**: It sets bash flags for strict error handling.  
+**Source Utility Scripts**: It sources utility scripts that contain functions needed during deployment.  
+**Deployment Function**: Contains a deploy function that does the following:  
+Accepts arguments for the launch tool (e.g., supervisor, systemd) and the install method (e.g., venv, apptainer-sif, apptainer-docker).  
+Calls functions to write configurations, write shims, and install the application.  
 
+usage: 
+```bash 
+./deploy.sh [launch_tool] [install_method] [version]
+```
+
+#### Parameters
+**launch_tool**: The launch tool you want to use for deployment (e.g., supervisor, systemd).  
+**install_method**: The installation method to be used (e.g., venv, apptainer-sif, apptainer-docker).  
+**version**: The version of the application you want to install.  
+
+#### Example
+If the launch tool is supervisor, and you want to spin down/up a service using 
+an apptainer SIF image you would run: 
+
+```bash
+./deploy.sh supervisor apptainer-sif 1.2.3
+```
 
 #### Templates
 In the templates directory, there are several files that are used to generate the
 configuration files for JAWS Site as well as writing the shims used by either supervisor,
 systemd or other deployment tools that start the services. JAWS Site services can be started
 using a variety of different methods. These include virtual environments, apptainer images, and
-scrontab job submission. 
+scrontab job submissions. 
 
-### deploy.sh
-This is the main execution script that drives the deployment of JAWS. The pipeline steps for
-deployment of JAWS Site generally follows these steps:
+## Supervisor
+### Overview
+This section explains the Supervisor configurations for the JAWS project. 
+Supervisor is used to control and monitor processes on UNIX-like operating systems. 
+The configurations are defined in a set of .conf files.
 
-    1. Stop services
-    2. Setup deployment environment
-    3. Write configuration files, and shims. Set correct permissions.
-    4. Start services
-
-The deploy script will take two arguments, the launch method and the install method. By launc method,
-we mean the method that is used to start/stop services. This can be either through supervisor, systemd or scrontab.
-New methods can be added into the `deploy_tools` directory. Install method means how the services are installed. This
-can be either through a virtual environment or just by pulling the most up to date container image and running
-`apptainer instance start`. 
-
-## Supervisor Architecture
+### Architecture
 As JAWS needs to be portable, one of the core tenets of this effort is to not depend on operating
 system specific or site specific features. JAWS as a whole needs only Python3 to run, the rest
 of the dependencies can be bootstrapped from there. As we can not rely on process supervision by
@@ -111,89 +80,267 @@ the operating system, [supervisord](https://www.supervisord.org) was chosen to f
 
 Those instances are always running and can be controlled using the supervisorctl command. Typical
 actions are starting and stopping a service. Access is controlled by a unique key.
-
-     supervisord.conf
+                        
+                      includes
+    supervisord.conf -----------> supervisor.site.conf, supervisor.cromwell.conf, supervisor.pool-manager.conf, etc
            |
-    +--------------+      spawns services
-    | supervisord  | -----------------------> rpc-server
-    +--------------+          |
-           |                  |-------------> run-daemon
-           | controls         |-------------> transfer-daemon
-           |                  |-------------> task-log
-           |                  |-------------> etc...
+    +--------------+      spawns services (supervisorctl start)
+    | supervisord  | ------------------------------------------> rpc-server
+    +--------------+                             |
+           |                                     |-------------> run-daemon
+           | controls                            |-------------> transfer-daemon
+           |                                     |-------------> task-log
+           |                                     |-------------> etc...
     +--------------+
     |   user/ci    |
     +--------------+
 
 Every system needs an instance of supervisord for each service.
 
-### Supervisor Summary
-Below we describe how supervisor related services are restarted for JAWS. 
+### Supervisor configuration
+There are four different configuration files that are required for starting up
+services. The main `supervisor.conf` and three included configuration files
+used to start up the "back-end" services of JAWS which include jaws-site, jaws-pool-manager,
+Cromwell and HTCondor.
 
-The step by step instructions are in a [wiki document](https://code.jgi.doe.gov/advanced-analysis/jaws/-/wikis/Re-starting-JAWS-after-Maintenance) that outlines what to do to restart things after a scheduled maintenance of cori or jgi. Essentailly, there are re-start scripts that need to be run on CORI, JGI & Cascade for dev,staging & prod.    
+#### Included Configuration Files
+supervisor.site.conf
+Defines the following program processes:
 
-The scripts can be seen under `jaws/test/integration/start_supervisor_services`
+- **runs**: Starts the run daemon.
+- **transfers**: Starts the transfer daemon.
+- **perf-metrics**: Starts the performance metrics daemon.
+- **rpc-server**: Starts the RPC server.
+- **task-log**: Starts the task log service.
 
-* start_central_services.sh
-* start_jaws_cori_services.sh
-* start_jaws_jgi_services.sh
-* start_jtm_cori_services.sh
- 
+All these programs are grouped under [group:jaws-site].
 
-The steps you take after a scheduled maintenance or during a CI/CD deployment are roughly the same. During deployment, the supervisord is run in the .gitlab-ci.yml. You can go there to see these commands in action.
+supervisor.cromwell.conf
+Defines a program process:
+
+- **cromwell**: Starts the Cromwell workflow engine.
+
+This program is grouped under [group:jaws-cromwell].
+
+supervisor.pool-manager.conf
+Defines the following program processes:
+
+- **pool-manager**: Manages pools of resources.
+- **htcondor-server**: Starts the HTCondor server for job scheduling.
+These programs are grouped under [group:jaws-pool-manager].
+
 
 ### Background of Restarting Services
-Again, each instance (dev, staging, prod) will have its own supervisors. You will want to use the appropriate executable depending on which instance you want to work with.  
+Each instance (dev, staging, prod) will have its own supervisors. You will want to use the appropriate executable depending on which instance you want to work with.  
 
 Starting the supervisors is only necessary once, after startup of the machine hosting the services. These are examples only; the paths to the executables can be seen in the re-start scripts listed above, or in the .gitlab-ci.yml.
 
-    $ <command> <jaws_user>
-    $ jaws-supervisord-<INSTANCE>/bin/supervisord -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf 
+    $ ${JAWS_INSTALL_BASEPATH}/jaws-install/<SITE>-[dev|staging|prod]/bin/supervisord -c ${JAWS_INSTALL_BASEPATH}/jaws-install/<SITE>-[dev|staging|prod]/supervisor.conf 
 
-where the <command> is one of the following... 
-
-LRC/DORI:
-    - command: sudo -u <user> -i  
-    - user: jaws
-
-TAHOMA:
-    - command: sudo -u <user> -i  
-    - user: svc-jtm-manager 
-
-PERLMUTTER:
-    - sshproxy -c jaws
-    - ssh -i ~/.ssh/jaws jaws@perlmutter-p1.nersc.gov
-
+You will want to make sure you are logged in as the "jaws" user for that site. Not all sites have the service user
+as jaws. For example, the jaws user on dori is `svc-jaws`, and the jaws user on tahoma is `svc-jtm-manager`.
 
 Note: For Tahoma you will need to ssh to the host `twf1.emsl.pnl.gov` before you attempt to change
-into the user. If you are logged into tahoma, a simple `ssh twf1` should work fine. `svc-jtm-manager` maps to
-`jaws` will be `svc-jtm-user`. 
+into the user. 
 
 ### Check the status of JAWS services:
 
-    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf status
-    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf status
+    $ ${JAWS_INSTALL_BASEPATH}/jaws-install/<SITE>-[dev|staging|prod]/bin/supervisorctl status
 
 ### Start the JAWS services:
 
-    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jaws.conf start
-    $ jaws-supervisord-<INSTANCE>/bin/supervisorctl -c jaws-supervisord-<INSTANCE>/supervisord-jtm.conf start
+To start all the services (e.g. rpc-server, run-daemon, jaws-cromwell)
 
-Note: there exists two supervisord processes, one for jaws and one for jtm,  even if there are not two
-separate jaws and jtm users in use at the deployment site.  
+    $ ${JAWS_INSTALL_BASEPATH}/jaws-install/<SITE>-[dev|staging|prod]/bin/supervisorctl start all
 
-## Systemd
+### Important Notes
+Make sure to restart Supervisor after making any changes to the configuration files.
+Double-check permissions for accessing log and pidfile locations.
 
+## Apptainer on Tahoma, LRC, and Dori
+### Overview
+Apptainer is a containerization solution we use to package and deploy our services across multiple platforms, 
+including Tahoma, LRC, and Dori. This document outlines how we use Apptainer in these environments and 
+how we work around certain limitations such as Supervisor's inability to handle background processes. 
+We also discuss the usage of shims to facilitate these deployments.
+
+### Apptainer Run on Tahoma and LRC
+On Tahoma and LRC, we utilize apptainer run to initiate our services. These services are stateless, 
+do not require background processes, and exit after performing their designated tasks. 
+The apptainer run command ensures that the environment is isolated and that services are executed in a clean, 
+controlled setting.
+
+Example usage:
+
+    $ apptainer run --cleanenv --env-file="$JAWS_CONFIG_DIR/site.env" --no-home --mount src="${JAWS_CONFIG_DIR}/jaws-site.conf",dst=/etc/config/site/jaws-site.conf,ro --mount src="${JAWS_LOGS_DIR}",dst=/var/log/site "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" --log "/var/log/site/${SERVICE}.log" --log-level "${JAWS_LOG_LEVEL}" "${SERVICE}"
+
+### Apptainer Instance on Dori
+On Dori, we use apptainer instance because Supervisor can't handle background processes, 
+which are essential for certain services. An Apptainer instance allows us to run background tasks effectively. 
+Unlike apptainer run, the instance command keeps the container running in the background, 
+allowing long-running processes to operate over an extended period. Apptainer instance also provides more functionality
+than run such a monitoring, logging and entering the shell of an already running instance (`apptainer shell`). For
+more information, consult the Apptainer [documentation](https://apptainer.org/docs/user/main/running_services.html#instances-running-services).
+
+### Shim Scripts
+#### Apptainer Run Shim
+The shim is used for initiation services using `apptainer run` on Tahoma and LRC:
+
+    #!/bin/bash -l
+    apptainer run --cleanenv --env-file="$JAWS_CONFIG_DIR/site.env" --no-home --mount src="${JAWS_CONFIG_DIR}/jaws-site.conf",dst=/etc/config/site/jaws-site.conf,ro --mount src="${JAWS_LOGS_DIR}",dst=/var/log/site "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" --log "/var/log/site/${SERVICE}.log" --log-level "${JAWS_LOG_LEVEL}" "${SERVICE}"
+
+#### Apptainer Instance Shim
+
+    #!/bin/bash
+    apptainer instance start --cleanenv --env-file="$JAWS_CONFIG_DIR/site.env" --no-home --mount src="${JAWS_CONFIG_DIR}/jaws-site.conf",dst=/etc/config/site/jaws-site.conf,ro --mount src="${JAWS_LOGS_DIR}",dst=/var/log/site --pid-file ${JAWS_LOGS_DIR}/jaws-${SERVICE}-${JAWS_DEPLOYMENT_NAME}.pid "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" jaws-${SERVICE}-${JAWS_DEPLOYMENT_NAME} --log "/var/log/site/${SERVICE}.log" --log-level "${JAWS_LOG_LEVEL}" "${SERVICE}"
+
+These shims take care of:
+1. Loading environment variables from `.env` file.
+2. Mounting required files and directories into the container.
+3. Specifying the log files and log levels
+
+
+## Site Specific Information
+This section explains some of the difference between sites, specifically between Dori and Perlmutter since
+those deployments differ from Tahoma and JGI. Tahoma and JGI are considered the "vanilla" installs that use
+apptainer containers and supervisord to start up services.
+
+## Dori
 On the Dori cluster, we have access to systemd. When you run `deploy.sh` and specify `systemd` as the deploy tool,
 our pipeline will create shim files to start the services as well as service files to enable them to run on systemd.
 The pipeline will then take care of stopping and starting the services. We use systemd along with `apptainer instance`
 to run these on Dori. 
 
-## Scrontab
-Unlike Cori, Perlmutter does not have any dedicated workflow nodes that one can ssh into and
-start persistent services. Instead, persistent services need to be scheduled onto the system using Scrontab.  By
-using the command `scrontab -e` you open a file that can be edited and include the configuration for your
-long running job.
+### Running systemd
+To run systemd, you will want to login as the `svc-jaws` user. If you want to start
+the services, you will run: 
+
+```
+$ systemctl --user enable [SERVICE FILE]
+$ systemctl --user start [SERVICE FILE]
+```
+
+service files are located in the `$HOME/config/systemd/` directory and are generated
+by the CI/CD pipeline. 
+
+If you are unsure of what services are under systemd, you can run
+
+```
+$ systemctl --user status
+```
+
+You can even grep this output to see what is running under each environment.
+Here is an example: 
+
+```
+svc-jaws@ln010.jgi:/clusterfs/jgi/groups/dsi/homes/svc-jaws$ systemctl --user status | grep staging
+           ├─task-log-staging.service
+           │ ├─2769418 Apptainer instance: svc-jaws [jaws-task-log-staging]
+           ├─perf-metrics-daemon-staging.service
+           │ ├─1897716 Apptainer instance: svc-jaws [jaws-perf-metrics-daemon-staging]
+           ├─run-daemon-staging.service
+           │ ├─2769151 Apptainer instance: svc-jaws [jaws-run-daemon-staging]
+           ├─rpc-server-staging.service
+           │ ├─2769007 Apptainer instance: svc-jaws [jaws-rpc-server-staging]
+           ├─task-logger-receive-staging.service
+           │ ├─1897786 Apptainer instance: svc-jaws [jaws-task-logger-receive-staging]
+           ├─transfer-daemon-staging.service
+           │ ├─2769532 Apptainer instance: svc-jaws [jaws-transfer-daemon-staging]
+```
+
+The service names follow this scheme:  `[SERVICE]-[ENV].service`. As an example, the `rpc-server`
+service would have this service file name: `rpc-server-staging.service`.
+
+
+#### Example
+If you want to start up the `rpc-server` service then you will run the following:
+
+```
+$ systemctl --user enable $HOME/config/rpc-server-dev.service
+$ systemctl --user start $HOME/config/rpc-server-dev.service
+```
+
+## Perlmutter
+This section outlines the process for deploying the JAWS project on the Perlmutter cluster. The deployment involves a few key components:
+
+1. A scronjob script (starter.sh) that runs every 5 minutes to submit a job.
+2. The `jaws-site-cronjob` script that sets up the environment and runs the main application using Supervisor.
+
+### Deployment steps
+#### Pre-requisites
+Ensure that you have access to the Perlmutter cluster and that all the relevant directories and files are available.
+
+#### SLURM scronjob
+Before diving into the cron job and job script, it's essential to understand scronjob in the 
+SLURM context. SLURM's scronjob allows you to schedule tasks similar to the Unix cron, but they are managed by the 
+SLURM job scheduler. This is beneficial in cluster environments where resources are shared.
+
+#### Scronjob (starter.sh)
+The scronjob is a shell script that performs the following actions:
+
+Checks if there's already an instance of the job running in the queue. If so, it will exit.
+Checks for any scheduled maintenance on the cluster and adjusts the job submission accordingly.
+Submits the job using sbatch, setting up various SLURM parameters including job name, dependencies, time, and resources.
+
+#### jaws-site-cronjob
+The job script takes care of:
+
+Setting the dynamic DNS.
+Initiating Supervisor, which then starts all the services defined in the Supervisor config files.
+
+#### How to Setup:
+This is automatically submitted by the starter.sh scronjob.
+
+### Key Points
+The starter.sh script is a SLURM scronjob scheduled to run every 5 minutes.
+If the script detects cluster maintenance, it will adjust the job submission parameters accordingly.
+The job script sets up the environment and initiates Supervisor to manage the services.
+Both scripts have log paths specified for monitoring and debugging. If you want to submit to slurm
+directly instead of through the pipeline, you will want to run the `starter.sh` script.
+
+## Log files
+### Supervisor
+Supervisor enables us to monitor and control processes. One of the helpful
+features of Supervisor is its ability to capture standard output and standard
+error streams and redirect them to log files. This document will guide you on how to 
+look up logs managed by Supervisor. 
+
+### Location 
+All logs generated by Supervisor for JAWS are located in the following directory:
+`$JAWS_INSTALL_DIR/$JAWS_DEPLOYMENT_NAME/logs/`
+
+**Note:** `$JAWS_INSTALL_DIR` and `$JAWS_DEPLOYMENT_NAME` are environment variables that points to the
+installation directory. As an example here is what the installation path directory looks like:
+`/clusterfs/jgi/groups/dsi/homes/svc-jaws/jaws-install/dori-prod/log`
+
+#### Tail Logs in Real Time
+If you want to tail logs in real time you can run the following command:
+
+`tail -f [LOGFILE_NAME]`
+
+For example: 
+
+`tail -f rpc-server.log`
+
+### Systemd
+Systemd, the init system and service manager for Linux distributions, utilizes 
+its logging system called journald. This system captures Syslog messages, kernel logs, 
+initial RAM disk and early boot messages, as well as messages from running systemd services. 
+Here's a brief guide to accessing these logs:
+
+#### Viewing logs with journalctl
+1. View All Logs: To view all the logs collected by journald, simply run:
+`journalctl --user -xe`. This will open the logs in edit mode. You will need the user flag to access logs
+that belong only to the `svc-jaws` user. 
+
+2. Filter by Service: If you're interested in logs from a specific systemd service, you can filter the output. 
+   For example, to view logs for a service named rpc-server-dev.service, run:
+   `journalctl -u rpc-server-dev.service`
+ 
+3. Live Tailing: To view logs in real time run: `journalctl -f`
+
+#### Persistence
+By default, journald logs are stored in a volatile storage (like /run/log/journal) and are lost upon reboot
 
 ## Starting the gitlab-runner on Perlmutter
 After a maintenance, it is very likely that the runner will need to be restarted. Perlmutter is a unique case where
@@ -219,7 +366,7 @@ since it'll pick up the system python instead.
 
 ## Starting the gitlab-runner on TAHOMA
 
-Currently the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
+Currently, the gitlab runner is being managed by EMSL. To contact them, join the #emsl-jgi-coordination channel on the JGI slack. 
 
 
 ## File cleanup (cron)

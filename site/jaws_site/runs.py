@@ -421,24 +421,20 @@ class Run:
         inputs = json.load(fh)
         return inputs
 
-    def add_prefix_to_paths(self, data, site_id: str, prefix: str):
+    def rel_to_abs(self, data: any, root: str) -> any:
         """
-        Recursively traverse inputs dictionary and add path prefix to file items to
-        make them valid absolute paths at this compute-site.
+        Recursively traverse data structure and replace FILE variables' relative paths
+        (indicated by starting with "./") to absolute paths, using this site's inputs dir.
         Also touch the files to ensure their accessed timestamps are current.
         Raise on missing file.
-        :param site_id: The name of the compute-site
-        :ptype str:
         :param prefix: The path to the input data folder
         :ptype prefix: str
         :return: If item is a relpath, return abspath, else return unmodified item.
         :rtype: any
         """
         if type(data) is str:
-            if data.startswith(site_id):
-                abspath = os.path.join(prefix, data)
-                if abspath.startswith("s3://"):
-                    return abspath
+            if data.startswith("./"):
+                abspath = os.path.normpath(os.path.join(root, data))
                 if not os.path.isfile(abspath):
                     raise RunFileNotFoundError(f"File not found: {abspath}")
                 # touch to ensure atime is changed to now
@@ -449,13 +445,14 @@ class Run:
         elif type(data) is list:
             new_data = []
             for item in data:
-                new_data.append(self.add_prefix_to_paths(item, site_id, prefix))
+                new_data.append(self.rel_to_abs(item, root))
             return new_data
         elif type(data) is dict:
             new_data = {}
             for key, value in data.items():
-                new_value = self.add_prefix_to_paths(value, site_id, prefix)
-                new_data[key] = new_value
+                new_key = self.rel_to_abs(key, root)
+                new_value = self.rel_to_abs(value, root)
+                new_data[new_key] = new_value
             return new_data
         else:
             return data
@@ -466,9 +463,7 @@ class Run:
         :return: input parameters
         :rtype: dict
         """
-        return self.add_prefix_to_paths(
-            self.read_inputs(), self.data.input_site_id, self.config["inputs_dir"]
-        )
+        return self.rel_to_abs(self.read_inputs(), self.config["inputs_dir"])
 
     def inputs_fh(self):
         """
@@ -733,7 +728,7 @@ class Run:
                 f"Run {self.data.id}: Failed to copy WDL to output dir: {error}"
             )
         else:
-            infiles.append(wdl_path)
+            infiles.append(self.data.wdl_basename)
 
         # copy subworkflows zip (if exists)
         src_subworkflows_path = os.path.join(
@@ -748,7 +743,7 @@ class Run:
                     f"Run {self.data.id}: Failed to copy subworkflows-ZIP to output dir: {error}"
                 )
             else:
-                infiles.append(subworkflows_path)
+                infiles.append("subworkflows.zip")
 
         # copy inputs json
         src_inputs_json_path = os.path.join(
@@ -762,7 +757,7 @@ class Run:
                 f"Run {self.data.id}: Failed to copy inputs-JSON to output dir: {error}"
             )
         else:
-            infiles.append(inputs_json_path)
+            infiles.append(self.data.json_basename)
 
         # get Cromwell metadata
         try:
@@ -818,12 +813,18 @@ class Run:
             logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
             write_json_file(outfiles_file, outfiles)
 
-        # update and write task log
+        # update task log
         try:
             task_log = self.task_log()
-            # this copies desired fields from the cromwell metadata into the task-log table
-            task_log_summary_dict = metadata.task_log_summary_dict()
-            task_log.add_metadata(task_log_summary_dict)
+            task_summary_dict = metadata.task_summary_dict()
+            task_log.add_metadata(task_summary_dict)
+        except Exception as error:
+            logger.error(f"Run {self.data.id}: Failed to update task-log: {error}")
+            self.update_run_status("failed", "Failed to update task-log")
+            return
+
+        # write task log
+        try:
             task_log_table = task_log.table()
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to generate task-log: {error}")
@@ -991,6 +992,9 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             data["workflow_name"] = run.data.workflow_name
         elif log.status_to == "complete":
             data["output_manifest"] = run.output_manifest()
+            data["cpu_hours"] = run.data.cpu_hours
+        elif log.status_to in ("succeeded", "failed", "cancelled"):
+            data["result"] = run.data.result
         try:
             response = central_rpc_client.request("update_run_log", data)
         except Exception as error:
