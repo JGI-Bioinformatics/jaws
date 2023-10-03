@@ -54,7 +54,7 @@ def set_atime_now(path: str) -> None:
     if not os.path.isfile(path):
         raise IOError(f"File not found: {path}")
     stat = os.stat(path)
-    os.utime(path, times=(datetime.now(), stat.st_mtime))
+    os.utime(path, times=(datetime.now().timestamp(), stat.st_mtime))
 
 
 class RunDbError(Exception):
