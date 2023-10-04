@@ -739,7 +739,9 @@ class Run:
         src_wdl_path = os.path.join(
             self.config["inputs_dir"], f"{self.data.submission_id}.wdl"
         )
-        wdl_path = os.path.join(root, self.data.wdl_basename)
+        wdl_path = os.path.join(root, "workflow.wdl")
+        if self.data.wdl_basename is not None:
+            wdl_path = os.path.join(root, self.data.wdl_basename)
         try:
             shutil.copy(src_wdl_path, wdl_path)
         except IOError as error:
@@ -768,7 +770,9 @@ class Run:
         src_inputs_json_path = os.path.join(
             self.config["inputs_dir"], f"{self.data.submission_id}.json"
         )
-        inputs_json_path = os.path.join(root, self.data.json_basename)
+        inputs_json_path = os.path.join(root, "inputs.json")
+        if self.data.json_basename is not None:
+            inputs_json_path = os.path.join(root, self.data.json_basename)
         try:
             shutil.copy(src_inputs_json_path, inputs_json_path)
         except IOError as error:
