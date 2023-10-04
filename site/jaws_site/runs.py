@@ -725,6 +725,9 @@ class Run:
         """
         logger.info(f"Run {self.data.id}: Write supplementary files")
         root = self.data.workflow_root
+        if root is None:
+            self.update_run_status("failed", "Cromwell run folder was not created")
+            return
 
         # confirm the run folder exists
         if not os.path.isdir(root):
