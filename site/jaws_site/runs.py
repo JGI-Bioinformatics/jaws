@@ -904,6 +904,9 @@ class Run:
         Return a list of the output files for a completed run, as paths relative to the workflow_root.
         """
         manifest_file = f"{self.data.workflow_root}/output_manifest.json"
+        if not os.path.isfile(manifest_file):
+            logger.error(f"Run {self.data.id}: Output manifest does not exist: {error}")
+            return []
         try:
             manifest = read_json(manifest_file)
         except RunFileNotFoundError as error:
