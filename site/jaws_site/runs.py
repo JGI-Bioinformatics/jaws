@@ -924,7 +924,10 @@ class Run:
             return
 
         # read previously generated summary
-        summary_file = f"{self.data.workflow_root}/task_log.json"
+        summary_file = f"{self.data.workflow_root}/tasks.json"
+        if not os.path.isfile(summary_file):
+            self.update_run_status("finished", "No report to publish to perf-metrics")
+            return
         summary = self._read_json_file(summary_file)
 
         # publish and if successful, mark as done, else skip until next time
