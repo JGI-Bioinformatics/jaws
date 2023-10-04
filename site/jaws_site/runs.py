@@ -854,7 +854,7 @@ class Run:
             self.update_run_status("complete", "Failed to generate task-log")
             return
         else:
-            task_log_file = os.path.join(root, "task_log.json")
+            task_log_file = os.path.join(root, "tasks.json")
             logger.debug(f"Run {self.data.id}: Writing {task_log_file}")
             write_json_file(task_log_file, task_log_table)
 
@@ -892,7 +892,7 @@ class Run:
             "outputs.json",
             "output_manifest.json",
             "summary.json",
-            "task_log.json",
+            "tasks.json",
         ]
         manifest_file = os.path.join(root, "output_manifest.json")
         logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
