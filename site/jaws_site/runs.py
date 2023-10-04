@@ -726,12 +726,12 @@ class Run:
         logger.info(f"Run {self.data.id}: Write supplementary files")
         root = self.data.workflow_root
         if root is None:
-            self.update_run_status("failed", "Cromwell run folder was not created")
+            self.update_run_status("complete", "Cromwell run folder was not created")
             return
 
         # confirm the run folder exists
         if not os.path.isdir(root):
-            self.update_run_status("failed", "Cromwell run folder does not exist")
+            self.update_run_status("complete", "Cromwell run folder does not exist")
             return
 
         # copy wdl
@@ -783,7 +783,7 @@ class Run:
             metadata = self.get_metadata()
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
-            self.update_run_status("failed", "Cromwell metadata could not be retrieved")
+            self.update_run_status("complete", "Cromwell metadata could not be retrieved")
             return
         else:
             metadata_file = os.path.join(root, "metadata.json")
@@ -797,7 +797,7 @@ class Run:
             logger.error(
                 f"Run {self.data.id}: Failed to generate errors report: {error}"
             )
-            self.update_run_status("failed", "Failed to generate errors report")
+            self.update_run_status("complete", "Failed to generate errors report")
             return
         else:
             errors_file = os.path.join(root, "errors.json")
@@ -811,7 +811,7 @@ class Run:
             logger.error(
                 f"Run {self.data.id}: Failed to generate outputs file: {error}"
             )
-            self.update_run_status("failed", "Failed to generate outputs file")
+            self.update_run_status("complete", "Failed to generate outputs file")
             return
         else:
             outputs_file = os.path.join(root, "outputs.json")
@@ -825,7 +825,7 @@ class Run:
             logger.error(
                 f"Run {self.data.id}: Failed to generate outfiles file: {error}"
             )
-            self.update_run_status("failed", "Failed to generate outfiles file")
+            self.update_run_status("complete", "Failed to generate outfiles file")
             return
         else:
             outfiles_file = os.path.join(root, "outfiles.json")
@@ -839,7 +839,7 @@ class Run:
             task_log.add_metadata(task_summary_dict)
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to update task-log: {error}")
-            self.update_run_status("failed", "Failed to update task-log")
+            self.update_run_status("complete", "Failed to update task-log")
             return
 
         # write task log
@@ -847,7 +847,7 @@ class Run:
             task_log_table = task_log.table()
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to generate task-log: {error}")
-            self.update_run_status("failed", "Failed to generate task-log")
+            self.update_run_status("complete", "Failed to generate task-log")
             return
         else:
             task_log_file = os.path.join(root, "task_log.json")
@@ -862,7 +862,7 @@ class Run:
             summary = self.summary()
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to generate summary: {error}")
-            self.update_run_status("failed", "Failed to generate summary")
+            self.update_run_status("complete", "Failed to generate summary")
             return
         else:
             summary_file = os.path.join(root, "summary.json")
@@ -876,7 +876,7 @@ class Run:
             logger.error(
                 f"Run {self.data.id}: Failed to generate output manifest: {error}"
             )
-            self.update_run_status("failed", "Failed to generate output manifest")
+            self.update_run_status("complete", "Failed to generate output manifest")
             return
 
         manifest = [
