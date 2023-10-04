@@ -905,7 +905,7 @@ class Run:
         """
         manifest_file = f"{self.data.workflow_root}/output_manifest.json"
         if not os.path.isfile(manifest_file):
-            logger.error(f"Run {self.data.id}: Output manifest does not exist: {error}")
+            logger.error(f"Run {self.data.id}: Output manifest does not exist")
             return []
         try:
             manifest = read_json(manifest_file)
