@@ -560,6 +560,12 @@ def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):
             return
         else:
             raise IOError(f"Cannot chmod; path does not exist: {path}")
+    if kwargs.get("chmod_parent", False) is True:
+        try:
+            parent = os.path.dirname(path)
+            os.chmod(parent, folder_mode)
+        except Exception as error:
+            logger.warning(f"Error changing permissions of {parent}: {error}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         root_dir = os.path.abspath(path)
         for src_dir, dirs, files in os.walk(root_dir):

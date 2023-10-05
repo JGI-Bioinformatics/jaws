@@ -167,7 +167,7 @@ def change_perms(params, session):
     file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
     folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
     try:
-        parallel_chmod(path, file_mode, folder_mode, parallelism=6, ok_not_exists=True)
+        parallel_chmod(path, file_mode, folder_mode, parallelism=6, ok_not_exists=True, chmod_parent=True)
     except Exception as error:
         logger.error(f"Failed to chmod {path}: {error}")
         return failure(error)
