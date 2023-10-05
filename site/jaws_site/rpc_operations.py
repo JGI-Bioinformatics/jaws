@@ -5,7 +5,7 @@ from jaws_site import queue_wait as slurm_queue_wait
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
-from jaws_site.transfers import Transfer
+from jaws_site.transfers import Transfer, parallel_chmod
 
 
 DEFAULT_TZ = "America/Los_Angeles"
@@ -159,6 +159,23 @@ def site_config(params, session):
         return success(result)
 
 
+def chmod(params, session):
+    """
+    Recursively chmod.
+    """
+    path = params["path"]
+    file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
+    folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+    try:
+        parallel_chmod(path, file_mode, folder_mode, parallelism=6)
+    except Exception as error:
+        logger.error(f"Failed to chmod {path}: {error}")
+        return failure(error)
+    else:
+        result = {"chmod": True}
+        return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -206,5 +223,9 @@ operations = {
     "site_config": {
         "function": site_config,
         "required_params": [],
+    },
+    "chmod": {
+        "function": chmod,
+        "required_params": ["path"],
     },
 }

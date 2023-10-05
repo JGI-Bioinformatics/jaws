@@ -431,7 +431,7 @@ class Transfer:
         logger.debug(f"Transfer {self.data.id}: Chmod files")
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-        parallel_chmod(dest, file_mode, folder_mode, parallelism=parallelism)
+        parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
 def check_queue(session) -> None:
