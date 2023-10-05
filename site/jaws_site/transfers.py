@@ -566,6 +566,10 @@ def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):
             os.chmod(parent, folder_mode)
         except Exception as error:
             logger.warning(f"Error changing permissions of {parent}: {error}")
+    try:
+        os.chmod(path, folder_mode)
+    except Exception as error:
+        logger.warning(f"Error changing permissions of {path}: {error}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         root_dir = os.path.abspath(path)
         for src_dir, dirs, files in os.walk(root_dir):
