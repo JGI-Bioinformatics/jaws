@@ -551,10 +551,15 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
-def parallel_chmod(path, file_mode, folder_mode, parallelism=1):
+def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):
     """
     Recursively copy folder and set permissions.
     """
+    if not os.path.isdir(path):
+        if kwargs.get("ok_not_exists", False) is True:
+            return
+        else:
+            raise IOError(f"Cannot chmod; path does not exist: {path}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         root_dir = os.path.abspath(path)
         for src_dir, dirs, files in os.walk(root_dir):

@@ -159,7 +159,7 @@ def site_config(params, session):
         return success(result)
 
 
-def chmod(params, session):
+def change_perms(params, session):
     """
     Recursively chmod.
     """
@@ -167,13 +167,12 @@ def chmod(params, session):
     file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
     folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
     try:
-        parallel_chmod(path, file_mode, folder_mode, parallelism=6)
+        parallel_chmod(path, file_mode, folder_mode, parallelism=6, ok_not_exists=True)
     except Exception as error:
         logger.error(f"Failed to chmod {path}: {error}")
         return failure(error)
     else:
-        result = {"chmod": True}
-        return success(result)
+        return success({"success": True})
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
@@ -224,8 +223,8 @@ operations = {
         "function": site_config,
         "required_params": [],
     },
-    "chmod": {
-        "function": chmod,
+    "change_perms": {
+        "function": change_perms,
         "required_params": ["path"],
     },
 }
