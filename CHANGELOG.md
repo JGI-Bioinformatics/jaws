@@ -3,9 +3,9 @@
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
 ### Internal Facing Changes
-- update the access times for copied input files to ensure the files are not purged and so call caching works (#1735)
 
-## 2.0.1  Summary [09/19/2023 - staging]
+## 2.0.1  Summary [09/19/2023 - staging // 10/09/2023 - Prod]
+- update the access times for copied input files to ensure the files are not purged and so call caching works (#1735)
 - cancelling runs shall set "result" field too (#1724)
 - fixed bug where if WDL name started with compute-site name, unexpected path substitution occurred (#1713)
 - Change dori site's max ram to 1500
