@@ -3,6 +3,7 @@
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
 - added JOB_ID (HTCondor_ID) to tasks report (#1742)
+- increase allowed length of wdl and json filenames (#1744)
 
 ### Internal Facing Changes
 
