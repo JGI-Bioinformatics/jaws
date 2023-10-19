@@ -37,7 +37,8 @@ dependencies = [
     "moto",
     "matplotlib",
     "psutil",
-    "parallel_sync"
+    "parallel_sync",
+    "globus-sdk"
 ]
 
 [project.optional-dependencies]

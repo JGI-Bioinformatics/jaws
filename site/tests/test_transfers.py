@@ -616,3 +616,33 @@ def test_abs_to_rel_paths():
     expected = ["file1", "a/file2", "a/b/file3"]
     actual = abs_to_rel_paths(root_dir, abs_paths)
     assert actual == expected
+
+
+class MockGlobusService:
+    def __init(self):
+        pass
+
+    def transfer_status(self, id):
+        return "submitted", "reason"
+
+
+class MockGlobusServiceException:
+    def __init(self):
+        pass
+
+    def transfer_status(self, id):
+        raise Exception
+
+
+def test_status_globus(monkeypatch, mock_sqlalchemy_session):
+    monkeypatch.setattr(transfers, "GlobusService", MockGlobusService)
+    mock_data = MockTransferModel()
+    transfer = transfers.Transfer(mock_sqlalchemy_session, mock_data)
+    res = transfer.status_globus()
+    assert res == ("submitted", "reason")
+
+    monkeypatch.setattr(transfers, "GlobusService", MockGlobusServiceException)
+    mock_data = MockTransferModel()
+    transfer = transfers.Transfer(mock_sqlalchemy_session, mock_data)
+    with pytest.raises(TransferGlobusError):
+        transfer.status_globus()

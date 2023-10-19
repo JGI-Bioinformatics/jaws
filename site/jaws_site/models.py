@@ -95,17 +95,34 @@ class Tasks(Base):
     req_minutes = Column(SmallInteger, nullable=True)
 
 
+class Manifest(Base):
+    """
+    Each manifest is a JSON document comprised of a list of relative paths.
+    The src, desc root dirs are stored in the transfers tables (below).
+    """
+
+    __tablename__ = "manifests"
+    id = Column(Integer, primary_key=True)
+    manifest_json = Column(MEDIUMTEXT, nullable=False)
+    num_files = Column(Integer, nullable=False)
+
+
 class Transfer(Base):
     """
-    Table of transfer tasks (sets of files to transfer).
+    Table of transfer tasks for copy and boto (s3) operations.
     """
 
     __tablename__ = "transfers"
     id = Column(Integer, primary_key=True)
+    manifest_id = Column(Integer, ForeignKey("manifests.id"), nullable=False)
     status = Column(String(32), nullable=False)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     src_base_dir = Column(String(1024), nullable=False)
     dest_base_dir = Column(String(1024), nullable=False)
-    manifest_json = Column(MEDIUMTEXT, nullable=False)
     reason = Column(String(1024), nullable=True)
+    src_globus_endpoint = Column(String(256), nullable=True)
+    src_globus_host_path = Column(String(512), nullable=True)
+    dest_globus_endpoint = Column(String(256), nullable=True)
+    dest_globus_host_path = Column(String(512), nullable=True)
+    globus_transfer_id = Column(String(36), nullable=True)

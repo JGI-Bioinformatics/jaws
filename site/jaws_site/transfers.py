@@ -9,10 +9,11 @@ from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 import json
 import boto3
-from jaws_site import config, models
 import botocore
-
 from parallel_sync import rsync
+from jaws_site import config, models
+from jaws_site.globus import GlobusService
+from jaws_site.manifests import Manifest
 
 
 logger = logging.getLogger(__package__)
@@ -44,6 +45,10 @@ class TransferDbError(TransferError):
     pass
 
 
+class TransferGlobusError(TransferError):
+    pass
+
+
 class TransferNotFoundError(TransferError):
     pass
 
@@ -65,6 +70,7 @@ class Transfer:
         """
         self.session = session
         self.data = data
+        self.manifest = None  # lazy loading
 
     @classmethod
     def from_params(cls, session, params):
@@ -76,6 +82,18 @@ class Transfer:
         elif "manifest_json" in params:
             assert isinstance(params["manifest_json"], str)
             manifest_json = params["manifest_json"]
+        else:
+            raise ValueError("Could not initialize transfer: manifest not provided")
+
+        # init new Manifest object
+        try:
+            manifest = Manifest.from_params(session, manifest=manifest_json)
+        except Exception as error:
+            err_msg = f"Failed to save manifest: {error}"
+            logger.error(err_msg)
+            raise TransferError(err_msg)
+
+        # insert into transfers table
         try:
             if (
                 not isinstance(params["transfer_id"], int)
@@ -88,7 +106,11 @@ class Transfer:
                 status="queued",
                 src_base_dir=params["src_base_dir"],
                 dest_base_dir=params["dest_base_dir"],
-                manifest_json=manifest_json,
+                manifest_id=manifest.data.id,
+                src_globus_endpoint=params.get("src_globus_endpoint", None),
+                src_globus_host_path=params.get("src_globus_host_path", None),
+                dest_globus_endpoint=params.get("dest_globus_endpoint", None),
+                dest_globus_host_path=params.get("dest_globus_host_path", None),
             )
         except SQLAlchemyError as error:
             raise TransferValueError(
@@ -122,9 +144,31 @@ class Transfer:
             else:
                 return cls(session, data)
 
+    def status_globus(self):
+        """
+        Ask Globus service for current status
+        :return: new status
+        :rtype: str
+        """
+        globus_client = GlobusService()
+        try:
+            new_status, reason = globus_client.transfer_status(
+                self.data.globus_transfer_id
+            )
+            new_status = new_status.lower()
+        except Exception as error:
+            msg = f"Globus error checking status of transfer {self.data.id}: {error}"
+            raise TransferGlobusError(msg)
+        else:
+            return new_status, reason
+
     def status(self) -> str:
-        """Return the current state of the transfer."""
-        return self.data.status
+        if self.data.status = "globus queued":
+            new_status, new_reason = self.status_globus()
+            if new_status != self.data.status:
+                logger.debug(f"Transfer {self.data.id} status = {new_status}")
+                self.update_status(new_status, new_reason)
+        return self.data.status, self.data.reason
 
     def reason(self) -> str:
         """Return the failure message of the transfer."""
@@ -135,9 +179,10 @@ class Transfer:
         Return list of files to transfer -- may be empty list if complete folder is to be transferred.
         """
         manifest = []
-        if self.data.manifest_json is not None:
-            manifest = json.loads(self.data.manifest_json)
-        return manifest
+        if self.manifest is None:
+            manifest = Manifest.from_id(self.data.manifest_id)
+            self.manifest = json.loads(manifest.data.manifest_json)
+        return self.manifest
 
     def cancel(self) -> None:
         """Cancel a transfer by changing the status in the db to prevent it from being picked up
@@ -168,6 +213,44 @@ class Transfer:
             self.session.rollback()
             logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
             raise (error)
+
+    def begin_transfer(self) -> None:
+        """
+        Call appropriate transfer method.
+        """
+        if self.data.src_globus_endpoint is not None:
+            self.submit_globus_transfer()
+        else:
+            self.transfer_files()
+
+    def submit_globus_transfer(self) -> None:
+        logger.debug(f"Submit Globus transfer {self.data.id}")
+        label = f"Transfer {self.data.id}"
+        try:
+            manifest = Manifest.from_id(self.data.manifest_id)
+        except Exception as error:
+            self.logger.error(f"Transfer {self.data.id}: Unable to retrieve Manifest {self.data.manifest_id}: {error}")
+            self.update_status("submission failed", "Unable to read manifest")
+            return
+        try:
+            globus_client = GlobusService()
+            globus_transfer_id = globus_client.submit_transfer(
+                label,
+                self.data.src_globus_endpoint,
+                self.data.src_globus_host_path,
+                self.data.src_base_dir,
+                self.data.dest_globus_endpoint,
+                self.data.dest_globus_host_path,
+                self.data.dest_base_dir,
+                manifest.rel_paths,
+            )
+        except Exception as error:
+            logger.error(f"Globus transfer {self.data.id} failed: {error}")
+            self.update_status("submission failed")
+            raise TransferGlobusError(error)
+        else:
+            self.data.globus_transfer_id = globus_transfer_id
+            self.update_status("globus queued", f"globus_transfer_id={globus_transfer_id}")
 
     def transfer_files(self) -> None:
         """
@@ -436,14 +519,51 @@ class Transfer:
 
 def check_queue(session) -> None:
     """
-    Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
-    transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
+    Check transfer queue.
     """
+    # Check status of all active Globus transfers
+    rows = []
+    try:
+        rows = (
+            session.query(models.Transfer)
+            .filter(models.Transfer.status == "globus queued")
+            .order_by(models.Transfer.id)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        transfer = Transfer(session, row)
+        transfer.check_status()  # ECCE do chmod
+
+    # Submit all new Globus transfers
     rows = []
     try:
         rows = (
             session.query(models.Transfer)
             .filter(models.Transfer.status == "queued")
+            .filter(models.Transfer.src_globus_endpoint.isnot(None))
+            .order_by(models.Transfer.id)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        transfer = Transfer(session, row)
+        transfer.begin_transfer()
+
+    # Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
+    # transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
+    rows = []
+    try:
+        rows = (
+            session.query(models.Transfer)
+            .filter(models.Transfer.status == "queued")
+            .filter(models.Transfer.src_globus_endpoint.is_(None))
             .order_by(models.Transfer.id)
             .limit(1)
             .all()
@@ -454,7 +574,7 @@ def check_queue(session) -> None:
         )
     if len(rows):
         transfer = Transfer(session, rows[0])
-        transfer.transfer_files()
+        transfer.begin_transfer()
 
 
 def get_abs_files(root, rel_paths) -> list:
