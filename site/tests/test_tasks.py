@@ -36,6 +36,7 @@ def test_table(monkeypatch):
             [
                 9999,
                 "call-do_something",
+                "14999",
                 "done",
                 datetime.strptime("2023-04-24 11:00:00", DATETIME_FMT),
                 datetime.strptime("2023-04-24 11:01:00", DATETIME_FMT),
@@ -53,6 +54,7 @@ def test_table(monkeypatch):
     expected = {
         "header": [
             "TASK_DIR",
+            "JOB_ID",
             "STATUS",
             "QUEUE_START",
             "RUN_START",
@@ -69,6 +71,7 @@ def test_table(monkeypatch):
         "data": [
             [
                 "call-do_something",
+                "14999",
                 "done",
                 "2023-04-24 11:00:00",
                 "2023-04-24 11:01:00",
