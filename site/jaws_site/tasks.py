@@ -67,6 +67,7 @@ class TaskLog:
                 [
                     row.id,
                     row.task_dir,
+                    row.job_id,
                     row.status,
                     row.queue_start,
                     row.run_start,
@@ -134,6 +135,7 @@ class TaskLog:
             (
                 row_id,
                 task_dir,
+                job_id,
                 status,
                 queue_start,
                 run_start,
@@ -158,6 +160,7 @@ class TaskLog:
             new_table.append(
                 [
                     task_dir,
+                    job_id,
                     status,
                     queued_str,
                     run_start_str,
@@ -175,6 +178,7 @@ class TaskLog:
         result = {
             "header": [
                 "TASK_DIR",
+                "JOB_ID",
                 "STATUS",
                 "QUEUE_START",
                 "RUN_START",
@@ -301,6 +305,7 @@ class TaskLog:
             (
                 row_id,
                 task_dir,
+                job_id,
                 status,
                 queue_start,
                 run_start,
@@ -322,6 +327,7 @@ class TaskLog:
                 status = "failed"
             update = {
                 "id": row_id,
+                "job_id": job_id,
                 "status": status,
                 "cached": bool(summary[task_dir]["cached"]),
                 "name": summary[task_dir]["name"],

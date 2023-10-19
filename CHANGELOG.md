@@ -2,6 +2,8 @@
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
+- added JOB_ID (HTCondor_ID) to tasks report (#1742)
+
 ### Internal Facing Changes
 
 ## 2.0.1  Summary [09/19/2023 - staging // 10/09/2023 - Prod]
