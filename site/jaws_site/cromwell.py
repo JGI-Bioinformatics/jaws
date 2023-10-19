@@ -732,7 +732,7 @@ class Metadata:
         """
         job_ids = {}
         for task in self.task_summary():
-            if "job_id" in task:
+            if "job_id" in task and task["job_id"] is not None:
                 job_id = str(task["job_id"])
                 job_ids[job_id] = task.get("name", "unknown")
         return job_ids
