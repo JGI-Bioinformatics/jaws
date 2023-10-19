@@ -2,6 +2,8 @@
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
+- increase allowed length of wdl and json filenames (#1744)
+
 ### Internal Facing Changes
 
 ## 2.0.1  Summary [09/19/2023 - staging // 10/09/2023 - Prod]
