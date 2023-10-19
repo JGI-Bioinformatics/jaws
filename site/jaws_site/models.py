@@ -56,8 +56,8 @@ class Run(Base):
     )
     workflow_root = Column(String(1024), nullable=True)
     workflow_name = Column(String(64), nullable=True)
-    wdl_basename = Column(String(64), nullable=False)
-    json_basename = Column(String(64), nullable=False)
+    wdl_basename = Column(String(256), nullable=False)
+    json_basename = Column(String(256), nullable=False)
     cpu_hours = Column(Float, nullable=True)
 
 
