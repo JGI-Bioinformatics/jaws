@@ -2,7 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
-- added JOB_ID to tasks report (#1742)
+- added JOB_ID (HTCondor_ID) to tasks report (#1742)
 
 ### Internal Facing Changes
 
