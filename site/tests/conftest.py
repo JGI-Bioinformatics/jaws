@@ -1221,3 +1221,12 @@ def setup_dir_tree(tmpdir):
     file2 = b.join("file2.txt")
     file2.write("content")
     yield str(root)
+
+
+class MockManifestModel:
+    """Mock Manifest sqlalchemy orm model object with useable defaults."""
+
+    def __init__(self, **kwargs):
+        self.id = kwargs.get("id", "200")
+        self.manifest_json = kwargs.get("manifest_json", '["/some/cromwell/execution/folder/out.file"]')
+        self.num_files = 1
