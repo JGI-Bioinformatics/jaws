@@ -41,6 +41,8 @@ deepdiff==6.3.0
     # via jaws-site (pyproject.toml)
 fonttools==4.39.3
     # via matplotlib
+globus-sdk==3.19.0
+    # via jaws-central (pyproject.toml)
 greenlet==2.0.2
     # via sqlalchemy
 idna==3.4
