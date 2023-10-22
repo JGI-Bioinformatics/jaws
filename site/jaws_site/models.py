@@ -109,3 +109,8 @@ class Transfer(Base):
     dest_base_dir = Column(String(1024), nullable=False)
     manifest_json = Column(MEDIUMTEXT, nullable=False)
     reason = Column(String(1024), nullable=True)
+    src_globus_endpoint = Column(String(256), nullable=True)
+    src_globus_host_path = Column(String(512), nullable=True)
+    dest_globus_endpoint = Column(String(256), nullable=True)
+    dest_globus_host_path = Column(String(512), nullable=True)
+    globus_transfer_id = Column(String(36), nullable=True)
