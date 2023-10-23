@@ -1,12 +1,17 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+
+### External Facing Changes
+
+### Internal Facing Changes
+
+## 2.0.2  Summary [10/23/2023 - staging // 11/??/2023 - Prod]
 ### External Facing Changes
 - added JOB_ID (HTCondor_ID) to tasks report (#1742)
 - increase allowed length of wdl and json filenames (#1744)
 - tasks report shall report "runtime_minutes" (#1745 jaws-support#141)
 
-### Internal Facing Changes
 
 ## 2.0.1  Summary [09/19/2023 - staging // 10/09/2023 - Prod]
 - update the access times for copied input files to ensure the files are not purged and so call caching works (#1735)
