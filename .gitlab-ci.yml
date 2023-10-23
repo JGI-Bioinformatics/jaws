@@ -180,6 +180,17 @@ test-site:
         coverage_format: cobertura
         path: site/coverage/site.xml
 
+# generates a version file that is used by the docker/apptainer build
+# most images don't have git installed so we use this in a separate job
+generate-version-file:
+    <<: *shell-default
+    stage: image-build
+    script:
+      - 'git log -n 1 --pretty="commit_count:  $(git rev-list HEAD --count)%ncommit_hash:   %h%nsubject:       %s%ncommitter:     %cN <%ce>%ncommiter_date: %ci%nauthor:        %aN <%ae>%nauthor_date:   %ai%nref_names:     %D" > image_version.yml'
+    artifacts:
+        paths:
+        - image_version.yml
+
 build-docker-site:
   image: docker:19.03.12
   services:
@@ -201,6 +212,9 @@ build-docker-site:
     - if: "$CI_COMMIT_TAG == 'dev'"
       variables:
         GITLAB_IMAGE_TAG: "$CI_REGISTRY_IMAGE:docker-dev"
+  needs:
+    - job: generate-version-file
+      artifacts: true
 
 build-apptainer-site:
   tags:
@@ -226,6 +240,9 @@ build-apptainer-site:
     - if: "$CI_COMMIT_TAG == 'dev'"
       variables:
         APPTAINER_TAG: "apptainer-dev"
+  needs:
+    - job: generate-version-file
+      artifacts: true
 
 ## integration tests - only run on merge request
 deploy-jaws-aws-dev:

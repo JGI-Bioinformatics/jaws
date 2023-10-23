@@ -26,6 +26,7 @@ CMD python -m pytest --cov=jaws_site --junitxml=coverage/site.xml tests/ && cove
 FROM builder as site
 WORKDIR /usr/app
 COPY site .
+COPY image_version.yml image_version.yml
 RUN pip install .
 
 ENTRYPOINT ["jaws-site", "--config", "/etc/config/site/jaws-site.conf"]

@@ -1,22 +1,22 @@
 #!/bin/sh
 
+# Build script used to help build jaws-site. It'll take care of build-args and also
+# generates a image_version.yml file. Otherwise it will use the default one located
+# in the repository.
+
 local=0
 
 
 help() {
-    echo -n "Usage ${0} [options] <service-name> <version> <environment>
+    echo -n "Usage ${0} [options] [docker|apptainer] <tag>
 
-    This is a build script for building the docker images for
-    JAWS services. Use it for creating images locally or in a
-    CI pipeline to automatically create and upload container
-    images to Gitlab Repository.
+    This is a build script for building the docker image for
+    JAWS site. Use it for creating images locally.
 
-    Takes in a service name (central, site), a version, and the environment
-    (dev, prod). A development environment will create a development container.
+    You can specify the JAWS user in the container.
 
     Options:
      -h, --help             Display this help and exit
-     -l, --local            Build local images without a registry
      -u, --user <UID>       The user id of the images
      -g, --group <GID>      The group id of the images
     "
@@ -27,7 +27,6 @@ build_image() {
         shift
         case "$arg" in
             "--help")   set -- "$@" "-h" ;;
-            "--local")  set -- "$@" "-l" ;;
             "--user")  set -- "$@" "-u" ;;
             "--group")  set -- "$@" "-g" ;;
             *)          set -- "$@" "$arg"
@@ -37,7 +36,6 @@ build_image() {
     while getopts "hlu:g:" opt; do
       case "$opt" in
         h) help >&2; exit ;;
-        l) local=1;;
         u) JAWS_UID=${OPTARG};;
         g) JAWS_GID=${OPTARG};;
         *) die "invalid option passed, run with -h for help." ;;
@@ -46,16 +44,13 @@ build_image() {
 
     shift "$((OPTIND-1))"
 
-    if [ -z $1 ] && [ -z $2 ] && [ -z $3 ];
+    if [ -z $1 ] && [ -z $2 ];
     then
         help >&2; exit
     fi
 
-    service_name=$1
-    version=$2
-    env=$3
-
-    GITLAB_REGISTRY="library.jgi.doe.gov:5050/advanced-analysis/jaws"
+    oci_runtime=$1
+    tag=$2
 
     if [ ! -z $JAWS_UID ];
     then
@@ -67,25 +62,21 @@ build_image() {
       BUILD_ARGS="${BUILD_ARGS} --build-arg JAWS_GID=${JAWS_GID:-75388}"
     fi
 
-    BUILD_ARGS="--build-arg JAWS_VERSION=${version}"
-    TARGET="--target ${env}"
-    DIR=$service_name
+    # CREATE image_version.yml
+    echo "****************************"
+    echo "BUILDING image_version"
+    echo "****************************"
+    git log -n 1 --pretty="commit_count:  $(git rev-list HEAD --count)%ncommit_hash:   %h%nsubject:       %s%ncommitter:     %cN <%ce>%ncommiter_date: %ci%nauthor:        %aN <%ae>%nauthor_date:   %ai%nref_names:     %D" > image_version.yml
+    cat image_version.yml
 
-    cd $DIR
+    IMAGE_NAME="jaws-site:$tag"
 
-    IMAGE_NAME="$service_name:$version"
-    if [ $local -eq 0 ];
-    then
-        IMAGE_NAME=$GITLAB_REGISTRY/$service_name:$version
-    fi
-
-    docker build -t $IMAGE_NAME $BUILD_ARGS $TARGET .
-
-    if [ $local -eq 0 ];
-    then
-        docker image push $IMAGE_NAME
+    if [ "$oci_runtime" == "apptainer" ]; then
+      apptainer build "jaws-site-$tag.sif" "jaws-site.def"
+    else
+      docker build -t $IMAGE_NAME $BUILD_ARGS .
     fi
 }
 
-build_image $@
+build_image "$@"
 
