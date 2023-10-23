@@ -216,8 +216,7 @@ class Call:
         self.call_root = self.data.get("callRoot", None)
         self.execution_dir = None
         self.job_id = self.data.get("jobId", None)
-        self.requested_time = None
-        self.requested_time_minutes = None
+        self.requested_runtime_minutes = None
         self.requested_memory = None
         self.requested_memory_gb = None
         self.requested_cpu = None
@@ -230,7 +229,7 @@ class Call:
             self.result = "succeeded"
 
         if "runtimeAttributes" in self.data:
-            self.requested_time = self.data["runtimeAttributes"].get("time", None)
+            self.requested_runtime_minutes = self.data["runtimeAttributes"].get("runtime_minutes", None)
             self.requested_memory = self.data["runtimeAttributes"].get("memory", None)
             if "cpu" in self.data["runtimeAttributes"]:
                 self.requested_cpu = int(self.data["runtimeAttributes"]["cpu"])
@@ -303,7 +302,7 @@ class Call:
             "result": self.result,
             "failure_message": self.failure_message,
             "call_root": self.call_root,
-            "requested_time": self.requested_time,
+            "requested_runtime_minutes": self.requested_runtime_minutes,
             "requested_cpu": self.requested_cpu,
             "requested_memory": self.requested_memory,
         }

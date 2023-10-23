@@ -115,16 +115,6 @@ def test__utc_to_local_str(monkeypatch):
     assert actual == expected
 
 
-def test_time_minutes():
-    mock_session = MockSession()
-    mock_logger = MockLogger()
-    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
-    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
-
-    minutes = task_log.time_minutes("01:02:00")
-    assert minutes == 62
-
-
 def test_memory_gb():
     mock_session = MockSession()
     mock_logger = MockLogger()
