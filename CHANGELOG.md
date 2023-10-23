@@ -4,6 +4,7 @@
 ### External Facing Changes
 - added JOB_ID (HTCondor_ID) to tasks report (#1742)
 - increase allowed length of wdl and json filenames (#1744)
+- tasks report shall report "runtime_minutes" (#1745 jaws-support#141)
 
 ### Internal Facing Changes
 

@@ -114,7 +114,7 @@
                     "poolname": "synbio_small",
                     "qos": "genepool_special",
                     "shared": "0",
-                    "time": "06:00:00"
+                    "runtime_minutes": "360"
                 },
                 "shardIndex": -1,
                 "start": "2021-10-27T00:05:58.440Z",
@@ -202,7 +202,7 @@
                     "poolname": "synbio_small",
                     "qos": "genepool_special",
                     "shared": "0",
-                    "time": "06:00:00"
+                    "runtime_minutes": "360"
                 },
                 "shardIndex": -1,
                 "start": "2021-10-27T00:06:03.539Z",
@@ -297,7 +297,7 @@
                     "poolname": "synbio_small",
                     "qos": "genepool_special",
                     "shared": "0",
-                    "time": "06:00:00"
+                    "runtime_minutes": "360"
                 },
                 "shardIndex": -1,
                 "start": "2021-10-27T00:06:14.760Z",
@@ -434,7 +434,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:03:16.259Z",
@@ -516,7 +516,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.002Z",
@@ -596,7 +596,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.002Z",
@@ -680,7 +680,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.001Z",
@@ -764,7 +764,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.002Z",
@@ -853,7 +853,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:02:01.799Z",
@@ -935,7 +935,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:04:27.659Z",
@@ -1094,7 +1094,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:01:43.439Z",
@@ -1176,7 +1176,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.002Z",
@@ -1256,7 +1256,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.002Z",
@@ -1340,7 +1340,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.001Z",
@@ -1424,7 +1424,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-26T23:59:39.002Z",
@@ -1513,7 +1513,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:00:43.260Z",
@@ -1595,7 +1595,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:02:20.159Z",
@@ -1742,7 +1742,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:05:33.959Z",
@@ -1884,7 +1884,7 @@
                                     "poolname": "synbio_small",
                                     "qos": "genepool_special",
                                     "shared": "0",
-                                    "time": "06:00:00"
+                                    "runtime_minutes": "360"
                                 },
                                 "shardIndex": -1,
                                 "start": "2021-10-27T00:03:03.000Z",
