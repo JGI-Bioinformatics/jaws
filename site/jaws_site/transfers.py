@@ -57,7 +57,17 @@ class TransferValueError(TransferError):
 
 
 class Transfer:
-    """Class representing a transfer (set of files to transfer) associated with one Run."""
+    """
+    Class representing a transfer (set of files to transfer) associated with one Run.
+    States are:
+    -  ECCE TODO
+    - queued
+    - failed
+    - succeeded
+    - transfer complete
+    - chmod complete
+    - cancelled
+    """
 
     def __init__(self, session, data):
         """
@@ -69,6 +79,10 @@ class Transfer:
         """
         self.session = session
         self.data = data
+        self.operations = {
+            "foo": self.bar,  # TODO ECCE!
+            "transfer complete": self.change_permissions,
+        }
 
     @classmethod
     def from_params(cls, session, params):
@@ -126,7 +140,7 @@ class Transfer:
             else:
                 return cls(session, data)
 
-    def status_globus(self):
+    def check_globus_status(self):
         """
         Ask Globus service for current status
         :return: new status
@@ -147,7 +161,7 @@ class Transfer:
     def status(self) -> str:
         """Return the current state of the transfer."""
         if self.data.status == "globus queued":
-            new_status, new_reason = self.status_globus()
+            new_status, new_reason = self.check_globus_status()
             if new_status != self.data.status:
                 logger.debug(f"Transfer {self.data.id} status = {new_status}")
                 self.update_status(new_status, new_reason)
@@ -491,7 +505,21 @@ class Transfer:
         logger.debug(f"Transfer {self.data.id}: Chmod files")
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+        self.update_status("transfer complete")
+        self.change_permissions(parallelism=parallelism)
+
+    def change_permissions(self, **kwargs) -> None:
+        """
+        After copying/downloading files, the permissions shall be changed.
+        """
+        dest = self.data.dest_base_dir
+        file_mode = self.config.file_mode
+        folder_mode = self.config.folder_mode
+        parallelism = kwargs.get("parallelism", None)
+        if parallelism is None:
+            parallelism =  len(get_abs_files(self.data.src_base_dir, manifest))
         parallel_chmod(dest, file_mode, folder_mode, parallelism=parallelism)
+        self.update_status("chmod complete")
 
 
 def check_queue(session) -> None:
@@ -513,7 +541,7 @@ def check_queue(session) -> None:
         )
     for row in rows:
         transfer = Transfer(session, row)
-        transfer.check_status()  # ECCE do chmod
+        transfer.status()  # TODO ECCE!
 
     # Submit all new Globus transfers
     rows = []
