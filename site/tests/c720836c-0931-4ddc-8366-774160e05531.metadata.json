@@ -58,7 +58,7 @@
                   "constraint": "haswell",
                   "node": "1",
                   "account": "fungalp",
-                  "time": "00:10:00",
+                  "runtime_minutes": "10",
                   "qos": "genepool_special",
                   "memory": "10 GB"
                 },
@@ -134,7 +134,7 @@
                   "constraint": "haswell",
                   "node": "1",
                   "account": "fungalp",
-                  "time": "00:10:00",
+                  "runtime_minutes": "10",
                   "qos": "genepool_special",
                   "memory": "10 GB"
                 },
@@ -260,7 +260,7 @@
           "constraint": "haswell",
           "node": "1",
           "account": "fungalp",
-          "time": "00:10:00",
+          "runtime_minutes": "10",
           "qos": "genepool_special",
           "memory": "10 GB"
         },
@@ -336,7 +336,7 @@
           "constraint": "haswell",
           "node": "1",
           "account": "fungalp",
-          "time": "00:10:00",
+          "runtime_minutes": "10",
           "qos": "genepool_special",
           "memory": "10 GB"
         },
@@ -419,7 +419,7 @@
                   "constraint": "haswell",
                   "node": "1",
                   "account": "fungalp",
-                  "time": "00:10:00",
+                  "runtime_minutes": "10",
                   "qos": "genepool_special",
                   "memory": "10 GB"
                 },
@@ -495,7 +495,7 @@
                   "constraint": "haswell",
                   "node": "1",
                   "account": "fungalp",
-                  "time": "00:10:00",
+                  "runtime_minutes": "10",
                   "qos": "genepool_special",
                   "memory": "10 GB"
                 },

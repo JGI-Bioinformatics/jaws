@@ -8,7 +8,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "requested_time": "00:10:00",
+    "requested_runtime_minutes": "10",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   },
@@ -21,7 +21,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "requested_time": "00:10:00",
+    "requested_runtime_minutes": "10",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   },
@@ -34,7 +34,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "requested_time": "00:10:00",
+    "requested_runtime_minutes": "10",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   },
@@ -47,7 +47,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "requested_time": "00:10:00",
+    "requested_runtime_minutes": "10",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   },
@@ -60,7 +60,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "requested_time": "00:10:00",
+    "requested_runtime_minutes": "10",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   },
@@ -73,7 +73,7 @@
     "execution_status": "Done",
     "result": "succeeded",
     "failure_message": null,
-    "requested_time": "00:10:00",
+    "requested_runtime_minutes": "10",
     "requested_cpu": 32,
     "requested_memory": "10 GB"
   }

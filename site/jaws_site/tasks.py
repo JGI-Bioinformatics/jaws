@@ -152,10 +152,7 @@ class TaskLog:
             run_start_str = self._utc_to_local_str(run_start)
             run_end_str = self._utc_to_local_str(run_end)
             cpu_hours = None
-            if (
-                req_cpu is not None
-                and run_minutes is not None
-            ):
+            if req_cpu is not None and run_minutes is not None:
                 cpu_hours = round(req_cpu * run_minutes / 60, 3)
             new_table.append(
                 [
@@ -219,24 +216,6 @@ class TaskLog:
         return self._select_num_started() > 0
 
     @staticmethod
-    def time_minutes(duration: str) -> int:
-        """
-        Convert time duration to minutes.
-        :param duration: time duration in hh:mm:ss format
-        :ptype duration: str
-        :return: time in minutes
-        :rtype: int
-        """
-        if duration is not None:
-            m = time_re.match(duration)
-            if m:
-                minutes = (
-                    float(m.group(1)) * 60 + float(m.group(2)) + float(m.group(3)) / 60
-                )
-                return round(minutes, 0)
-        return None
-
-    @staticmethod
     def memory_gb(memory_str: str) -> float:
         """
         Convert memory to gigabytes.
@@ -266,6 +245,13 @@ class TaskLog:
                 return round(gb, 0)
         return None
 
+    @staticmethod
+    def int_or_none(x: str) -> int:
+        """
+        Return int if is digit, else None.
+        """
+        return int(x) if x is not None and x.isdigit() else None
+
     def _insert_cached_tasks(self, summary: dict) -> None:
         """
         Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
@@ -283,15 +269,22 @@ class TaskLog:
                     status = "failed"
                 elif status == "Aborted":
                     status = "cancelled"
+                req_cpu = self.int_or_none(info.get("requested_cpu", DEFAULT_CPU))
+                req_mem_gb = self.memory_gb(
+                    info.get("requested_memory", DEFAULT_MEM_GB)
+                )
+                req_minutes = self.int_or_none(
+                    info.get("requested_runime_minutes", None)
+                )
                 log_entry = models.Tasks(
                     task_dir=task_dir,
                     name=info["name"],
                     cromwell_run_id=self.cromwell_run_id,
                     status=status,
                     cached=True,
-                    req_cpu=int(info.get("requested_cpu", DEFAULT_CPU)),
-                    req_mem_gb=self.memory_gb(info.get("requested_memory", DEFAULT_MEM_GB)),
-                    req_minutes=self.time_minutes(info.get("requested_time", None)),
+                    req_cpu=req_cpu,
+                    req_mem_gb=req_mem_gb,
+                    req_minutes=req_minutes,
                 )
                 self.session.add(log_entry)
 
@@ -325,15 +318,24 @@ class TaskLog:
                 status = "succeeded"
             elif summary[task_dir]["execution_status"] == "Failed":
                 status = "failed"
+            req_cpu = self.int_or_none(
+                summary[task_dir].get("requested_cpu", DEFAULT_CPU)
+            )
+            req_mem_gb = self.memory_gb(
+                summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)
+            )
+            req_minutes = self.int_or_none(
+                summary[task_dir].get("requested_runtime_minutes", None)
+            )
             update = {
                 "id": row_id,
                 "job_id": job_id,
                 "status": status,
                 "cached": bool(summary[task_dir]["cached"]),
                 "name": summary[task_dir]["name"],
-                "req_cpu": int(summary[task_dir].get("requested_cpu", DEFAULT_CPU)),
-                "req_mem_gb": self.memory_gb(summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)),
-                "req_minutes": self.time_minutes(summary[task_dir].get("requested_time", None)),
+                "req_cpu": req_cpu,
+                "req_mem_gb": req_mem_gb,
+                "req_minutes": req_minutes,
             }
             updates.append(update)
         return updates
