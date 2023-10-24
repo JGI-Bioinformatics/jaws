@@ -142,3 +142,23 @@ def test_cpu_hours(monkeypatch) -> float:
     task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
     cpu_hrs = task_log.cpu_hours()
     assert cpu_hrs == 4.33
+
+
+def test_int_or_none():
+    mock_session = MockSession()
+    mock_logger = MockLogger()
+    mock_cromwell_run_id = "ABCD-EFGH-IJKL-MNOP"
+    task_log = TaskLog(mock_session, mock_cromwell_run_id, mock_logger)
+
+    assert task_log.int_or_none(None) is None
+    assert task_log.int_or_none([]) is None
+    assert task_log.int_or_none({}) is None
+
+    actual = task_log.int_or_none(int(1))
+    assert type(actual) is int and actual == 1
+
+    actual = task_log.int_or_none("2")
+    assert type(actual) is int and actual == 2
+
+    actual = task_log.int_or_none(3.1)
+    assert type(actual) is int and actual == 3

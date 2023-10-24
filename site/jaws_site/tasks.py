@@ -248,9 +248,18 @@ class TaskLog:
     @staticmethod
     def int_or_none(x: str) -> int:
         """
-        Return int if is digit, else None.
+        Return integer or None.
         """
-        return int(x) if x is not None and x.isdigit() else None
+        if x is None:
+            return None
+        elif type(x) is int:
+            return x
+        elif type(x) is str and x.isdigit():
+            return int(x)
+        elif type(x) is float:
+            return int(round(x, 0))
+        else:
+            return None
 
     def _insert_cached_tasks(self, summary: dict) -> None:
         """
