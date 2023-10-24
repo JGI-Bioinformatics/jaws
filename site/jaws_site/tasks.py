@@ -246,9 +246,12 @@ class TaskLog:
         return None
 
     @staticmethod
-    def int_or_none(x: str) -> int:
+    def int_or_none(x: any) -> int:
         """
-        Return integer or None.
+        :param x: a variable, presumably an integer
+        :ptype x: any
+        :return: integer value or None
+        :rtype: int
         """
         if x is None:
             return None
