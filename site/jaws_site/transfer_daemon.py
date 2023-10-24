@@ -32,4 +32,4 @@ class TransferDaemon:
         Do any queued transfers now.
         """
         with database.session_factory() as session:
-            transfers.check_queue(session)
+            transfers.check_active_transfers(session)

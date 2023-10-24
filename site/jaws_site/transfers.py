@@ -60,7 +60,7 @@ class Transfer:
     """
     Class representing a transfer (set of files to transfer) associated with one Run.
     States are:
-    -  ECCE TODO
+    - created
     - queued
     - failed
     - succeeded
@@ -80,13 +80,21 @@ class Transfer:
         self.session = session
         self.data = data
         self.operations = {
-            "foo": self.bar,  # TODO ECCE!
-            "transfer complete": self.change_permissions,
+            "created": self.foo,  # initial state
+            "globus:submitted": self.check_globus_status,
+            "globus:succeeded": self.change_permissions,
+            "globus:failed": self.change_permissions,
+            # "copy:active": None,
+            "copy:complete": self.change_permissions,
+            # "s3:active": None
+            "s3:complete": self.change_permissions,
+            # "done" : N/A -- final state
         }
 
     @classmethod
     def from_params(cls, session, params):
         """Create new transfer from parameter values and save in RDb."""
+        # manifest of files to transfer is saved as json string that must be decoded before use
         manifest_json = "[]"
         if "manifest" in params:
             assert isinstance(params["manifest"], list)
@@ -94,6 +102,23 @@ class Transfer:
         elif "manifest_json" in params:
             assert isinstance(params["manifest_json"], str)
             manifest_json = params["manifest_json"]
+        
+        # determine the transfer type
+        transfer_type = "local"
+        src_globus_endpoint = params.get("src_globus_endpoint", None)
+        dest_globus_endpoint = params.get("dest_globus_endpoint", None)
+        src_globus_host_path = params.get("src_globus_host_path", None)
+        dest_globus_host_path = params.get("dest_globus_host_path", None)
+        if src_globus_endpoint is not None or dest_globus_endpoint is not None:
+            if not src_globus_endpoint is not None and dest_globus_endpoint is not None:
+                raise ValueError("Invalid transfer args: both src and dest globus endpoints required")
+            if not src_globus_host_path or not dest_globus_host_path:
+                raise ValueError("Invalid transfer args: globus host paths required")
+            transfer_type = "globus"
+        elif src_base_dir.startswith("s3://") or dest_base_dir.startswith("s3://"):
+            transfer_type = "s3"
+
+        # insert row
         try:
             if (
                 not isinstance(params["transfer_id"], int)
@@ -103,9 +128,14 @@ class Transfer:
                 raise SQLAlchemyError
             data = models.Transfer(
                 id=params["transfer_id"],
-                status="queued",
+                status="created",
                 src_base_dir=params["src_base_dir"],
                 dest_base_dir=params["dest_base_dir"],
+                src_globus_endpoint=src_globus_endpoint,
+                dest_globus_endpoint=dest_globus_endpoint,
+                src_globus_host_path=src_globus_host_path,
+                dest_globus_host_path=dest_globus_host_path,
+                transfer_type=transfer_type,
                 manifest_json=manifest_json,
             )
         except SQLAlchemyError as error:
@@ -166,6 +196,16 @@ class Transfer:
                 logger.debug(f"Transfer {self.data.id} status = {new_status}")
                 self.update_status(new_status, new_reason)
         return self.data.status, self.data.reason
+
+    def check_status(self):
+        """Check the status of the transfer and promote to next state if ready."""
+        status = self.status()
+        logger.debug(f"Transfer {self.data.id} is {status}")
+        if status in self.operations:
+            self.operations[status]()
+            return True
+        else:
+            return False
 
     def reason(self) -> str:
         """Return the failure message of the transfer."""
@@ -522,28 +562,12 @@ class Transfer:
         self.update_status("chmod complete")
 
 
-def check_queue(session) -> None:
+def check_active_transfers(session) -> None:
     """
-    Check transfer queue.
+    Get active transfers from db, check, and update their status.
+    Transfers are queried in a particular order of states.
     """
-    # Check status of all active Globus transfers
-    rows = []
-    try:
-        rows = (
-            session.query(models.Transfer)
-            .filter(models.Transfer.status == "globus queued")
-            .order_by(models.Transfer.id)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.warning(
-            f"Failed to select transfer task from db: {error}", exc_info=True
-        )
-    for row in rows:
-        transfer = Transfer(session, row)
-        transfer.status()  # TODO ECCE!
-
-    # Submit all new Globus transfers
+    # Submit all new Globus transfers first, since this operation is quick.
     rows = []
     try:
         rows = (
@@ -561,8 +585,25 @@ def check_queue(session) -> None:
         transfer = Transfer(session, row)
         transfer.begin_transfer()
 
-    # Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
-    # transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
+    # Check status of all active Globus transfers
+    rows = []
+    try:
+        rows = (
+            session.query(models.Transfer)
+            .filter(models.Transfer.status == "globus queued")
+            .order_by(models.Transfer.id)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        transfer = Transfer(session, row)
+        transfer.status()  # TODO ECCE!
+
+    # Check for local copy tasks -- do one oldest transfer task only because copying
+    # typically takes many minutes and the queue may change (e.g. a transfer is cancelled)
     rows = []
     try:
         rows = (
