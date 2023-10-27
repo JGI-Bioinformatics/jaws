@@ -1202,11 +1202,14 @@ def setup_files(tmpdir):
     src_dir = tmpdir.mkdir("src")
     dst_dir = tmpdir.mkdir("dst")
 
+    manifest = []
     for i in range(10):
-        file = src_dir.join(f"file{i}.txt")
+        basename = f"file{i}.txt"
+        manifest.append(f"./{basename}")
+        file = src_dir.join(basename)
         file.write("content")
 
-    yield str(src_dir), str(dst_dir)
+    yield str(src_dir), str(dst_dir), manifest
 
 
 @pytest.fixture

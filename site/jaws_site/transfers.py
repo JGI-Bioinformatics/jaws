@@ -565,7 +565,7 @@ class Transfer:
             return
 
         try:
-            parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
+            parallel_copy_files(rel_paths, src, dest, parallelism=parallelism)
         except Exception as error:
             err = f"Local copy failed: {error}"
             logger.error(f"Transfer {self.data.id}: {err}")
@@ -727,7 +727,7 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
+def parallel_copy_files(manifest: list, src: str, dest: str, **kwargs):
     """
     Given list of files, copy them in parallel using rsync.  Copies regular files only, skips others.
     :param manifest: list of file relative paths

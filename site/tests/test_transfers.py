@@ -1,5 +1,4 @@
 import pytest
-import json
 import os
 import os.path
 import stat
@@ -8,7 +7,6 @@ from jaws_site.transfers import (
     mkdir,
     TransferDbError,
     TransferKeyError,
-    TransferValueError,
     TransferNotFoundError,
     check_active_transfers,
     list_all_files_under_dir,
@@ -19,7 +17,6 @@ from tests.conftest import (
     MockSession,
     MockTransferModel,
     initTransferModel,
-    MockTransfer,
     S3_BUCKET,
 )
 import sqlalchemy
@@ -88,7 +85,7 @@ def test_manifest():
 
 
 def test_local_copy(monkeypatch, mock_sqlalchemy_session, setup_files):
-    src, dest = setup_files
+    src, dest, manifest = setup_files
     mock_data = MockTransferModel(
         status="queued",
         src_base_dir=src,
@@ -107,14 +104,12 @@ def test_calculate_parallelism():
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_parallel_rsync_files_only(setup_files):
-    src_base_dir, dest_base_dir = setup_files
-    manifest = ["file99.txt"]
-    jaws_site.transfers.parallel_rsync_files_only(manifest, src_base_dir, dest_base_dir)
+def test_parallel_copy_files(setup_files):
+    src_base_dir, dest_base_dir, manifest = setup_files
+    jaws_site.transfers.parallel_copy_files(manifest, src_base_dir, dest_base_dir)
 
-    assert os.path.exists(os.path.join(dest_base_dir, "file99.txt"))
-    for i in range(99):
-        assert not os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
+    for i in range(len(manifest)):
+        assert os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
 
 
 def test_handles_nonexistent_directory(mock_sqlalchemy_session):
@@ -150,12 +145,12 @@ def test_change_permissions(
     def get_permissions(path):
         return oct(stat.S_IMODE(os.stat(path).st_mode))
 
-    src, dst = setup_files
+    src, dst, manifest = setup_files
     dst = src  # above writes tmpfiles to src dir
     mock_data = MockTransferModel(
         status="succeeded",
         result="succeeded",
-        num_files=10,
+        num_files=len(manifest),
         src_base_dir=src,
         dest_base_dir=dst,
         manifest_json="",
@@ -163,7 +158,7 @@ def test_change_permissions(
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.change_permissions()
 
-    for i in range(10):
+    for i in range(len(manifest)):
         assert (
             get_permissions(os.path.join(dst, f"file{i}.txt")) == expected_octal_perms
         )
