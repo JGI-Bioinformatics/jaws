@@ -102,12 +102,15 @@ class Transfer(Base):
 
     __tablename__ = "transfers"
     id = Column(Integer, primary_key=True)
+    transfer_type = Column(String(8), nullable=False)
     status = Column(String(32), nullable=False)
+    result = Column(String(32), nullable=True)
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     src_base_dir = Column(String(1024), nullable=False)
     dest_base_dir = Column(String(1024), nullable=False)
     manifest_json = Column(MEDIUMTEXT, nullable=False)
+    num_files = Column(Integer, nullable=True)
     reason = Column(String(1024), nullable=True)
     src_globus_endpoint = Column(String(256), nullable=True)
     src_globus_host_path = Column(String(512), nullable=True)

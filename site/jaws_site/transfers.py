@@ -52,6 +52,10 @@ class TransferNotFoundError(TransferError):
     pass
 
 
+class TransferKeyError(TransferError):
+    pass
+
+
 class TransferValueError(TransferError):
     pass
 
@@ -60,12 +64,11 @@ class Transfer:
     """
     Class representing a transfer (set of files to transfer) associated with one Run.
     States are:
-    - created
     - queued
+    - active
     - failed
     - succeeded
-    - transfer complete
-    - chmod complete
+    - done
     - cancelled
     """
 
@@ -80,15 +83,10 @@ class Transfer:
         self.session = session
         self.data = data
         self.operations = {
-            "created": self.foo,  # initial state
-            "globus:submitted": self.check_globus_status,
-            "globus:succeeded": self.change_permissions,
-            "globus:failed": self.change_permissions,
-            # "copy:active": None,
-            "copy:complete": self.change_permissions,
-            # "s3:active": None
-            "s3:complete": self.change_permissions,
-            # "done" : N/A -- final state
+            "queued": self.begin_transfer,
+            "active": self.check_status,
+            "succeeded": self.change_permissions,
+            "failed": self.change_permissions,
         }
 
     @classmethod
@@ -102,40 +100,52 @@ class Transfer:
         elif "manifest_json" in params:
             assert isinstance(params["manifest_json"], str)
             manifest_json = params["manifest_json"]
-        
-        # determine the transfer type
-        transfer_type = "local"
-        src_globus_endpoint = params.get("src_globus_endpoint", None)
-        dest_globus_endpoint = params.get("dest_globus_endpoint", None)
-        src_globus_host_path = params.get("src_globus_host_path", None)
-        dest_globus_host_path = params.get("dest_globus_host_path", None)
-        if src_globus_endpoint is not None or dest_globus_endpoint is not None:
-            if not src_globus_endpoint is not None and dest_globus_endpoint is not None:
-                raise ValueError("Invalid transfer args: both src and dest globus endpoints required")
-            if not src_globus_host_path or not dest_globus_host_path:
-                raise ValueError("Invalid transfer args: globus host paths required")
-            transfer_type = "globus"
-        elif src_base_dir.startswith("s3://") or dest_base_dir.startswith("s3://"):
-            transfer_type = "s3"
+
+        # determine if the transfer type is valid
+        transfer_id = params.get("transfer_id", 0)
+        transfer_type = params.get("transfer_type", None)
+        if transfer_type is None:
+            err = f"Transfer {transfer_id}: Missing transfer type"
+            logger.error(err)
+            raise TransferKeyError(err)
+        if transfer_type not in ["local", "globus", "s3"]:
+            err = f"Transfer {transfer_id}: Unsupported type, {transfer_type}"
+            logger.error(err)
+            raise TransferValueError(err)
+
+        # verify required Globus params are defined, if applicable
+        if transfer_type == "globus":
+            required_params = [
+                "src_globus_endpoint",
+                "src_globus_host_path",
+                "dest_globus_endpoint",
+                "dest_globus_host_path",
+            ]
+            for key in required_params:
+                value = params.get(key, None)
+                if value is None:
+                    raise TransferKeyError(f"Missing required parameter: {key}")
+
+        # verify datatypes
+        if not isinstance(params["transfer_id"], int):
+            raise TransferValueError(f"Transfer {transfer_id}: Invalid id")
+        if not isinstance(params["src_base_dir"], str):
+            raise TransferValueError(f"Transfer {transfer_id}: Invalid src_base_dir")
+        if not isinstance(params["dest_base_dir"], str):
+            raise TransferValueError(f"Transfer {transfer_id}: Invalid dest_base_dir")
 
         # insert row
         try:
-            if (
-                not isinstance(params["transfer_id"], int)
-                or not isinstance(params["src_base_dir"], str)
-                or not isinstance(params["dest_base_dir"], str)
-            ):
-                raise SQLAlchemyError
             data = models.Transfer(
-                id=params["transfer_id"],
-                status="created",
+                id=transfer_id,
+                transfer_type=transfer_type,
+                status="queued",
                 src_base_dir=params["src_base_dir"],
                 dest_base_dir=params["dest_base_dir"],
-                src_globus_endpoint=src_globus_endpoint,
-                dest_globus_endpoint=dest_globus_endpoint,
-                src_globus_host_path=src_globus_host_path,
-                dest_globus_host_path=dest_globus_host_path,
-                transfer_type=transfer_type,
+                src_globus_endpoint=params.get("src_globus_endpoint", None),
+                dest_globus_endpoint=params.get("dest_globus_endpoint", None),
+                src_globus_host_path=params.get("src_globus_host_path", None),
+                dest_globus_host_path=params.get("dest_globus_host_path", None),
                 manifest_json=manifest_json,
             )
         except SQLAlchemyError as error:
@@ -170,6 +180,15 @@ class Transfer:
             else:
                 return cls(session, data)
 
+    def status(self) -> str:
+        """Return key fields about the status of the transfer."""
+        info = {
+            "status": self.data.status,
+            "reason": self.data.reason,
+            "result": self.data.result,
+        }
+        return info
+
     def check_globus_status(self):
         """
         Ask Globus service for current status
@@ -188,48 +207,42 @@ class Transfer:
         else:
             return new_status, reason
 
-    def status(self) -> str:
-        """Return the current state of the transfer."""
-        if self.data.status == "globus queued":
+    def check_status(self) -> None:
+        """Check the status of the transfer and promote to next state if ready."""
+        if self.data.transfer_type == "globus":
             new_status, new_reason = self.check_globus_status()
             if new_status != self.data.status:
                 logger.debug(f"Transfer {self.data.id} status = {new_status}")
+                # this will also update the "result" field, if applicable
                 self.update_status(new_status, new_reason)
-        return self.data.status, self.data.reason
-
-    def check_status(self):
-        """Check the status of the transfer and promote to next state if ready."""
-        status = self.status()
+        # the other transfer types are done by this class, not another service,
+        # so no need to query
         logger.debug(f"Transfer {self.data.id} is {status}")
         if status in self.operations:
             self.operations[status]()
-            return True
-        else:
-            return False
-
-    def reason(self) -> str:
-        """Return the failure message of the transfer."""
-        return self.data.reason
 
     def manifest(self) -> list:
         """
         Return list of files to transfer -- may be empty list if complete folder is to be transferred.
         """
-        manifest = []
-        if self.data.manifest_json is not None:
-            manifest = json.loads(self.data.manifest_json)
-        return manifest
+        return json.loads(self.data.manifest_json)
 
     def cancel(self) -> None:
-        """Cancel a transfer by changing the status in the db to prevent it from being picked up
-        by the transfer daemon."""
-        # changing the status to cancel will prevent the transfer_daemon from picking up the task but
-        # will not cancel a transfer task that has already begun transferring
+        """
+        Attempt to cancel a transfer.
+        :return: Whether or not the transfer was cancelled.
+        :rtype: bool
+        """
+        result = False
         if self.data.status == "queued":
             self.update_status("cancelled")
-            return True
-        else:
-            return False
+            result = True
+        elif self.data.status == "active" and self.data.transfer_type == "globus":
+            globus_client = GlobusService()
+            result = globus_client.cancel_task(self.data.globus_transfer_id)
+        if result is True:
+            logger.debug(f"Transfer {self.data.id}: cancelled")
+        return result
 
     def update_status(self, new_status: str, reason: str = None) -> None:
         """
@@ -244,6 +257,8 @@ class Transfer:
             self.data.updated = timestamp
             if reason is not None:
                 self.data.reason = reason
+            if new_status in ["succeeded", "failed"]:
+                self.data.result = new_status
             self.session.commit()
         except SQLAlchemyError as error:
             self.session.rollback()
@@ -254,10 +269,14 @@ class Transfer:
         """
         Call appropriate transfer method.
         """
-        if self.data.src_globus_endpoint is not None:
+        if self.data.transfer_type == "globus":
             self.submit_globus_transfer()
+        elif self.data.transfer_type == "s3":
+            self.s3_copy()
+        elif self.data.transfer_type == "local":
+            self.local_copy()
         else:
-            self.transfer_files()
+            self.update_status("failed", "Invalid transfer type")
 
     def submit_globus_transfer(self) -> None:
         logger.debug(f"Submit Globus transfer {self.data.id}")
@@ -277,29 +296,22 @@ class Transfer:
             )
         except Exception as error:
             logger.error(f"Globus transfer {self.data.id} failed: {error}")
-            self.update_status("submission failed")
+            self.update_status("failed", "Globus submission failed")
             raise TransferGlobusError(error)
         else:
             self.data.globus_transfer_id = globus_transfer_id
-            self.update_status("globus queued", f"globus_transfer_id={globus_transfer_id}")
+            self.update_status("active", f"globus_transfer_id={globus_transfer_id}")
 
-    def transfer_files(self) -> None:
+    def s3_copy(self) -> None:
         """
-        Do the transfer and return when done -- the operation is blocking.
+        Do the S3 transfer and return when done -- the operation is blocking.
         """
-        logger.debug(f"Begin transfer {self.data.id}")
-        self.update_status("transferring")
-        try:
-            if self.data.src_base_dir.startswith("s3://"):
-                self.s3_download()
-            elif self.data.dest_base_dir.startswith("s3://"):
-                self.s3_upload()
-            else:
-                self.local_rsync()
-        except Exception as error:
-            self.update_status("failed", str(error))
+        logger.debug(f"Begin S3 transfer {self.data.id}")
+        self.update_status("active")
+        if self.data.src_base_dir.startswith("s3://"):
+            self.s3_download()
         else:
-            self.update_status("succeeded")
+            self.s3_upload()
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -407,15 +419,15 @@ class Transfer:
         except Exception as error:
             msg = f"Error parsing s3 uri, {self.data.dest_base_dir}: {error}"
             logger.error(msg)
-            self.update_status("upload failed", msg)
-            raise
+            self.update_status("failed", msg)
+            return
         try:
             bucket_obj = aws_s3_resource.Bucket(s3_bucket)
         except Exception as error:
             msg = f"Error accessing bucket, {s3_bucket}: {error}"
             logger.error(msg)
-            self.update_status("upload failed", msg)
-            raise
+            self.update_status("failed", msg)
+            return
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             src_file_size = os.path.getsize(src_path)
@@ -423,8 +435,8 @@ class Transfer:
             try:
                 dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
             except Exception as error:
-                self.update_status("upload failed", f"{error}")
-                raise
+                self.update_status("failed", f"{error}")
+                return
             if dest_file_size is not None and src_file_size == dest_file_size:
                 logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
@@ -435,8 +447,9 @@ class Transfer:
                 except Exception as error:
                     msg = f"Failed to upload to S3, file {src_path} -> {dest_path}: {error}"
                     logger.error(msg)
-                    self.update_status("upload failed", msg)
-                    raise IOError(error)
+                    self.update_status("failed", msg)
+                    return
+        self.update_status("succeeded")
 
     def s3_download(self):
         return (
@@ -456,8 +469,8 @@ class Transfer:
         except Exception as error:
             msg = f"Error accessing bucket, {s3_bucket}: {error}"
             logger.error(msg)
-            self.update_status("download failed", msg)
-            raise
+            self.update_status("failed", msg)
+            return
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(src_base_dir, rel_path))
             dest_path = os.path.normpath(
@@ -472,15 +485,16 @@ class Transfer:
             except IOError as error:
                 msg = f"Unable to make download dir, {dest_folder}: {error}"
                 logger.error(msg)
-                self.update_status("download failed", msg)
+                self.update_status("failed", msg)
             try:
                 with open(dest_path, "wb") as fh:
                     bucket_obj.download_fileobj(src_path, fh)
             except Exception as error:
                 msg = f"Failed to download s3 file, {src_path}: {error}"
                 logger.error(msg)
-                self.update_status("download failed", msg)
-                raise IOError(error)
+                self.update_status("failed", msg)
+                return
+        self.update_status("succeeded")
 
     def s3_download_folder(self):
         aws_s3_client = self.aws_s3_client()
@@ -501,8 +515,8 @@ class Transfer:
                     except Exception as error:
                         msg = f"Unable to make download dir, {dest_path}: {error}"
                         logger.error(msg)
-                        self.update_status("download failed", msg)
-                        raise IOError(msg)
+                        self.update_status("failed", msg)
+                        return
                 else:
                     try:
                         basedir = os.path.dirname(dest_path)
@@ -510,56 +524,70 @@ class Transfer:
                     except Exception as error:
                         msg = f"Unable to make download dir, {basedir}: {error}"
                         logger.error(msg)
-                        self.update_status("download failed", msg)
-                        raise IOError(msg)
+                        self.update_status("failed", msg)
+                        return
                     try:
                         aws_s3_client.download_file(s3_bucket, rel_path, dest_path)
                     except Exception as error:
                         msg = f"S3 download error, {rel_path}: {error}"
                         logger.error(msg)
-                        self.update_status("download failed", msg)
-                        raise IOError(msg)
+                        self.update_status("failed", msg)
+                        return
+        self.update_status("succeeded")
 
-    def local_rsync(self) -> None:
+    def local_copy(self) -> None:
         """
         Copy files and folders (recursively).
         """
-        logger.debug(f"Transfer {self.data.id}: Begin local copy")
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
-            raise FileNotFoundError(f"Source directory not found: {src}")
+            err = f"Source directory not found: {src}"
+            logger.error(f"Transfer {self.data.id}: {err}")
+            self.update_status("failed", err)
+            return
+        rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
+        num_files = len(rel_paths)
+        self.data.num_files = num_files
+        parallelism = calculate_parallelism(num_files)
+        logger.debug(
+            f"Transfer {self.data.id}: Local copy {num_files} files using {parallelism} threads"
+        )
+        self.update_status("active")
+
         dest = f"{self.data.dest_base_dir}/"
         try:
             mkdir(dest)
         except IOError as error:
-            logger.error(f"Transfer {self.data.id} failed: {error}")
-            raise IOError(f"Transfer {self.data.id} failed: {error}")
-        rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
+            err = f"Mkdir failed: {error}"
+            logger.error(f"Transfer {self.data.id} failed: {err}")
+            self.update_status("failed", err)
+            return
 
-        num_files = len(rel_paths)
-        parallelism = calculate_parallelism(num_files)
-        logger.debug(f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads")
-        parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
+        try:
+            parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
+        except Exception as error:
+            err = f"Local copy failed: {error}"
+            logger.error(f"Transfer {self.data.id}: {err}")
+            self.update_status("failed", err)
+        else:
+            self.update_status("succeeded", f"{num_files} copied")
 
-        logger.debug(f"Transfer {self.data.id}: Chmod files")
-        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
-        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-        self.update_status("transfer complete")
-        self.change_permissions(parallelism=parallelism)
-
-    def change_permissions(self, **kwargs) -> None:
+    def change_permissions(self) -> None:
         """
         After copying/downloading files, the permissions shall be changed.
         """
+        logger.debug(f"Transfer {self.data.id}: Chmod files")
+        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
+        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
         dest = self.data.dest_base_dir
-        file_mode = self.config.file_mode
-        folder_mode = self.config.folder_mode
-        parallelism = kwargs.get("parallelism", None)
-        if parallelism is None:
-            parallelism =  len(get_abs_files(self.data.src_base_dir, manifest))
+        num_files = self.data.num_files
+        if num_files is None:
+            manifest = self.manifest()
+            num_files = len(get_abs_files(dest, manifest))
+        parallelism = calculate_parallelism(num_files)
         parallel_chmod(dest, file_mode, folder_mode, parallelism=parallelism)
-        self.update_status("chmod complete")
+        self.update_status("done")
 
 
 def check_active_transfers(session) -> None:
@@ -567,13 +595,12 @@ def check_active_transfers(session) -> None:
     Get active transfers from db, check, and update their status.
     Transfers are queried in a particular order of states.
     """
-    # Submit all new Globus transfers first, since this operation is quick.
-    rows = []
+    # Check all Globus transfers first since they are quick, require no resources.
     try:
         rows = (
             session.query(models.Transfer)
-            .filter(models.Transfer.status == "queued")
-            .filter(models.Transfer.src_globus_endpoint.isnot(None))
+            .filter(models.Transfer.transfer_type == "globus")
+            .filter(models.Transfer.status.in_(["queued", "active"]))
             .order_by(models.Transfer.id)
             .all()
         )
@@ -581,16 +608,17 @@ def check_active_transfers(session) -> None:
         logger.warning(
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
-    for row in rows:
-        transfer = Transfer(session, row)
-        transfer.begin_transfer()
+        return
+    else:
+        for row in rows:
+            transfer = Transfer(session, row)
+            transfer.check_status()
 
-    # Check status of all active Globus transfers
-    rows = []
+    # Check for completed transfers requiring chmod
     try:
         rows = (
             session.query(models.Transfer)
-            .filter(models.Transfer.status == "globus queued")
+            .filter(models.Transfer.status == "succeeded")  # also failed?
             .order_by(models.Transfer.id)
             .all()
         )
@@ -598,18 +626,19 @@ def check_active_transfers(session) -> None:
         logger.warning(
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
-    for row in rows:
-        transfer = Transfer(session, row)
-        transfer.status()  # TODO ECCE!
+        return
+    else:
+        for row in rows:
+            transfer = Transfer(session, row)
+            transfer.check_status()
 
-    # Check for local copy tasks -- do one oldest transfer task only because copying
-    # typically takes many minutes and the queue may change (e.g. a transfer is cancelled)
-    rows = []
+    # Check for local copy tasks and do only ONE because copying typically takes
+    # many minutes and the queue may change (e.g. a transfer is cancelled)
     try:
         rows = (
             session.query(models.Transfer)
+            .filter(models.Transfer.transfer_type == "local")
             .filter(models.Transfer.status == "queued")
-            .filter(models.Transfer.src_globus_endpoint.is_(None))
             .order_by(models.Transfer.id)
             .limit(1)
             .all()
@@ -618,10 +647,10 @@ def check_active_transfers(session) -> None:
         logger.warning(
             f"Failed to select transfer task from db: {error}", exc_info=True
         )
-    if len(rows):
-        transfer = Transfer(session, rows[0])
-        transfer.transfer_files()
-        transfer.begin_transfer()
+    else:
+        if len(rows):
+            transfer = Transfer(session, rows[0])
+            transfer.check_status()
 
 
 def get_abs_files(root, rel_paths) -> list:
@@ -744,7 +773,8 @@ def reset_queue(session):
     try:
         rows = (
             session.query(models.Transfer)
-            .filter(models.Transfer.status == "transferring")
+            .filter(models.Transfer.transfer_type == "local")
+            .filter(models.Transfer.status == "active")
             .all()
         )
     except SQLAlchemyError as error:

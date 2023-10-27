@@ -1,4 +1,3 @@
-
 import logging
 import os
 import globus_sdk
@@ -41,7 +40,7 @@ class GlobusService:
         """
         transfer_client = self._create_transfer_client()
         task = transfer_client.get_task(task_id)
-        globus_status = task["status"]
+        globus_status = task["status"]  # [active|inactive|succeeded|failed]
         reason = None
         if (
             "fatal_error" in task
@@ -108,12 +107,24 @@ class GlobusService:
         for relpath in manifest:
             source_path = f"{src_base_dir}/{relpath}"
             dest_path = f"{dest_base_dir}/{relpath}"
-            virtual_src_path = self.virtual_transfer_path(
-                source_path, src_host_path
-            )
-            virtual_dest_path = self.virtual_transfer_path(
-                dest_path, dest_host_path
-            )
+            virtual_src_path = self.virtual_transfer_path(source_path, src_host_path)
+            virtual_dest_path = self.virtual_transfer_path(dest_path, dest_host_path)
             tdata.add_item(virtual_src_path, virtual_dest_path)
         transfer_result = transfer_client.submit_transfer(tdata)
         return transfer_result["task_id"]
+
+    def cancel_task(self, task_id):
+        """
+        Cancel a transfer task.
+        :param task_id: Globus task id
+        :return: str
+        """
+        transfer_client = self._create_transfer_client()
+        try:
+            response = transfer_client.cancel_task(task_id)
+        except Exception as error:
+            logger.warning(f"Failed to cancel: {error}")
+            return False
+        else:
+            code = response.get("code", "")
+            return True if code == "Canceled" else False

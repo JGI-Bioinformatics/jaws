@@ -37,7 +37,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "max_transfer_threads": 7,
             "file_permissions": "777",
             "folder_permissions": "666",
-        }
+        },
     }
     required_params = {
         "PERFORMANCE_METRICS": [

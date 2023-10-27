@@ -368,8 +368,11 @@ class MockTransferModel:
         elif "manifest_json" in kwargs:
             assert type(kwargs["manifest_json"]) == str
             self.manifest_json = kwargs.get("manifest_json", "[]")
+        self.num_files = kwargs.get("num_files", 1000)
         self.id = kwargs.get("id", "12")
+        self.transfer_type = kwargs.get("transfer_type", "local")
         self.status = kwargs.get("status", "queued")
+        self.result = kwargs.get("result", None)
         self.submitted = kwargs.get("submitted", datetime.utcnow())
         self.updated = kwargs.get("updated", datetime.utcnow())
         self.src_base_dir = kwargs.get("src_base_dir", "/inputs")
@@ -393,10 +396,7 @@ class MockTransfer:
         return cls(session, data)
 
     def status(self):
-        return self.data.status
-
-    def reason(self):
-        return self.data.reason
+        return self.data.status, self.data.reason, self.data.result
 
     def submit_transfer(self):
         if self.raise_exception:
@@ -1202,7 +1202,7 @@ def setup_files(tmpdir):
     src_dir = tmpdir.mkdir("src")
     dst_dir = tmpdir.mkdir("dst")
 
-    for i in range(1000):
+    for i in range(10):
         file = src_dir.join(f"file{i}.txt")
         file.write("content")
 

@@ -126,8 +126,7 @@ def transfer_status(params, session):
         logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
     else:
-        result = {"status": transfer.status(), "reason": transfer.reason()}
-        return success(result)
+        return success(transfer.status())
 
 
 def cancel_transfer(params, session):
@@ -190,6 +189,7 @@ operations = {
         "function": submit_transfer,
         "required_params": [
             "transfer_id",
+            "transfer_type",
             "src_base_dir",
             "dest_base_dir",
             "manifest",
