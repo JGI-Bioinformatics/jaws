@@ -217,9 +217,9 @@ class Transfer:
                 self.update_status(new_status, new_reason)
         # the other transfer types are done by this class, not another service,
         # so no need to query
-        logger.debug(f"Transfer {self.data.id} is {status}")
-        if status in self.operations:
-            self.operations[status]()
+        logger.debug(f"Transfer {self.data.id} is {self.data.status}")
+        if self.data.status in self.operations:
+            self.operations[self.data.status]()
 
     def manifest(self) -> list:
         """
