@@ -84,7 +84,7 @@ class Transfer:
         self.data = data
         self.operations = {
             "queued": self.begin_transfer,
-            "active": self.check_status,
+            "active": self.check_globus_status,
             "succeeded": self.change_permissions,
             "failed": self.change_permissions,
         }
@@ -191,10 +191,12 @@ class Transfer:
 
     def check_globus_status(self):
         """
-        Ask Globus service for current status
+        If transfer is a Globus transfer, query service for current status.  Otherwise, do nothing.
         :return: new status
         :rtype: str
         """
+        if self.data.transfer_type != "globus":
+            return
         globus_client = GlobusService()
         try:
             new_status, reason = globus_client.transfer_status(
@@ -202,21 +204,18 @@ class Transfer:
             )
             new_status = new_status.lower()
         except Exception as error:
-            msg = f"Globus error checking status of transfer {self.data.id}: {error}"
-            raise TransferGlobusError(msg)
+            logger.warn(
+                f"Transfer {self.data.id}: Unable to check Globus status: {error}"
+            )
+            return
         else:
-            return new_status, reason
-
-    def check_status(self) -> None:
-        """Check the status of the transfer and promote to next state if ready."""
-        if self.data.transfer_type == "globus":
-            new_status, new_reason = self.check_globus_status()
             if new_status != self.data.status:
                 logger.debug(f"Transfer {self.data.id} status = {new_status}")
                 # this will also update the "result" field, if applicable
-                self.update_status(new_status, new_reason)
-        # the other transfer types are done by this class, not another service,
-        # so no need to query
+                self.update_status(new_status)
+
+    def check_status(self) -> None:
+        """Check the status of the transfer and promote to next state if ready."""
         logger.debug(f"Transfer {self.data.id} is {self.data.status}")
         if self.data.status in self.operations:
             self.operations[self.data.status]()
