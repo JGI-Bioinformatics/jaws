@@ -23,12 +23,13 @@ def server_status(params, session):
     :rtype: dict
     """
     logger.info("Check server status")
-    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
     try:
+        cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
         status = cromwell.status()
     except Exception as error:
         return failure(error)
-    return success(status)
+    else:
+        return success(status)
 
 
 def queue_wait(params, session):
@@ -44,7 +45,8 @@ def queue_wait(params, session):
         result = slurm_queue_wait.check_queue_wait(logger)
     except Exception as error:
         return failure(error)
-    return success(result)
+    else:
+        return success(result)
 
 
 def cancel_run(params, session):
@@ -61,7 +63,8 @@ def cancel_run(params, session):
         result = run.mark_to_cancel()
     except Exception as error:
         return failure(error)
-    return success(result)
+    else:
+        return success(result)
 
 
 def submit_run(params, session):
@@ -108,11 +111,11 @@ def submit_transfer(params, session):
     logger.info(f"New transfer {params['transfer_id']}")
     try:
         transfer = Transfer.from_params(session, params)
+        result = {"status": transfer.status()}
     except Exception as error:
         logger.debug(f"Error submitting transfer {params['transfer_id']}: {error}")
         return failure(error)
     else:
-        result = {"status": transfer.status()}
         return success(result)
 
 
@@ -122,11 +125,12 @@ def transfer_status(params, session):
     """
     try:
         transfer = Transfer.from_id(session, params["transfer_id"])
+        result = transfer.status()
     except Exception as error:
         logger.error(f"Transfer {params['transfer_id']} status failed: {error}")
         return failure(error)
     else:
-        return success(transfer.status())
+        return success(result)
 
 
 def cancel_transfer(params, session):
@@ -137,11 +141,11 @@ def cancel_transfer(params, session):
     try:
         transfer = Transfer.from_id(session, params["transfer_id"])
         transfer.cancel()
+        result = {"status": transfer.status()}
     except Exception as error:
         logger.debug(f"Error cancelling transfer {params['transfer_id']}: {error}")
         return failure(error)
     else:
-        result = {"status": transfer.status()}
         return success(result)
 
 
