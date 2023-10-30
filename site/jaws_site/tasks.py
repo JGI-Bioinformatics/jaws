@@ -380,3 +380,125 @@ class TaskLog:
         for row in rows:
             cpu_minutes = cpu_minutes + row[0] * row[1]
         return round(cpu_minutes / 60, 2)
+
+
+def save_task_log(session, logger, **kwargs) -> bool:
+    required_params = ["cromwell_run_id", "task_dir", "status", "timestamp"]
+    for param in required_params:
+        if param not in kwargs:
+            logger.error(f"Invalid task log, missing 'param': {kwargs}")
+            return True
+    if kwargs["status"] == "queued":
+        return insert_task_log(session, logger, **kwargs)
+    else:
+        return update_task_log(session, logger, **kwargs)
+
+
+def insert_task_log(session, logger, **kwargs) -> bool:
+    """
+    Insert new row.
+    :return: True if saved or discarded; False otherwise.
+    :rtype: bool
+    """
+    task_dir = kwargs.get("task_dir")
+    timestamp = kwargs.get("timestamp")
+
+    try:
+        log_entry = models.Tasks(
+            cromwell_run_id=cromwell_run_id,
+            task_dir=task_dir,
+            status="queued",
+            queue_start=timestamp,
+        )
+        session.add(log_entry)
+        session.commit()
+    except OperationalError as error:
+        # this is the only case in which we would not want to ack the message
+        logger.error(f"Unable to connect to db: {error}")
+        return False
+    except IntegrityError as error:
+        session.rollback()
+        logger.error(f"Invalid task-log message, {kwargs}: {error}")
+    except SQLAlchemyError as error:
+        session.rollback()
+        logger.exception(
+            f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
+        )
+    return True
+
+
+@staticmethod
+def delta_minutes(start, end) -> int:
+    """
+    Return the difference between two timestamps, rounded to the nearest minute.
+    :param start: start time
+    :ptype: datetime.datetime
+    :param end: end time
+    :ptype end: datetime.datetime
+    :return: difference in minutes (rounded)
+    :rtype: int
+    """
+    if start and end:
+        duration = end - start
+        return round(duration.total_seconds() / 60, 0)
+    else:
+        return None
+
+
+def update_task_log(session, logger, **kwargs) -> bool:
+    """
+    Update a task's log to record it's new state.
+    :return: True if saved or discarded; False otherwise.
+    :rtype: bool
+    """
+    cromwell_run_id = kwargs.get("cromwell_run_id")
+    task_dir = kwargs.get("task_dir")
+    status = kwargs.get("status")
+    timestamp = kwargs.get("timestamp")
+
+    # select row for this task
+    try:
+        row = (
+            session.query(models.Tasks)
+            .filter(
+                models.Tasks.cromwell_run_id == cromwell_run_id,
+                models.Tasks.task_dir == task_dir,
+            )
+            .one_or_none()
+        )
+    except OperationalError as error:
+        # this is the only case in which we would not want to ack the message
+        logger.error(f"Unable to connect to db: {error}")
+        return False
+    except Exception as error:
+        err_msg = f"Unexpected error; unable to select task log {cromwell_run_id} {task_dir}: {error}"
+        logger.error(err_msg)
+        return True
+
+    if row is None:
+        # this can only happen if the original "queued" message was lost
+        # TODO: should we insert a record with the current time instead?
+        logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
+        return True
+
+    try:
+        if status == "running":
+            row.run_start = timestamp
+            row.status = "running"
+            row.queue_minutes = delta_minutes(row.queue_start, row.run_start)
+        else:
+            row.run_end = timestamp
+            row.status = "done"
+            row.run_minutes = delta_minutes(row.run_start, row.run_end)
+        session.commit()
+    except OperationalError as error:
+        # this is the only case in which we would not want to ack the message
+        session.rollback()
+        logger.error(f"Unable to connect to db: {error}")
+        return False
+    except SQLAlchemyError as error:
+        session.rollback()
+        logger.exception(
+            f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
+        )
+    return True
