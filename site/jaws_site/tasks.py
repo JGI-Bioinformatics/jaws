@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import pytz
 import re
 from sqlalchemy import update
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
 from sqlalchemy.orm.exc import NoResultFound
 from jaws_site import models
 
@@ -400,6 +400,7 @@ def insert_task_log(session, logger, **kwargs) -> bool:
     :return: True if saved or discarded; False otherwise.
     :rtype: bool
     """
+    cromwell_run_id = kwargs.get("cromwell_run_id")
     task_dir = kwargs.get("task_dir")
     timestamp = kwargs.get("timestamp")
 

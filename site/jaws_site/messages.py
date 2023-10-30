@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 from datetime import datetime, timezone
+from jaws_site import tasks
 import json
 import logging
-import os
 import pika
 
 
@@ -95,12 +95,11 @@ class MessageReceiver:
         :rtype: bool
         """
         # datetimes are always stored as UTC and converted to localtime by the query methods
-        if "timestamp" in message:
+        if "timestamp" in params:
             # if timestamp (str) was provided, convert to datetime object
-            params["timestamp"] = datetime.strptime(params["timestamp"], TIMESTAMP_FMT)
+            params["timestamp"] = datetime.strptime(params["timestamp"], DATETIME_FMT)
         else:
             params["timestamp"] = datetime.now(timezone.utc)
-            status = params.get("status")
 
         # multiple classes are supported so the type must be specified
         message_type = params.get("type", None)
