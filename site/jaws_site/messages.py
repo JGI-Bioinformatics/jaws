@@ -8,11 +8,13 @@ import pika
 
 
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
+SLEEP_STEP = 30
 
 
 class MessageSender:
     def __init__(self, config, logger=None, **kwargs):
         self.config = config
+        self.sleep_sec = 0
         if logger is None:
             self.logger = logging.getLogger(__package__)
         else:
@@ -75,6 +77,7 @@ class MessageReceiver:
         """
         self.config = config
         self.session = session
+        self.sleep_sec = 0
         if logger is None:
             self.logger = logging.getLogger(__package__)
         else:
@@ -124,11 +127,24 @@ class MessageReceiver:
         ttl = int(self.config.get("RMQ", "ttl", 3600000))
 
         def callback(ch, method, properties, body):
-            message = body.decode()
-            # self.logger.debug(str(message))
-            params = json.loads(message)
-            if self.process(params) is True:
+            """
+            Decode and process messages.  Acknowledge unless RDb error.
+            """
+            payload = body.decode()
+            messages = json.loads(payload)
+            okay = True
+            for message in messages:
+                if self.process(message) is False:
+                    okay = False
+                    break
+            if okay is True:
                 ch.basic_ack(delivery_tag=method.delivery_tag)
+                # reset sleep amount after each success
+                self.sleep_sec = 0
+            else:
+                self.sleep_sec = self.sleep_sec + SLEEP_STEP
+                self.logger.warn(f"RDb error; sleep for {self.sleep_src}")
+                sleep(self.sleep_src)
 
         credentials = pika.PlainCredentials(user, password)
         connection = pika.BlockingConnection(

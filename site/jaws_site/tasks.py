@@ -383,14 +383,27 @@ class TaskLog:
 
 
 def save_task_log(session, logger, **kwargs) -> bool:
+    """
+    Save one task-log message.  If this is a new task, insert, else update.
+    :param session: sqlalchemy session
+    :ptype session: sessionmaker.session
+    :param logger: logging object
+    :ptype logger: logger.Logger
+    :param kwargs: logging message details
+    :ptype kwargs: dict
+    :return: True if message should be acknowledged; False otherwise.
+    :rtype: bool
+    """
     required_params = ["cromwell_run_id", "task_dir", "status", "timestamp"]
     for param in required_params:
         if param not in kwargs:
             logger.error(f"Invalid task log, missing 'param': {kwargs}")
             return True
     if kwargs["status"] == "queued":
+        # a new task shall be inserted into the database
         return insert_task_log(session, logger, **kwargs)
     else:
+        # an update to an existing task
         return update_task_log(session, logger, **kwargs)
 
 
