@@ -104,14 +104,21 @@ class MessageReceiver:
         else:
             params["timestamp"] = datetime.now(timezone.utc)
 
-        # multiple classes are supported so the type must be specified
-        message_type = params.get("type", None)
-        if message_type is None:
+        # multiple operations are supported
+        operation = params.get("operation", None)
+        if operation is None:
             self.logger.error(
                 f"Discarding message as missing required 'type': {params}"
             )
-        elif message_type == "tasks":
-            return tasks.save_task_log(self.session, self.logger, params)
+        elif operation in operations:
+            for param in operations[operation]["required_params"]:
+                if param not in params:
+                    self.logger.error(
+                        f"Discarding message for {operation} as missing {param}"
+                    )
+            return operations[operation]["function"](self.session, self.logger, params)
+        else:
+            self.logger.error(f"Discarding message with unknown operation: {operation}")
         return True
 
     def receive_messages(self):
@@ -167,3 +174,11 @@ class MessageReceiver:
         )
         self.logger.debug("Waiting for task-log messages")
         channel.start_consuming()
+
+
+operations = {
+    "task_log": {
+        "required_params": ["cromwell_run_id", "task_dir", "status", "timestamp"],
+        "function": tasks.save_task_log,
+    },
+}
