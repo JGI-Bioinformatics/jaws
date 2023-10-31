@@ -5,6 +5,7 @@ from jaws_site import tasks
 import json
 import logging
 import pika
+from time import sleep
 
 
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
