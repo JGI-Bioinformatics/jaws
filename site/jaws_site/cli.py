@@ -7,17 +7,23 @@ JAWS Site server runs at each computing site and is comprised of:
 Each computing site also has a Cromwell server instance, typically installed on the same server.
 """
 
-import logging
+import click
 import os
 import sys
-import click
 
-from jaws_site import log, config
+from jaws_site import log
+from jaws_site.config import Configuration
+from jaws_site.messages import Consumer
+
 
 JAWS_LOG_ENV = "JAWS_SITE_LOG"
 JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")
 JAWS_CONFIG_ENV = "JAWS_SITE_CONFIG"
 JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
+
+
+config = None
+logger = None
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -38,16 +44,19 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
         log_file = (
             os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
         )
+
+    global logger
     logger = log.setup_logger(__package__, log_file, log_level)
 
+    global config
     if config_file is None:
         config_file = (
             os.environ[JAWS_CONFIG_ENV]
             if JAWS_CONFIG_ENV in os.environ
             else JAWS_CWD_CONFIG
         )
-    conf = config.Configuration(config_file, env_override)
-    if conf:
+    config = Configuration(config_file, env_override)
+    if config:
         logger.info(f"Config using {config_file}")
     else:
         sys.exit("Unable to find config file.")
@@ -61,45 +70,35 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
         logger.exception(f"Failed to create db tables: {error}")
 
 
-@cli.command()
-def rpc_server() -> None:
-    """Start RPC server."""
-    # database must be imported after config
-    from jaws_site.database import session_factory
-    from jaws_site import rpc_operations
-    from jaws_rpc import rpc_server
-    from sqlalchemy.orm import scoped_session
-
-    # start RPC server
-    rpc_server_params = config.conf.get_section("RMQ")
-    rpc_server_params["queue"] = config.conf.get("SITE", "id")
-    logger = logging.getLogger(__package__)
-    app = rpc_server.RpcServer(
-        rpc_server_params,
-        logger,
-        rpc_operations.operations,
-        scoped_session(session_factory),
-    )
-    app.start_server()
-
-
-@cli.command()
-def run_daemon() -> None:
-    """Start run daemon."""
-    from jaws_site.run_daemon import RunDaemon
-
-    rund = RunDaemon()
-    rund.start_daemon()
+#@cli.command()
+#def rpc_server() -> None:
+#    """Start RPC server."""
+#    # database must be imported after config
+#    from jaws_site.database import session_factory
+#    from jaws_site import rpc_operations
+#    from jaws_rpc import rpc_server
+#    from sqlalchemy.orm import scoped_session
+#
+#    # start RPC server
+#    rpc_server_params = config.conf.get_section("RMQ")
+#    rpc_server_params["queue"] = config.conf.get("SITE", "id")
+#    logger = logging.getLogger(__package__)
+#    app = rpc_server.RpcServer(
+#        rpc_server_params,
+#        logger,
+#        rpc_operations.operations,
+#        scoped_session(session_factory),
+#    )
+#    app.start_server()
 
 
 @cli.command()
-def transfer_daemon() -> None:
-    """Start transfer daemon."""
-    # database must be imported after config
-    from jaws_site.transfer_daemon import TransferDaemon
+def daemon() -> None:
+    """Start daemon."""
+    from jaws_site.daemon import Daemon
 
-    transferd = TransferDaemon()
-    transferd.start_daemon()
+    daemon = Daemon()
+    daemon.start()
 
 
 @cli.command()
@@ -121,19 +120,20 @@ def pool_manager_daemon() -> None:
 
 
 @cli.command()
-def task_logger_receive() -> None:
-    """Start task-log message receiver."""
-    from jaws_site.task_logger import TaskLogger
-    from jaws_site.database import session_factory
+def consumer() -> None:
+    """Start message consumer."""
+    logger.debug("Starting message consumer")
 
-    session = session_factory()
+    # session must be imported after the db has been initialized
+    from jaws_site.database import session
+    from jaws_site.operations import operations
 
-#    site_id = self.config.get("SITE", "id")
-#    deployment = self.config.get("SITE", "deployment")
-#    queue = f"jaws_{site_id}_{deployment}"
+    site_id = config.get("SITE", "id")
+    deployment = config.get("SITE", "deployment")
+    queue = f"jaws_{site_id}_{deployment}"
 
-    task_logger = TaskLogger(config.conf, session)
-    task_logger.receive_messages()
+    consumer = Consumer(config, session, logger, queue, operations)
+    consumer.consume()
 
 
 def jaws():
