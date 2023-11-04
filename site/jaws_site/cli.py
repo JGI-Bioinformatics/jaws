@@ -127,6 +127,11 @@ def task_logger_receive() -> None:
     from jaws_site.database import session_factory
 
     session = session_factory()
+
+#    site_id = self.config.get("SITE", "id")
+#    deployment = self.config.get("SITE", "deployment")
+#    queue = f"jaws_{site_id}_{deployment}"
+
     task_logger = TaskLogger(config.conf, session)
     task_logger.receive_messages()
 

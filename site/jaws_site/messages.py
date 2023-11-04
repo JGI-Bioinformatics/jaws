@@ -1,7 +1,4 @@
-#!/usr/bin/env python
-
 from datetime import datetime, timezone
-from jaws_site.operations import operations
 import json
 import pika
 from time import sleep
@@ -12,25 +9,23 @@ SLEEP_STEP = 30
 
 
 class Sender:
-    def __init__(self, config, logger, queue):
+    def __init__(self, config, logger, queue: str):
         self.config = config
         self.logger = logger
         self.queue = queue
         self.sleep_sec = 0
 
-    def send_message(self, message: dict) -> None:
+    def send(self, operation: str, params: dict) -> None:
         """
-        Login to RabbitMQ server, end a message, and disconnect.
-        :param message: the message to send
-        :ptype message: dict
+        Login to RabbitMQ server, end a params, and disconnect.
         """
-        if type(message) is not dict:
-            self.logger.error(f"Discarding invalid message; expected dict: {message}")
+        if type(params) is not dict:
+            self.logger.error(f"Discarding invalid params; expected dict: {params}")
             return
 
-        if "timestamp" not in message:
+        if "timestamp" not in params:
             # timestamps are always in UTC
-            message["timestamp"] = datetime.now(timezone.utc).strftime(DATETIME_FMT)
+            params["timestamp"] = datetime.now(timezone.utc).strftime(DATETIME_FMT)
 
         host = self.config.get("RMQ", "host")
         port = self.config.get("RMQ", "port")
@@ -59,21 +54,16 @@ class Sender:
 
 
 class Consumer:
-    def __init__(self, config, session, logger) -> None:
+    def __init__(self, config, session, logger, queue: str, operations: dict) -> None:
         """
         Pull messages from the RabbitMQ queue and process them, indefinately.
-        :param config: Configuration parameters
-        :ptype config: jaws_site.config
-        :param self.session: Database self.session handle
-        :ptype self.session: sqlalchemy.orm.self.sessionmaker
         """
         self.config = config
         self.session = session
         self.logger = logger
+        self.queue = queue
+        self.operations = operations
         self.sleep_sec = 0
-        site_id = self.config.get("SITE", "id")
-        deployment = self.config.get("SITE", "deployment")
-        self.queue = f"jaws_{site_id}_{deployment}"
 
     def process(self, params: dict) -> bool:
         """
@@ -95,13 +85,13 @@ class Consumer:
             self.logger.error(
                 f"Discarding message as missing required 'type': {params}"
             )
-        elif operation in operations:
-            for param in operations[operation]["required_params"]:
+        elif operation in self.operations:
+            for param in self.operations[operation]["required_params"]:
                 if param not in params:
                     self.logger.error(
                         f"Discarding message for {operation} as missing {param}"
                     )
-            return operations[operation]["function"](self.session, self.logger, params)
+            return self.operations[operation]["function"](self.session, self.logger, params)
         else:
             self.logger.error(f"Discarding message with unknown operation: {operation}")
         return True
