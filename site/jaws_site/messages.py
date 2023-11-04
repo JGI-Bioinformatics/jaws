@@ -12,11 +12,10 @@ SLEEP_STEP = 30
 
 
 class Sender:
-    def __init__(self, config, logger):
+    def __init__(self, config, logger, queue):
         self.config = config
         self.logger = logger
-        deployment = self.config.get("SITE", "deployment")
-        self.queue = f"jaws_central_{deployment}"
+        self.queue = queue
         self.sleep_sec = 0
 
     def send_message(self, message: dict) -> None:

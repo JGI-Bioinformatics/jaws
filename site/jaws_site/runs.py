@@ -587,7 +587,9 @@ class Run:
             "timestamp": timestamp,
             "reason": "resubmit run",
         }
-        sender = Sender(self.config, self.session, self.logger)
+        deployment = self.config.get("SITE", "deployment")
+        queue = f"jaws_central_{deployment}"
+        sender = Sender(self.config, self.session, self.logger, queue)
         sender.send(log_entry)
 
         return {self.data.id: "ready"}
@@ -724,7 +726,9 @@ class Run:
             "timestamp": timestamp,
             "reason": reason,
         }
-        sender = Sender(self.config, self.session, self.logger)
+        deployment = self.config.get("SITE", "deployment")
+        queue = f"jaws_central_{deployment}"
+        sender = Sender(self.config, self.session, self.logger, queue)
         sender.send(log_entry)
 
     def write_supplement(self):
