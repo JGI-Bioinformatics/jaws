@@ -36,6 +36,7 @@ from jaws_site.cromwell import (
     CromwellRunNotFoundError,
     CromwellServiceError,
 )
+from jaws_site.messages import Sender
 from jaws_site.tasks import TaskLog
 from jaws_site.utils import write_json_file
 
@@ -562,15 +563,9 @@ class Run:
                 "Cannot resubmit run while previous run is still active."
             )
 
+        # reset run's db entry
         logger.info(f"Run {self.data.id}: Resubmit run")
         timestamp = datetime.utcnow()
-        log_entry = models.Run_Log(
-            run_id=self.data.id,
-            status_from=status_from,
-            status_to="ready",
-            timestamp=timestamp,
-            reason="resubmit run",
-        )
         try:
             savepoint = self.session.begin_nested()
             self.data.status = "ready"
@@ -579,11 +574,22 @@ class Run:
             self.data.workflow_name = None
             self.data.cromwell_run_id = None
             self.data.result = None
-            self.session.add(log_entry)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
+
+        # send log to central
+        log_entry = {
+            "run_id": self.data.id,
+            "status_from": status_from,
+            "status_to": "ready",
+            "timestamp": timestamp,
+            "reason": "resubmit run",
+        }
+        sender = Sender(self.config, self.session, self.logger)
+        sender.send(log_entry)
+
         return {self.data.id: "ready"}
 
     def get_metadata(self, **kwargs):
@@ -699,24 +705,27 @@ class Run:
         status_from = self.data.status
         logger.info(f"Run {self.data.id}: now {status_to}")
         timestamp = datetime.utcnow()
-        log_entry = models.Run_Log(
-            run_id=self.data.id,
-            status_from=status_from,
-            status_to=status_to,
-            timestamp=timestamp,
-            reason=reason,
-        )
         try:
             savepoint = self.session.begin_nested()
             self.data.status = status_to
             self.data.updated = timestamp
             if status_to in ("succeeded", "failed", "cancelled"):
                 self.data.result = status_to
-            self.session.add(log_entry)
             self.session.commit()
         except SQLAlchemyError as error:
             savepoint.rollback()
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
+
+        # send log to central
+        log_entry = {
+            "run_id": self.data.id,
+            "status_from": status_from,
+            "status_to": status_to,
+            "timestamp": timestamp,
+            "reason": reason,
+        }
+        sender = Sender(self.config, self.session, self.logger)
+        sender.send(log_entry)
 
     def write_supplement(self):
         """
@@ -988,59 +997,6 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
         run.check_status()
 
 
-def send_run_status_logs(session, central_rpc_client) -> None:
-    """Send run logs to Central"""
-
-    # get updates from datbase
-    try:
-        query = (
-            session.query(models.Run_Log).filter(models.Run_Log.sent.is_(False)).all()
-        )
-    except SQLAlchemyError as error:
-        logger.exception(f"Unable to select from run_logs: {error}")
-        return
-    num_logs = len(query)
-    if not num_logs:
-        return
-    logger.debug(f"Sending {num_logs} run logs")
-
-    for log in query:
-        data = {
-            "site_id": config.conf.get("SITE", "id"),
-            "run_id": log.run_id,
-            "status_from": log.status_from,
-            "status_to": log.status_to,
-            "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "reason": log.reason,
-        }
-        # add special fields
-        run = Run.from_id(session, log.run_id)
-        if log.status_to == "submitted":
-            data["cromwell_run_id"] = run.data.cromwell_run_id
-        elif log.status_to == "queued":
-            data["workflow_root"] = run.data.workflow_root
-            data["workflow_name"] = run.data.workflow_name
-        elif log.status_to == "complete":
-            data["output_manifest"] = run.output_manifest()
-            data["cpu_hours"] = run.data.cpu_hours
-        elif log.status_to in ("succeeded", "failed", "cancelled"):
-            data["result"] = run.data.result
-        try:
-            response = central_rpc_client.request("update_run_log", data)
-        except Exception as error:
-            logger.exception(f"RPC update_run_log error: {error}")
-            continue
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
-            continue
-        try:
-            log.sent = True
-            session.commit()
-        except Exception as error:
-            session.rollback()
-            logger.exception(f"Error updating run_logs as sent: {error}")
-
-
 def max_active_runs_exceeded(
     session: sessionmaker, user_id: str, max_active_runs: int
 ) -> bool:
@@ -1073,45 +1029,6 @@ def max_active_runs_exceeded(
         return True
 
     return False
-
-
-class RunLog:
-    """Class representing table of run state transition logs"""
-
-    def __init__(self, session, run_id) -> None:
-        self.session = session
-        self.run_id = run_id
-        self.data = self._select_rows()
-
-    def _select_rows(self):
-        try:
-            rows = (
-                self.session.query(models.Run_Log)
-                .filter(models.Run_Log.run_id == self.run_id)
-                .order_by(models.Run_Log.id)
-                .all()
-            )
-        except SQLAlchemyError as error:
-            logger.error(f"Unable to select from run_logs: {error}")
-            raise RunDbError(error)
-        return rows
-
-    def logs_table(self):
-        return self.data
-
-    def logs(self):
-        """Reformat logs table to (verbose) dictionary"""
-        logs = []
-        for row in self.data:
-            (id, run_id, status_from, status_to, timestamp, reason, sent) = row
-            log = {
-                "status_from": status_from,
-                "status_to": status_to,
-                "timestamp": timestamp,
-                "reason": reason,
-            }
-            logs.append(log)
-        return logs
 
 
 def s3_parse_uri(full_uri):

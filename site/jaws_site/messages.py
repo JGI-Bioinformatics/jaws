@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 from datetime import datetime, timezone
-from jaws_site import tasks
+from jaws_site.operations import operations
 import json
-import logging
 import pika
 from time import sleep
 
@@ -12,20 +11,13 @@ DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 SLEEP_STEP = 30
 
 
-class MessageSender:
-    def __init__(self, config, logger=None, **kwargs):
+class Sender:
+    def __init__(self, config, logger):
         self.config = config
+        self.logger = logger
+        deployment = self.config.get("SITE", "deployment")
+        self.queue = f"jaws_central_{deployment}"
         self.sleep_sec = 0
-        if logger is None:
-            self.logger = logging.getLogger(__package__)
-        else:
-            self.logger = logger
-        if "queue" in kwargs:
-            self.queue = kwargs.get("queue")
-        else:
-            site_id = self.config.get("SITE", "id")
-            deployment = self.config.get("SITE", "deployment")
-            self.queue = f"jaws_{site_id}_{deployment}_logs"
 
     def send_message(self, message: dict) -> None:
         """
@@ -67,8 +59,8 @@ class MessageSender:
         connection.close()
 
 
-class MessageReceiver:
-    def __init__(self, config, session, logger=None, **kwargs) -> None:
+class Consumer:
+    def __init__(self, config, session, logger) -> None:
         """
         Pull messages from the RabbitMQ queue and process them, indefinately.
         :param config: Configuration parameters
@@ -78,17 +70,11 @@ class MessageReceiver:
         """
         self.config = config
         self.session = session
+        self.logger = logger
         self.sleep_sec = 0
-        if logger is None:
-            self.logger = logging.getLogger(__package__)
-        else:
-            self.logger = logger
-        if "queue" in kwargs:
-            self.queue = kwargs.get("queue")
-        else:
-            site_id = self.config.get("SITE", "id")
-            deployment = self.config.get("SITE", "deployment")
-            self.queue = f"jaws_{site_id}_{deployment}_logs"
+        site_id = self.config.get("SITE", "id")
+        deployment = self.config.get("SITE", "deployment")
+        self.queue = f"jaws_{site_id}_{deployment}"
 
     def process(self, params: dict) -> bool:
         """
@@ -99,11 +85,10 @@ class MessageReceiver:
         :rtype: bool
         """
         # datetimes are always stored as UTC and converted to localtime by the query methods
-        if "timestamp" in params:
-            # if timestamp (str) was provided, convert to datetime object
-            params["timestamp"] = datetime.strptime(params["timestamp"], DATETIME_FMT)
-        else:
+        if "timestamp" not in params:
             params["timestamp"] = datetime.now(timezone.utc)
+        elif type(params["timestamp"]) is str:
+            params["timestamp"] = datetime.strptime(params["timestamp"], DATETIME_FMT)
 
         # multiple operations are supported
         operation = params.get("operation", None)
@@ -122,7 +107,7 @@ class MessageReceiver:
             self.logger.error(f"Discarding message with unknown operation: {operation}")
         return True
 
-    def receive_messages(self):
+    def consume(self):
         """
         Receive and consume task-log messages indefinately.
         """
@@ -138,8 +123,15 @@ class MessageReceiver:
             """
             Decode and process messages.  Acknowledge unless RDb error.
             """
+            # close old db session to get a fresh one
+            self.session.remove()
+
             payload = body.decode()
             messages = json.loads(payload)
+            if type(messages) is not list:
+                self.logger.error(f"Discard message with invalid format: {payload}")
+                return True
+
             okay = True
             for message in messages:
                 if self.process(message) is False:
@@ -173,13 +165,5 @@ class MessageReceiver:
         channel.basic_consume(
             queue=self.queue, on_message_callback=callback, auto_ack=False
         )
-        self.logger.debug("Waiting for task-log messages")
+        self.logger.debug("Waiting for messages")
         channel.start_consuming()
-
-
-operations = {
-    "task_log": {
-        "required_params": ["cromwell_run_id", "task_dir", "status", "timestamp"],
-        "function": tasks.save_task_log,
-    },
-}

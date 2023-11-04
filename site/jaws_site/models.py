@@ -11,7 +11,6 @@ from sqlalchemy import (
     Integer,
     SmallInteger,
     Boolean,
-    ForeignKey,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from jaws_site.database import Base
@@ -59,21 +58,6 @@ class Run(Base):
     wdl_basename = Column(String(256), nullable=False)
     json_basename = Column(String(256), nullable=False)
     cpu_hours = Column(Float, nullable=True)
-
-
-class Run_Log(Base):
-    """
-    Run state transitions log.
-    """
-
-    __tablename__ = "run_logs"
-    id = Column(Integer, primary_key=True)  # auto-increment
-    run_id = Column(Integer, ForeignKey("runs.id"), nullable=False)
-    status_from = Column(String(32), nullable=False)
-    status_to = Column(String(32), nullable=False)
-    timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
-    reason = Column(String(1024), nullable=False, default="")
-    sent = Column(Boolean, default=False, nullable=False)
 
 
 class Tasks(Base):
