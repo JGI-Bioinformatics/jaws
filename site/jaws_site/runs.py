@@ -1015,12 +1015,12 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         }
         # add special fields
         run = Run.from_id(session, log.run_id)
-        if log.status_to == "submitted":
+        if run.data.cromwell_run_id is not None:
             data["cromwell_run_id"] = run.data.cromwell_run_id
-        elif log.status_to == "queued":
+        if run.data.workflow_root is not None:
             data["workflow_root"] = run.data.workflow_root
             data["workflow_name"] = run.data.workflow_name
-        elif log.status_to == "complete":
+        if log.status_to == "complete":
             data["output_manifest"] = run.output_manifest()
             data["cpu_hours"] = run.data.cpu_hours
         elif log.status_to in ("succeeded", "failed", "cancelled"):
