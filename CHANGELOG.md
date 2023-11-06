@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- fix workflow_root not defined bug (#1747)
 
 ### External Facing Changes
 
