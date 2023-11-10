@@ -6,7 +6,7 @@
 
 ### Internal Facing Changes
 
-## 2.0.2  Summary [10/23/2023 - staging // 11/??/2023 - Prod]
+## 2.0.2  Summary [10/23/2023 - staging // 11/09/2023 - Prod]
 ### External Facing Changes
 - added JOB_ID (HTCondor_ID) to tasks report (#1742)
 - increase allowed length of wdl and json filenames (#1744)
