@@ -138,3 +138,7 @@ dmypy.json
 # dashboard
 node_modules
 package-lock.json
+
+# direnv
+.direnv
+.envrc
