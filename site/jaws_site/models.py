@@ -111,7 +111,7 @@ class Transfer(Base):
     reason = Column(String(1024), nullable=True)
 
 
-class FixPerms(Base):
+class Fix_Perms(Base):
     """
     Table of chmod tasks.
     """

@@ -436,47 +436,6 @@ class Transfer:
         parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
-def check_queue(session) -> None:
-    """
-    Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
-    transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
-    """
-    # do any chmod tasks (for Globus transfers)
-    rows = []
-    try:
-        rows = (
-            session.query(models.Fix_Perms)
-            .filter(models.Fix_Perms.status == "queued")
-            .order_by(models.Fix_Perms.id)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.warning(
-            f"Failed to select transfer task from db: {error}", exc_info=True
-        )
-    for row in rows:
-        fix_perms = Fix_Perms(session, row)
-        fix_perms.fix_perms()
-
-    # do oldest transfer task
-    rows = []
-    try:
-        rows = (
-            session.query(models.Transfer)
-            .filter(models.Transfer.status == "queued")
-            .order_by(models.Transfer.id)
-            .limit(1)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.warning(
-            f"Failed to select transfer task from db: {error}", exc_info=True
-        )
-    if len(rows):
-        transfer = Transfer(session, rows[0])
-        transfer.transfer_files()
-
-
 def get_abs_files(root, rel_paths) -> list:
     """
     Create list of all source files by recursively expanding any folders.
@@ -665,7 +624,7 @@ class FixPerms:
         ):
             raise ValueError
         try:
-            data = models.FixPerms(
+            data = models.Fix_Perms(
                 base_dir=params["base_dir"],
             )
         except SQLAlchemyError as error:
@@ -686,7 +645,7 @@ class FixPerms:
         """Select existing FixPerms record from RDb by primary key"""
         try:
             data = (
-                session.query(models.FixPerms)
+                session.query(models.Fix_Perms)
                 .filter_by(id=int(fix_perms_id))
                 .one_or_none()
             )
@@ -731,3 +690,44 @@ class FixPerms:
         except SQLAlchemyError as error:
             self.session.rollback()
             logger.exception(f"Unable to update Fix Perms {self.data.id}: {error}")
+
+
+def check_queue(session) -> None:
+    """
+    Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
+    transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
+    """
+    # do any chmod tasks (for Globus transfers)
+    rows = []
+    try:
+        rows = (
+            session.query(models.Fix_Perms)
+            .filter(models.Fix_Perms.status == "queued")
+            .order_by(models.Fix_Perms.id)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        fix_perms = FixPerms(session, row)
+        fix_perms.fix_perms()
+
+    # do oldest transfer task
+    rows = []
+    try:
+        rows = (
+            session.query(models.Transfer)
+            .filter(models.Transfer.status == "queued")
+            .order_by(models.Transfer.id)
+            .limit(1)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    if len(rows):
+        transfer = Transfer(session, rows[0])
+        transfer.transfer_files()
