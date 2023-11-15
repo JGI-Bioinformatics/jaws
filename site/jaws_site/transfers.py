@@ -74,7 +74,7 @@ class Transfer:
             or not isinstance(params["src_base_dir"], str)
             or not isinstance(params["dest_base_dir"], str)
         ):
-            raise ValueError
+            raise TransferValueError
         manifest_json = "[]"
         if "manifest" in params:
             assert isinstance(params["manifest"], list)
