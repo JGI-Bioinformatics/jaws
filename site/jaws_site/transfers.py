@@ -69,6 +69,12 @@ class Transfer:
     @classmethod
     def from_params(cls, session, params):
         """Create new transfer from parameter values and save in RDb."""
+        if (
+            not isinstance(params["transfer_id"], int)
+            or not isinstance(params["src_base_dir"], str)
+            or not isinstance(params["dest_base_dir"], str)
+        ):
+            raise ValueError
         manifest_json = "[]"
         if "manifest" in params:
             assert isinstance(params["manifest"], list)
@@ -77,12 +83,6 @@ class Transfer:
             assert isinstance(params["manifest_json"], str)
             manifest_json = params["manifest_json"]
         try:
-            if (
-                not isinstance(params["transfer_id"], int)
-                or not isinstance(params["src_base_dir"], str)
-                or not isinstance(params["dest_base_dir"], str)
-            ):
-                raise SQLAlchemyError
             data = models.Transfer(
                 id=params["transfer_id"],
                 status="queued",
@@ -425,7 +425,9 @@ class Transfer:
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-        logger.debug(f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads")
+        logger.debug(
+            f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
+        )
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         logger.debug(f"Transfer {self.data.id}: Chmod files")
@@ -602,3 +604,112 @@ def reset_queue(session):
     for row in rows:
         transfer = Transfer(session, row)
         transfer.update_status("queued")
+
+
+class FixPermsError(Exception):
+    # base class for all errors in this package
+    pass
+
+
+class FixPermsDbError(FixPermsError):
+    pass
+
+
+class FixPermsNotFoundError(FixPermsError):
+    pass
+
+
+class FixPermsValueError(FixPermsError):
+    pass
+
+
+class FixPerms:
+    """Class representing a transfer (set of files to transfer) associated with one Run."""
+
+    def __init__(self, session, data):
+        """
+        Initialize transfer object.
+        :param session: database handle
+        :ptype session: SqlAlchemy.session
+        :param data: ORM record for this object
+        :ptype: sqlalchemy.ext.declarative.declarative_base
+        """
+        self.session = session
+        self.data = data
+
+    @classmethod
+    def from_params(cls, session, params):
+        """Create new transfer from parameter values and save in RDb."""
+        if (
+            not isinstance(params["transfer_id"], int)
+            or not isinstance(params["src_base_dir"], str)
+            or not isinstance(params["dest_base_dir"], str)
+        ):
+            raise ValueError
+        try:
+            data = models.FixPerms(
+                base_dir=params["base_dir"],
+            )
+        except SQLAlchemyError as error:
+            raise FixPermsValueError(
+                f"Error creating model for new FixPerms: {params}: {error}"
+            )
+        try:
+            session.add(data)
+            session.commit()
+        except SQLAlchemyError as error:
+            session.rollback()
+            raise FixPermsDbError(error)
+        else:
+            return cls(session, data)
+
+    @classmethod
+    def from_id(cls, session, fix_perms_id: int):
+        """Select existing FixPerms record from RDb by primary key"""
+        try:
+            data = (
+                session.query(models.FixPerms)
+                .filter_by(id=int(fix_perms_id))
+                .one_or_none()
+            )
+        except SQLAlchemyError as error:
+            raise FixPermsDbError(f"Error selecting FixPerms {fix_perms_id}: {error}")
+        except Exception as error:
+            raise FixPermsError(f"Error selecting FixPerms {fix_perms_id}: {error}")
+        else:
+            if data is None:
+                raise FixPermsNotFoundError(f"FixPerms {fix_perms_id} not found")
+            else:
+                return cls(session, data)
+
+    def fix_perms(self, parallelism=3):
+        """
+        Recursively change the permissions of folders and files.
+        """
+        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
+        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+        try:
+            parallel_chmod(self.data.base_dir, file_mode, folder_mode, parallelism)
+        except Exception as error:
+            logger.error(f"Fix perms {self.data.id} failed: {error}")
+            self.update_status("failed", str(error))
+        else:
+            self.udpate("succeeded")
+
+    def update_status(self, new_status: str, reason: str = None) -> None:
+        """
+        Update status.
+        """
+        logger.info(f"Fix Perms {self.data.id}: now {new_status}")
+        if reason is not None:
+            reason = reason[:MAX_ERROR_STRING_LEN]
+        timestamp = datetime.utcnow()
+        try:
+            self.data.status = new_status
+            self.data.updated = timestamp
+            if reason is not None:
+                self.data.reason = reason
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(f"Unable to update Fix Perms {self.data.id}: {error}")

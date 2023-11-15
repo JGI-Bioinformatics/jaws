@@ -5,7 +5,7 @@ from jaws_site import queue_wait as slurm_queue_wait
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
-from jaws_site.transfers import Transfer, parallel_chmod
+from jaws_site.transfers import Transfer, FixPerms
 
 
 DEFAULT_TZ = "America/Los_Angeles"
@@ -159,20 +159,38 @@ def site_config(params, session):
         return success(result)
 
 
-def change_perms(params, session):
+def fix_perms_request(params, session):
     """
-    Recursively chmod.
+    Request change of file/folder permissions.
     """
     path = params["path"]
     file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
     folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
     try:
-        parallel_chmod(path, file_mode, folder_mode, parallelism=6, ok_not_exists=True, chmod_parent=True)
+        fix_perms = FixPerms.from_params(
+            session, params, file_mode=file_mode, folder_mode=folder_mode
+        )
     except Exception as error:
-        logger.error(f"Failed to chmod {path}: {error}")
+        logger.error(f"Failed to request fix_perms {path}: {error}")
         return failure(error)
     else:
-        return success({"success": True})
+        return success({"fix_perms_id": fix_perms.data.id})
+
+
+def fix_perms_status(params, session):
+    """
+    Check if the file/folder permissions have been changed.
+    """
+    try:
+        fix_perms = FixPerms.from_id(session, params["fix_perms_id"])
+        result = fix_perms.status()
+    except Exception as error:
+        logger.error(
+            f"Failed check status of fix_perms {params['fix_perms_id']}: {error}"
+        )
+        return failure(error)
+    else:
+        return success(result)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
@@ -223,8 +241,12 @@ operations = {
         "function": site_config,
         "required_params": [],
     },
-    "change_perms": {
-        "function": change_perms,
-        "required_params": ["path"],
+    "fix_perms_request": {
+        "function": fix_perms_request,
+        "required_params": ["base_dir"],
+    },
+    "fix_perms_status": {
+        "function": fix_perms_status,
+        "required_params": ["fix_perms_id"],
     },
 }

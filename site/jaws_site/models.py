@@ -109,3 +109,17 @@ class Transfer(Base):
     dest_base_dir = Column(String(1024), nullable=False)
     manifest_json = Column(MEDIUMTEXT, nullable=False)
     reason = Column(String(1024), nullable=True)
+
+
+class FixPerms(Base):
+    """
+    Table of chmod tasks.
+    """
+
+    __tablename__ = "fix_perms"
+    id = Column(Integer, primary_key=True)
+    status = Column(String(32), nullable=False)
+    submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    base_dir = Column(String(1024), nullable=False)
+    reason = Column(String(1024), nullable=True)
