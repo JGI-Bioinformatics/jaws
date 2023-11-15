@@ -441,6 +441,24 @@ def check_queue(session) -> None:
     Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
     transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
     """
+    # do any chmod tasks (for Globus transfers)
+    rows = []
+    try:
+        rows = (
+            session.query(models.Fix_Perms)
+            .filter(models.Fix_Perms.status == "queued")
+            .order_by(models.Fix_Perms.id)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        fix_perms = Fix_Perms(session, row)
+        fix_perms.fix_perms()
+
+    # do oldest transfer task
     rows = []
     try:
         rows = (
