@@ -1,6 +1,7 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- add function to chmod files/folders transferred via Globus (#1739)
 
 ### External Facing Changes
 
