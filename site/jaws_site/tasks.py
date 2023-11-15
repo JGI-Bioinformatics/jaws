@@ -1,12 +1,13 @@
 import logging
-from datetime import datetime, timezone
-import pytz
 import re
+from datetime import datetime, timezone
+
+import pytz
 from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
-from jaws_site import models
 
+from jaws_site import models
 
 DEFAULT_TZ = "America/Los_Angeles"
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"

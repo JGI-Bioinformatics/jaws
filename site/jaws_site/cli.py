@@ -10,9 +10,10 @@ Each computing site also has a Cromwell server instance, typically installed on 
 import logging
 import os
 import sys
+
 import click
 
-from jaws_site import log, config
+from jaws_site import config, log
 
 JAWS_LOG_ENV = "JAWS_SITE_LOG"
 JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")

@@ -1,12 +1,12 @@
 import logging
-from jaws_rpc.responses import success, failure
+
+from jaws_rpc.responses import failure, success
 from jaws_site import config
 from jaws_site import queue_wait as slurm_queue_wait
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
-from jaws_site.transfers import Transfer
-
+from jaws_site.transfers import FixPerms, Transfer
 
 DEFAULT_TZ = "America/Los_Angeles"
 
@@ -159,6 +159,40 @@ def site_config(params, session):
         return success(result)
 
 
+def fix_perms_request(params, session):
+    """
+    Request change of file/folder permissions.
+    """
+    path = params["path"]
+    file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
+    folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+    try:
+        fix_perms = FixPerms.from_params(
+            session, params, file_mode=file_mode, folder_mode=folder_mode
+        )
+    except Exception as error:
+        logger.error(f"Failed to request fix_perms {path}: {error}")
+        return failure(error)
+    else:
+        return success({"fix_perms_id": fix_perms.data.id})
+
+
+def fix_perms_status(params, session):
+    """
+    Check if the file/folder permissions have been changed.
+    """
+    try:
+        fix_perms = FixPerms.from_id(session, params["fix_perms_id"])
+        result = fix_perms.status()
+    except Exception as error:
+        logger.error(
+            f"Failed check status of fix_perms {params['fix_perms_id']}: {error}"
+        )
+        return failure(error)
+    else:
+        return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -206,5 +240,13 @@ operations = {
     "site_config": {
         "function": site_config,
         "required_params": [],
+    },
+    "fix_perms_request": {
+        "function": fix_perms_request,
+        "required_params": ["base_dir"],
+    },
+    "fix_perms_status": {
+        "function": fix_perms_status,
+        "required_params": ["fix_perms_id"],
     },
 }

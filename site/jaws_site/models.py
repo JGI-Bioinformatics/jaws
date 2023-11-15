@@ -3,17 +3,11 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    DateTime,
-    String,
-    Float,
-    Integer,
-    SmallInteger,
-    Boolean,
-    ForeignKey,
-)
+
+from sqlalchemy import (Boolean, Column, DateTime, Float, ForeignKey, Integer,
+                        SmallInteger, String)
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
+
 from jaws_site.database import Base
 
 
@@ -108,4 +102,18 @@ class Transfer(Base):
     src_base_dir = Column(String(1024), nullable=False)
     dest_base_dir = Column(String(1024), nullable=False)
     manifest_json = Column(MEDIUMTEXT, nullable=False)
+    reason = Column(String(1024), nullable=True)
+
+
+class Fix_Perms(Base):
+    """
+    Table of chmod tasks.
+    """
+
+    __tablename__ = "fix_perms"
+    id = Column(Integer, primary_key=True)
+    status = Column(String(32), nullable=False)
+    submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    base_dir = Column(String(1024), nullable=False)
     reason = Column(String(1024), nullable=True)

@@ -2,11 +2,11 @@
 This module provides a collection of functions called by rpc_operations.py.
 """
 
+import json
+import logging
 import os
 import re
 import subprocess
-import json
-import logging
 from datetime import datetime, timedelta
 
 

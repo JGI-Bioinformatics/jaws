@@ -9,10 +9,13 @@ from jaws_site.transfers import (
     TransferDbError,
     TransferValueError,
     TransferNotFoundError,
-    check_queue,
+    check_transfer_queue,
     list_all_files_under_dir,
     abs_to_rel_paths,
     get_abs_files,
+    parallel_chmod,
+    FixPerms,
+    check_fix_perms_queue,
 )
 from tests.conftest import (
     MockSession,
@@ -358,7 +361,7 @@ def test_update_status(mock_sqlalchemy_session):
     mock_sqlalchemy_session.clear()
 
 
-def test_check_queue(mock_sqlalchemy_session, monkeypatch):
+def test_check_transfer_queue(mock_sqlalchemy_session, monkeypatch):
     mock_sqlalchemy_session.output(
         [
             {"id": 1},
@@ -368,7 +371,7 @@ def test_check_queue(mock_sqlalchemy_session, monkeypatch):
             {"dest_base_dir": "s3://jaws-site/jaws-dev/inputs"},
         ]
     )
-    check_queue(mock_sqlalchemy_session)
+    check_transfer_queue(mock_sqlalchemy_session)
     assert mock_sqlalchemy_session.data.session["query"] is True
 
     monkeypatch.setattr(jaws_site.transfers, "Transfer", MockTransfer)
@@ -376,7 +379,7 @@ def test_check_queue(mock_sqlalchemy_session, monkeypatch):
     # Test SQLAlchemyError
     mock_sqlalchemy_session.clear()
     mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
-    check_queue(mock_sqlalchemy_session)
+    check_transfer_queue(mock_sqlalchemy_session)
 
 
 def test_aws_s3_resource(s3, mock_sqlalchemy_session):
@@ -616,3 +619,39 @@ def test_abs_to_rel_paths():
     expected = ["file1", "a/file2", "a/b/file3"]
     actual = abs_to_rel_paths(root_dir, abs_paths)
     assert actual == expected
+
+
+def test_parallel_chmod(setup_dir_tree):
+    root = setup_dir_tree
+    folders = [root, f"{root}/a", f"{root}/a/b"]
+    files = [
+        f"{root}/file0.txt",
+        f"{root}/a/file1.txt",
+        f"{root}/a/b/file2.txt",
+    ]
+    folder_mode_str = "0775"
+    file_mode_str = "0664"
+    folder_mode = int(folder_mode_str, base=8)
+    file_mode = int(file_mode_str, base=8)
+    parallelism = 2
+    parallel_chmod(root, file_mode, folder_mode, parallelism)
+    for folder in folders:
+        actual = oct(os.stat(folder).st_mode)
+        assert str(actual)[-4:] == folder_mode_str
+    for file in files:
+        actual = oct(os.stat(file).st_mode)
+        assert str(actual)[-4:] == file_mode_str
+
+
+def test_check_fix_perms_queue(mock_sqlalchemy_session, monkeypatch):
+    def mock_fix_perms(self):
+        assert self.data.base_dir is not None
+
+    monkeypatch.setattr(FixPerms, "fix_perms", mock_fix_perms)
+    mock_sqlalchemy_session.output(
+        [
+            {"id": 1, "base_dir": "/global/cscratch/jaws/jaws-dev/outputs/X"},
+        ]
+    )
+    check_fix_perms_queue(mock_sqlalchemy_session)
+    assert mock_sqlalchemy_session.data.session["query"] is True

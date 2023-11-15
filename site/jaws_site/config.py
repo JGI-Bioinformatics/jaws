@@ -1,9 +1,9 @@
-import os
-import logging
 import configparser
-from jaws_site.env_interpolation import EnvInterpolation, JAWSConfigParser
-import jaws_site.utils
+import logging
+import os
 
+import jaws_site.utils
+from jaws_site.env_interpolation import EnvInterpolation, JAWSConfigParser
 
 conf = None
 DEFAULT_MAX_RAM_GB = 56

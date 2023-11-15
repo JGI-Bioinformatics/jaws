@@ -3,17 +3,17 @@ Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc
 Items are stored in a relational database.
 """
 import concurrent.futures
+import json
 import logging
 import os
 from datetime import datetime
-from sqlalchemy.exc import SQLAlchemyError
-import json
+
 import boto3
-from jaws_site import config, models
 import botocore
-
 from parallel_sync import rsync
+from sqlalchemy.exc import SQLAlchemyError
 
+from jaws_site import config, models
 
 logger = logging.getLogger(__package__)
 
@@ -69,6 +69,12 @@ class Transfer:
     @classmethod
     def from_params(cls, session, params):
         """Create new transfer from parameter values and save in RDb."""
+        if (
+            not isinstance(params["transfer_id"], int)
+            or not isinstance(params["src_base_dir"], str)
+            or not isinstance(params["dest_base_dir"], str)
+        ):
+            raise TransferValueError
         manifest_json = "[]"
         if "manifest" in params:
             assert isinstance(params["manifest"], list)
@@ -77,12 +83,6 @@ class Transfer:
             assert isinstance(params["manifest_json"], str)
             manifest_json = params["manifest_json"]
         try:
-            if (
-                not isinstance(params["transfer_id"], int)
-                or not isinstance(params["src_base_dir"], str)
-                or not isinstance(params["dest_base_dir"], str)
-            ):
-                raise SQLAlchemyError
             data = models.Transfer(
                 id=params["transfer_id"],
                 status="queued",
@@ -425,16 +425,18 @@ class Transfer:
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-        logger.debug(f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads")
+        logger.debug(
+            f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
+        )
         parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         logger.debug(f"Transfer {self.data.id}: Chmod files")
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-        parallel_chmod(dest, file_mode, folder_mode, parallelism=parallelism)
+        parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
-def check_queue(session) -> None:
+def check_transfer_queue(session) -> None:
     """
     Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
     transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
@@ -551,10 +553,25 @@ def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
     rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
 
 
-def parallel_chmod(path, file_mode, folder_mode, parallelism=1):
+def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):
     """
     Recursively copy folder and set permissions.
     """
+    if not os.path.isdir(path):
+        if kwargs.get("ok_not_exists", False) is True:
+            return
+        else:
+            raise IOError(f"Cannot chmod; path does not exist: {path}")
+    if kwargs.get("chmod_parent", False) is True:
+        try:
+            parent = os.path.dirname(path)
+            os.chmod(parent, folder_mode)
+        except Exception as error:
+            logger.warning(f"Error changing permissions of {parent}: {error}")
+    try:
+        os.chmod(path, folder_mode)
+    except Exception as error:
+        logger.warning(f"Error changing permissions of {path}: {error}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
         root_dir = os.path.abspath(path)
         for src_dir, dirs, files in os.walk(root_dir):
@@ -587,3 +604,127 @@ def reset_queue(session):
     for row in rows:
         transfer = Transfer(session, row)
         transfer.update_status("queued")
+
+
+class FixPermsError(Exception):
+    # base class for all errors in this package
+    pass
+
+
+class FixPermsDbError(FixPermsError):
+    pass
+
+
+class FixPermsNotFoundError(FixPermsError):
+    pass
+
+
+class FixPermsValueError(FixPermsError):
+    pass
+
+
+class FixPerms:
+    """Class representing a transfer (set of files to transfer) associated with one Run."""
+
+    def __init__(self, session, data):
+        """
+        Initialize transfer object.
+        :param session: database handle
+        :ptype session: SqlAlchemy.session
+        :param data: ORM record for this object
+        :ptype: sqlalchemy.ext.declarative.declarative_base
+        """
+        self.session = session
+        self.data = data
+
+    @classmethod
+    def from_params(cls, session, params):
+        """Create new transfer from parameter values and save in RDb."""
+        try:
+            data = models.Fix_Perms(
+                base_dir=params["base_dir"],
+            )
+        except SQLAlchemyError as error:
+            raise FixPermsValueError(
+                f"Error creating model for new FixPerms: {params}: {error}"
+            )
+        try:
+            session.add(data)
+            session.commit()
+        except SQLAlchemyError as error:
+            session.rollback()
+            raise FixPermsDbError(error)
+        else:
+            return cls(session, data)
+
+    @classmethod
+    def from_id(cls, session, fix_perms_id: int):
+        """Select existing FixPerms record from RDb by primary key"""
+        try:
+            data = (
+                session.query(models.Fix_Perms)
+                .filter_by(id=int(fix_perms_id))
+                .one_or_none()
+            )
+        except SQLAlchemyError as error:
+            raise FixPermsDbError(f"Error selecting FixPerms {fix_perms_id}: {error}")
+        except Exception as error:
+            raise FixPermsError(f"Error selecting FixPerms {fix_perms_id}: {error}")
+        else:
+            if data is None:
+                raise FixPermsNotFoundError(f"FixPerms {fix_perms_id} not found")
+            else:
+                return cls(session, data)
+
+    def fix_perms(self, parallelism=3):
+        """
+        Recursively change the permissions of folders and files.
+        """
+        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
+        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+        try:
+            parallel_chmod(self.data.base_dir, file_mode, folder_mode, parallelism)
+        except Exception as error:
+            logger.error(f"Fix perms {self.data.id} failed: {error}")
+            self.update_status("failed", str(error))
+        else:
+            self.udpate("succeeded")
+
+    def update_status(self, new_status: str, reason: str = None) -> None:
+        """
+        Update status.
+        """
+        logger.info(f"Fix Perms {self.data.id}: now {new_status}")
+        if reason is not None:
+            reason = reason[:MAX_ERROR_STRING_LEN]
+        timestamp = datetime.utcnow()
+        try:
+            self.data.status = new_status
+            self.data.updated = timestamp
+            if reason is not None:
+                self.data.reason = reason
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.session.rollback()
+            logger.exception(f"Unable to update Fix Perms {self.data.id}: {error}")
+
+
+def check_fix_perms_queue(session) -> None:
+    """
+    Do any chmod tasks for Globus transfers.
+    """
+    rows = []
+    try:
+        rows = (
+            session.query(models.Fix_Perms)
+            .filter(models.Fix_Perms.status == "queued")
+            .order_by(models.Fix_Perms.id)
+            .all()
+        )
+    except SQLAlchemyError as error:
+        logger.warning(
+            f"Failed to select transfer task from db: {error}", exc_info=True
+        )
+    for row in rows:
+        fix_perms = FixPerms(session, row)
+        fix_perms.fix_perms()

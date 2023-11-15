@@ -24,18 +24,18 @@ elsewhere in JAWS, as clarified below:
 """
 
 
-import urllib3
-import requests
-import requests.adapters
+import glob
+import io
+import json
 import logging
 import os
-import glob
-import json
-import io
 import re
+
 import boto3
 import botocore
-
+import requests
+import requests.adapters
+import urllib3
 
 REQUEST_TIMEOUT = 120
 NUMBER_OF_RETRIES = 5

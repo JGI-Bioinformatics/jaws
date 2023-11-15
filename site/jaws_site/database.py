@@ -1,9 +1,10 @@
 import logging
 from urllib.parse import quote_plus
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, registry
-from jaws_site import config
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import registry, sessionmaker
+
+from jaws_site import config
 
 logger = logging.getLogger(__package__)
 

@@ -3,13 +3,14 @@ JAWS Daemon process periodically checks on runs and performs actions to usher
 them to the next state.
 """
 
-import schedule
-import time
 import logging
-from jaws_site import database, runs, config
+import time
+
+import schedule
 
 # from jaws_site import perf_metrics_es
 from jaws_rpc import rpc_client, rpc_client_basic
+from jaws_site import config, database, runs
 
 logger = logging.getLogger(__package__)
 
