@@ -1,10 +1,11 @@
 import json
 import logging
-import pika
 from datetime import datetime
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError, OperationalError
-from jaws_site import models
 
+import pika
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+
+from jaws_site import models
 
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 

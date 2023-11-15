@@ -3,17 +3,17 @@ Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc
 Items are stored in a relational database.
 """
 import concurrent.futures
+import json
 import logging
 import os
 from datetime import datetime
-from sqlalchemy.exc import SQLAlchemyError
-import json
+
 import boto3
-from jaws_site import config, models
 import botocore
-
 from parallel_sync import rsync
+from sqlalchemy.exc import SQLAlchemyError
 
+from jaws_site import config, models
 
 logger = logging.getLogger(__package__)
 

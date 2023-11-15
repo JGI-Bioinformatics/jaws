@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 import argparse
-from math import ceil
-
-from time import sleep
-from datetime import datetime
-import os
 import logging
-import sys
+import os
 import signal
-
-from typing import Dict, List
+import sys
+from datetime import datetime
+from math import ceil
 from pathlib import Path
+from time import sleep
+from typing import Dict, List
+
 from jaws_site.filewriter import FileWriter
 
 # This script is a copy of the pagurus script in github: https://github.com/tylern4/pagurus

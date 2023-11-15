@@ -17,28 +17,25 @@
 # ** these are the two terminal states
 
 
-import os
-import logging
-import json
 import io
+import json
+import logging
+import os
+import shutil
 from datetime import datetime
+from random import shuffle
+
+import boto3
+import botocore
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import sessionmaker
-import boto3
-import botocore
-from random import shuffle
-import shutil
-from jaws_site import models, config
-from jaws_site.cromwell import (
-    Cromwell,
-    CromwellError,
-    CromwellRunNotFoundError,
-    CromwellServiceError,
-)
+
+from jaws_site import config, models
+from jaws_site.cromwell import (Cromwell, CromwellError,
+                                CromwellRunNotFoundError, CromwellServiceError)
 from jaws_site.tasks import TaskLog
 from jaws_site.utils import write_json_file
-
 
 logger = logging.getLogger(__package__)
 

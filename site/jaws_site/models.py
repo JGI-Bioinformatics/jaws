@@ -3,17 +3,11 @@ SQLAlchemy models for persistent data structures.
 """
 
 from datetime import datetime
-from sqlalchemy import (
-    Column,
-    DateTime,
-    String,
-    Float,
-    Integer,
-    SmallInteger,
-    Boolean,
-    ForeignKey,
-)
+
+from sqlalchemy import (Boolean, Column, DateTime, Float, ForeignKey, Integer,
+                        SmallInteger, String)
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
+
 from jaws_site.database import Base
 
 

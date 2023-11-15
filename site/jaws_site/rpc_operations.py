@@ -1,12 +1,12 @@
 import logging
-from jaws_rpc.responses import success, failure
+
+from jaws_rpc.responses import failure, success
 from jaws_site import config
 from jaws_site import queue_wait as slurm_queue_wait
 from jaws_site.cromwell import Cromwell
 from jaws_site.runs import Run
 from jaws_site.tasks import TaskLog
-from jaws_site.transfers import Transfer, FixPerms
-
+from jaws_site.transfers import FixPerms, Transfer
 
 DEFAULT_TZ = "America/Los_Angeles"
 

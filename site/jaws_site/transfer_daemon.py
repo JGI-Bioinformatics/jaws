@@ -1,8 +1,9 @@
 import logging
-import schedule
 import time
-from jaws_site import database, transfers
 
+import schedule
+
+from jaws_site import database, transfers
 
 logger = logging.getLogger(__package__)
 

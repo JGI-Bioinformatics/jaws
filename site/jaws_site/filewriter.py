@@ -2,10 +2,10 @@
 Filewriter class used by Nick Tyler's Pagarus utility
 """
 
-import logging
 import bz2
 import gzip
 import json
+import logging
 from pathlib import Path
 from typing import Dict, List
 
