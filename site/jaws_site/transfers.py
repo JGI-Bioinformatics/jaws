@@ -325,13 +325,6 @@ class Transfer:
                     raise IOError(error)
 
     def s3_download(self):
-        return (
-            self.s3_download_files()
-            if len(self.manifest())
-            else self.s3_download_folder()
-        )
-
-    def s3_download_files(self):
         manifest = self.manifest()
         num_files = len(manifest)
         logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
@@ -367,44 +360,6 @@ class Transfer:
                 logger.error(msg)
                 self.update_status("download failed", msg)
                 raise IOError(error)
-
-    def s3_download_folder(self):
-        aws_s3_client = self.aws_s3_client()
-        s3_bucket, src_base_dir = self.s3_parse_path(self.data.src_base_dir)
-        paginator = aws_s3_client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=s3_bucket, Prefix=src_base_dir):
-            for obj in page["Contents"]:
-                rel_path = obj["Key"]
-                size = obj["Size"]
-                dest_rel_path = rel_path.removeprefix(src_base_dir)
-                dest_path = os.path.normpath(
-                    os.path.join(self.data.dest_base_dir, f"./{dest_rel_path}")
-                )
-                logger.debug(f"S3 download {rel_path} -> {dest_path}")
-                if rel_path.endswith("/") and size == 0:
-                    try:
-                        mkdir(dest_path)
-                    except Exception as error:
-                        msg = f"Unable to make download dir, {dest_path}: {error}"
-                        logger.error(msg)
-                        self.update_status("download failed", msg)
-                        raise IOError(msg)
-                else:
-                    try:
-                        basedir = os.path.dirname(dest_path)
-                        mkdir(basedir)
-                    except Exception as error:
-                        msg = f"Unable to make download dir, {basedir}: {error}"
-                        logger.error(msg)
-                        self.update_status("download failed", msg)
-                        raise IOError(msg)
-                    try:
-                        aws_s3_client.download_file(s3_bucket, rel_path, dest_path)
-                    except Exception as error:
-                        msg = f"S3 download error, {rel_path}: {error}"
-                        logger.error(msg)
-                        self.update_status("download failed", msg)
-                        raise IOError(msg)
 
     def local_copy(self) -> None:
         """
@@ -535,7 +490,7 @@ def calculate_parallelism(num_files):
 
 def parallel_copy_files_only(manifest: list, src: str, dest: str, **kwargs):
     """
-    Given list of files, copy them in parallel using rsync.  Copies regular files only, skips others.
+    Given list of files, copy them in parallel using parallel_sync.  Copies regular files only, skips others.
     :param manifest: list of file relative paths
     :ptype manifest: list
     :param src: source root directory

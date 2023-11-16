@@ -529,32 +529,7 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
         transfer.s3_upload()
 
 
-def test_s3_download(mock_sqlalchemy_session, monkeypatch):
-    def mock_s3_download_files(self):
-        self.TRANSFER_TYPE = "s3_download_files"
-
-    def mock_s3_download_folder(self):
-        self.TRANSFER_TYPE = "s3_download_folder"
-
-    monkeypatch.setattr(transfers.Transfer, "s3_download_files", mock_s3_download_files)
-    monkeypatch.setattr(
-        transfers.Transfer, "s3_download_folder", mock_s3_download_folder
-    )
-
-    # TEST1: transfer files
-    mock_data = initTransferModel(manifest_json='["file1"]')
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.s3_download()
-    assert transfer.TRANSFER_TYPE == "s3_download_files"
-
-    # TEST2: transfer folder
-    mock_data = initTransferModel(manifest_json="[]")
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.s3_download()
-    assert transfer.TRANSFER_TYPE == "s3_download_folder"
-
-
-def test_s3_download_files(s3, mock_sqlalchemy_session, monkeypatch):
+def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
     def mock_manifest(self):
         return ["file1", "file2", "file3"]
 
@@ -564,15 +539,7 @@ def test_s3_download_files(s3, mock_sqlalchemy_session, monkeypatch):
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
 
     with pytest.raises(OSError):
-        transfer.s3_download_files()
-
-
-def test_s3_download_folder(s3, mock_sqlalchemy_session, monkeypatch):
-    mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-
-    with pytest.raises(botocore.exceptions.ParamValidationError):
-        transfer.s3_download_folder()
+        transfer.s3_download()
 
 
 def test_get_abs_files(setup_dir_tree):
