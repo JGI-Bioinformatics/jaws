@@ -9,7 +9,6 @@ import os
 from datetime import datetime
 
 import boto3
-import botocore
 from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
 
