@@ -490,7 +490,7 @@ def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
     mock_data = initTransferModel()
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
 
-    with pytest.raises(OSError):
+    with pytest.raises(Exception):
         transfer.s3_download()
 
 

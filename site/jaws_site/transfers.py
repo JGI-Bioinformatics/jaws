@@ -13,6 +13,7 @@ from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
 
 from jaws_site import config, models
+import time
 
 logger = logging.getLogger(__package__)
 
@@ -320,6 +321,10 @@ class Transfer:
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
         parallel_chmod(dest, file_mode, folder_mode, parallelism)
+
+        # temporarily add for testing
+        logger.debug("Sleeping to test db connection")
+        time.sleep(3700)
 
 
 def check_transfer_queue(session) -> None:
