@@ -267,7 +267,7 @@ class Transfer:
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
             dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
             if dest_file_size is not None and src_file_size == dest_file_size:
-                logger.debug(f"S3 upload: Skipping cached file {dest_path}")
+                logger.debug(f"S3 upload: Skipping existing file {dest_path}")
             else:
                 logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
                 with open(src_path, "rb") as fh:

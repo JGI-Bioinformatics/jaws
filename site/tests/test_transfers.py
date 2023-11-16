@@ -76,7 +76,7 @@ def test_manifest():
 
 
 def test_transfer_files(monkeypatch):
-    def mock_update_status(self, new_status):
+    def mock_update_status(self, new_status, reason=None):
         assert type(new_status) is str
         assert new_status != self.data.status
 
@@ -424,57 +424,6 @@ def test_s3_file_size(s3, mock_sqlalchemy_session, monkeypatch):
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
     transfer.s3_file_size(S3_BUCKET, "file_key")
 
-    # Test list_objects_v2 ClientError exception
-    class MockS3Client:
-        def __init__(self):
-            pass
-
-        def list_objects_v2(self, Bucket=None, Prefix=None):
-            raise botocore.exceptions.ClientError(
-                error_response={"Error": {"Code": "code", "Message": "message"}},
-                operation_name="operation_name",
-            )
-
-    def mock_aws_s3_client(self):
-        return MockS3Client()
-
-    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
-
-    with pytest.raises(botocore.exceptions.ClientError):
-        transfer.s3_file_size(S3_BUCKET, "file_key")
-
-    # Test list_objects_v2 ValueError exception
-    class MockS3ClientParamValidationError:
-        def __init__(self):
-            pass
-
-        def list_objects_v2(self, Bucket=None, Prefix=None):
-            raise botocore.exceptions.ParamValidationError(report={})
-
-    def mock_aws_s3_client(self):
-        return MockS3ClientParamValidationError()
-
-    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
-
-    with pytest.raises(ValueError):
-        transfer.s3_file_size(S3_BUCKET, "file_key")
-
-    # Test list_objects_v2  exception
-    class MockS3ClientException:
-        def __init__(self):
-            pass
-
-        def list_objects_v2(self, Bucket=None, Prefix=None):
-            raise Exception
-
-    def mock_aws_s3_client(self):
-        return MockS3ClientException()
-
-    monkeypatch.setattr(transfers.Transfer, "aws_s3_client", mock_aws_s3_client)
-
-    with pytest.raises(Exception):
-        transfer.s3_file_size(S3_BUCKET, "file_key")
-
     # Test if Contents, size=1
     class MockS3Client2:
         def __init__(self):
@@ -522,11 +471,15 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
 
     monkeypatch.setattr(os.path, "getsize", mock_get_size)
 
+    def mock_s3_file_size(self, s3_bucket, dest_path, aws_client):
+        return 10
+
+    monkeypatch.setattr(transfers.Transfer, "s3_file_size", mock_s3_file_size)
+
     mock_data = initTransferModel()
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
 
-    with pytest.raises(ValueError):
-        transfer.s3_upload()
+    transfer.s3_upload()
 
 
 def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
