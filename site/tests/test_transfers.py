@@ -4,7 +4,6 @@ import os.path
 import stat
 
 import boto3
-import botocore
 import jaws_site
 import pytest
 import sqlalchemy
