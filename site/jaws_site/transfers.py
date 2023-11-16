@@ -169,12 +169,14 @@ class Transfer:
             logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
             raise (error)
 
-    def transfer_files(self) -> None:
+    def transfer_files(self, Session) -> None:
         """
         Do the transfer and return when done -- the operation is blocking.
         """
         logger.debug(f"Begin transfer {self.data.id}")
         self.update_status("transferring")
+        result = None
+        reason = None
         try:
             if self.data.src_base_dir.startswith("s3://"):
                 self.s3_download()
@@ -183,42 +185,35 @@ class Transfer:
             else:
                 self.local_copy()
         except Exception as error:
-            self.update_status("failed", str(error))
+            result = "failed"
+            reason = str(error)
         else:
-            self.update_status("succeeded")
+            result = succeeded
+
+        # session may be stale, so close it and get a new one
+        self.session.close()
+        self.session = Session()
+        self.update_status("succeeded")
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
         aws_secret_access_key = config.conf.get("AWS", "aws_secret_access_key")
         aws_region_name = config.conf.get("AWS", "aws_region_name")
-        try:
-            aws_session = boto3.Session(
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_region_name,
-            )
-        except Exception as error:
-            raise (f"Error getting aws session: {error}")
-        try:
-            s3_resource = aws_session.resource("s3")
-        except Exception as error:
-            raise (f"Error getting s3 sources: {error}")
-        else:
-            return s3_resource
+        aws_session = boto3.Session(
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            region_name=aws_region_name,
+        )
+        return aws_session.resource("s3")
 
     def aws_s3_client(self):
-        try:
-            aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
-            aws_secret_access_key = config.conf.get("AWS", "aws_secret_access_key")
-            client = boto3.client(
-                "s3",
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-            )
-        except Exception as error:
-            raise (f"Failed to get AWS client: {error}")
-        else:
-            return client
+        aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
+        aws_secret_access_key = config.conf.get("AWS", "aws_secret_access_key")
+        return boto3.client(
+            "s3",
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+        )
 
     @staticmethod
     def s3_parse_path(full_path):
@@ -226,7 +221,6 @@ class Transfer:
         folders = full_path.split("/")
         s3_bucket = folders.pop(0)
         path = "/".join(folders)
-        # print(f"S3 BUCKET={s3_bucket}; PATH={path}")
         return s3_bucket, path
 
     def s3_file_size(self, bucket, file_key, aws_s3_client=None):
@@ -241,20 +235,8 @@ class Transfer:
         :return: size
         :rtype: int
         """
-        if aws_s3_client is None:
-            aws_s3_client = self.aws_s3_client()
-        try:
-            result = aws_s3_client.list_objects_v2(Bucket=bucket, Prefix=file_key)
-        except botocore.exceptions.ClientError as error:
-            logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
-            raise
-        except botocore.exceptions.ParamValidationError as error:
-            raise ValueError(
-                "The parameters you provided are incorrect: {}".format(error)
-            )
-        except Exception as error:
-            logger.error(f"Error getting S3 obj stats for {file_key}: {error}")
-            raise
+        aws_s3_client = self.aws_s3_client()
+        result = aws_s3_client.list_objects_v2(Bucket=bucket, Prefix=file_key)
         size = None
         if "Contents" in result:
             contents = result["Contents"]
@@ -276,53 +258,21 @@ class Transfer:
         manifest = self.manifest()
         num_files = len(manifest)
         logger.debug(f"Transfer {self.data.id} begin s3 upload of {num_files} files")
-        try:
-            aws_client = self.aws_s3_client()
-        except Exception as error:
-            # do not fail, retry later
-            logger.error(f"{error}")
-            return
-        try:
-            aws_s3_resource = self.aws_s3_resource()
-        except Exception as error:
-            # do not fail, retry later
-            logger.error(f"{error}")
-            return
-        try:
-            s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
-        except Exception as error:
-            msg = f"Error parsing s3 uri, {self.data.dest_base_dir}: {error}"
-            logger.error(msg)
-            self.update_status("upload failed", msg)
-            raise
-        try:
-            bucket_obj = aws_s3_resource.Bucket(s3_bucket)
-        except Exception as error:
-            msg = f"Error accessing bucket, {s3_bucket}: {error}"
-            logger.error(msg)
-            self.update_status("upload failed", msg)
-            raise
+        aws_client = self.aws_s3_client()
+        aws_s3_resource = self.aws_s3_resource()
+        s3_bucket, dest_base_dir = self.s3_parse_path(self.data.dest_base_dir)
+        bucket_obj = aws_s3_resource.Bucket(s3_bucket)
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(self.data.src_base_dir, rel_path))
             src_file_size = os.path.getsize(src_path)
             dest_path = os.path.normpath(os.path.join(dest_base_dir, rel_path))
-            try:
-                dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
-            except Exception as error:
-                self.update_status("upload failed", f"{error}")
-                raise
+            dest_file_size = self.s3_file_size(s3_bucket, dest_path, aws_client)
             if dest_file_size is not None and src_file_size == dest_file_size:
                 logger.debug(f"S3 upload: Skipping cached file {dest_path}")
             else:
                 logger.debug(f"S3 upload to {s3_bucket}: {src_path} -> {dest_path}")
-                try:
-                    with open(src_path, "rb") as fh:
-                        bucket_obj.upload_fileobj(fh, dest_path)
-                except Exception as error:
-                    msg = f"Failed to upload to S3, file {src_path} -> {dest_path}: {error}"
-                    logger.error(msg)
-                    self.update_status("upload failed", msg)
-                    raise IOError(error)
+                with open(src_path, "rb") as fh:
+                    bucket_obj.upload_fileobj(fh, dest_path)
 
     def s3_download(self):
         manifest = self.manifest()
@@ -330,13 +280,7 @@ class Transfer:
         logger.debug(f"Transfer {self.data.id} begin s3 download of {num_files} files")
         aws_s3_resource = self.aws_s3_resource()
         s3_bucket, src_base_dir = self.s3_parse_path(self.data.src_base_dir)
-        try:
-            bucket_obj = aws_s3_resource.Bucket(s3_bucket)
-        except Exception as error:
-            msg = f"Error accessing bucket, {s3_bucket}: {error}"
-            logger.error(msg)
-            self.update_status("download failed", msg)
-            raise
+        bucket_obj = aws_s3_resource.Bucket(s3_bucket)
         for rel_path in manifest:
             src_path = os.path.normpath(os.path.join(src_base_dir, rel_path))
             dest_path = os.path.normpath(
@@ -346,20 +290,9 @@ class Transfer:
                 f"S3 download from {s3_bucket}: {rel_path} as {src_path} -> {dest_path}"
             )
             dest_folder = os.path.dirname(dest_path)
-            try:
-                mkdir(dest_folder)
-            except IOError as error:
-                msg = f"Unable to make download dir, {dest_folder}: {error}"
-                logger.error(msg)
-                self.update_status("download failed", msg)
-            try:
-                with open(dest_path, "wb") as fh:
-                    bucket_obj.download_fileobj(src_path, fh)
-            except Exception as error:
-                msg = f"Failed to download s3 file, {src_path}: {error}"
-                logger.error(msg)
-                self.update_status("download failed", msg)
-                raise IOError(error)
+            mkdir(dest_folder)
+            with open(dest_path, "wb") as fh:
+                bucket_obj.download_fileobj(src_path, fh)
 
     def local_copy(self) -> None:
         """
