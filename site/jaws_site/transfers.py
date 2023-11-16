@@ -188,7 +188,7 @@ class Transfer:
             result = "failed"
             reason = str(error)
         else:
-            result = succeeded
+            result = "succeeded"
 
         # session may be stale, so close it to get a new connection
         self.session.close()
