@@ -13,7 +13,7 @@ test_config = {
 
 
 def test_method(params={}):
-    return True
+    pass
 
 
 test_operations = {"test": test_method}

@@ -25,6 +25,10 @@ class RpcClient(object):
         """
         self.params = {}
         self.logger = logger
+        self.queue = {}
+        self.channel = None
+        self.connection = None
+        self.callback_queue = None
         for required_param in ["host", "vhost", "user", "password", "queue"]:
             if required_param not in params:
                 raise ConfigurationError(f"{required_param} required")
@@ -37,10 +41,6 @@ class RpcClient(object):
         self.message_ttl = int(params.get("rpc_message_ttl", DEFAULT_MESSAGE_TTL))
         if self.message_ttl > self.max_wait:
             raise ConfigurationError("rpc_message_ttl must be <= rpc_max_wait")
-        self.queue = {}
-        self.channel = None
-        self.connection = None
-        self.callback_queue = None
         self.open()
 
     def __enter__(self):
