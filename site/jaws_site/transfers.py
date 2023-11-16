@@ -169,7 +169,7 @@ class Transfer:
             logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
             raise (error)
 
-    def transfer_files(self, Session) -> None:
+    def transfer_files(self) -> None:
         """
         Do the transfer and return when done -- the operation is blocking.
         """
@@ -190,10 +190,9 @@ class Transfer:
         else:
             result = succeeded
 
-        # session may be stale, so close it and get a new one
+        # session may be stale, so close it to get a new connection
         self.session.close()
-        self.session = Session()
-        self.update_status("succeeded")
+        self.update_status(result, reason)
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
