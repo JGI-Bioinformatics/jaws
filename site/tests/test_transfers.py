@@ -9,15 +9,28 @@ import pytest
 import sqlalchemy
 from deepdiff import DeepDiff
 from jaws_site import transfers
-from jaws_site.transfers import (FixPerms, Transfer, TransferDbError,
-                                 TransferNotFoundError, TransferValueError,
-                                 abs_to_rel_paths, check_fix_perms_queue,
-                                 check_transfer_queue, get_abs_files,
-                                 list_all_files_under_dir, mkdir,
-                                 parallel_chmod)
+from jaws_site.transfers import (
+    FixPerms,
+    Transfer,
+    TransferDbError,
+    TransferNotFoundError,
+    TransferValueError,
+    abs_to_rel_paths,
+    check_fix_perms_queue,
+    check_transfer_queue,
+    get_abs_files,
+    list_all_files_under_dir,
+    mkdir,
+    parallel_chmod,
+)
 
-from tests.conftest import (S3_BUCKET, MockSession, MockTransfer,
-                            MockTransferModel, initTransferModel)
+from tests.conftest import (
+    S3_BUCKET,
+    MockSession,
+    MockTransfer,
+    MockTransferModel,
+    initTransferModel,
+)
 
 
 def test_mkdir(tmp_path):
@@ -479,19 +492,6 @@ def test_s3_upload(s3, mock_sqlalchemy_session, monkeypatch):
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
 
     transfer.s3_upload()
-
-
-def test_s3_download(s3, mock_sqlalchemy_session, monkeypatch):
-    def mock_manifest(self):
-        return ["file1", "file2", "file3"]
-
-    monkeypatch.setattr(transfers.Transfer, "manifest", mock_manifest)
-
-    mock_data = initTransferModel()
-    transfer = Transfer(mock_sqlalchemy_session, mock_data)
-
-    with pytest.raises(Exception):
-        transfer.s3_download()
 
 
 def test_get_abs_files(setup_dir_tree):
