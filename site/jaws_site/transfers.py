@@ -181,7 +181,7 @@ class Transfer:
             elif self.data.dest_base_dir.startswith("s3://"):
                 self.s3_upload()
             else:
-                self.local_rsync()
+                self.local_copy()
         except Exception as error:
             self.update_status("failed", str(error))
         else:
@@ -406,7 +406,7 @@ class Transfer:
                         self.update_status("download failed", msg)
                         raise IOError(msg)
 
-    def local_rsync(self) -> None:
+    def local_copy(self) -> None:
         """
         Copy files and folders (recursively).
         """

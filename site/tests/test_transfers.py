@@ -90,12 +90,12 @@ def test_transfer_files(monkeypatch):
     def mock_s3_upload(self):
         self.TRANSFER_TYPE = "s3_upload"
 
-    def mock_local_rsync(self):
-        self.TRANSFER_TYPE = "local_rsync"
+    def mock_local_copy(self):
+        self.TRANSFER_TYPE = "local_copy"
 
     monkeypatch.setattr(Transfer, "s3_download", mock_s3_download)
     monkeypatch.setattr(Transfer, "s3_upload", mock_s3_upload)
-    monkeypatch.setattr(Transfer, "local_rsync", mock_local_rsync)
+    monkeypatch.setattr(Transfer, "local_copy", mock_local_copy)
 
     mock_session = MockSession()
 
@@ -127,10 +127,10 @@ def test_transfer_files(monkeypatch):
     )
     transfer = Transfer(mock_session, mock_data)
     transfer.transfer_files()
-    assert transfer.TRANSFER_TYPE == "local_rsync"
+    assert transfer.TRANSFER_TYPE == "local_copy"
 
 
-def test_local_rsync(monkeypatch, mock_sqlalchemy_session, setup_files):
+def test_local_copy(monkeypatch, mock_sqlalchemy_session, setup_files):
     src, dest = setup_files
     mock_data = MockTransferModel(
         status="queued",
@@ -138,7 +138,7 @@ def test_local_rsync(monkeypatch, mock_sqlalchemy_session, setup_files):
         dest_base_dir=dest,
     )
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.local_rsync()
+    transfer.local_copy()
 
 
 def test_calculate_parallelism():
