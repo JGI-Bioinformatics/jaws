@@ -428,7 +428,7 @@ class Transfer:
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
-        parallel_rsync_files_only(rel_paths, src, dest, parallelism=parallelism)
+        parallel_copy_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         logger.debug(f"Transfer {self.data.id}: Chmod files")
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
@@ -533,7 +533,7 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_rsync_files_only(manifest: list, src: str, dest: str, **kwargs):
+def parallel_copy_files_only(manifest: list, src: str, dest: str, **kwargs):
     """
     Given list of files, copy them in parallel using rsync.  Copies regular files only, skips others.
     :param manifest: list of file relative paths
