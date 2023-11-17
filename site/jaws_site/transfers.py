@@ -191,7 +191,7 @@ class Transfer:
             result = "succeeded"
 
         # session may be stale, so close it to get a new connection
-        self.session.close()
+        self.session.remove()
         self.update_status(result, reason)
 
     def aws_s3_resource(self):
