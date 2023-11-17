@@ -70,7 +70,7 @@ def rpc_server() -> None:
     from sqlalchemy.orm import scoped_session
 
     from jaws_site import rpc_operations
-    from jaws_site.database import session_factory
+    from jaws_site.database import Session
 
     # start RPC server
     rpc_server_params = config.conf.get_section("RMQ")
@@ -80,7 +80,7 @@ def rpc_server() -> None:
         rpc_server_params,
         logger,
         rpc_operations.operations,
-        scoped_session(session_factory),
+        scoped_session(Session),
     )
     app.start_server()
 
@@ -123,14 +123,19 @@ def pool_manager_daemon() -> None:
 
 
 @cli.command()
-def task_logger_receive() -> None:
+def task_log_consumer() -> None:
     """Start task-log message receiver."""
+<<<<<<< HEAD
     from jaws_site.database import session_factory
     from jaws_site.task_logger import TaskLogger
+=======
+    from jaws_site.database import Session
+    from jaws_site.task_log_consumer import TaskLogConsumer
+>>>>>>> 9e292585 (rename task-logger-receive to task-log-consumer)
 
-    session = session_factory()
-    task_logger = TaskLogger(config.conf, session)
-    task_logger.receive_messages()
+    with Session() as session:
+        consumer = TaskLogConsumer(config.conf, session, logger=logger)
+        consumer.receive_messages()
 
 
 def jaws():
