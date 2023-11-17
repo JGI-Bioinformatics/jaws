@@ -2,6 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 - add function to chmod files/folders transferred via Globus (#1739)
+- remove worker nodes for new deployment or workflow node change (#1666)
 
 ### External Facing Changes
 

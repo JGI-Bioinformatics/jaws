@@ -5,6 +5,13 @@ function check_job_running {
   /usr/bin/squeue --noheader -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}" --state=running,pending -u "$USER" -o "%12i %2t %9u %25j %6D %10M %12q %8f %18R"
 }
 
+function stop_worker {
+  for sz in "small medium large xlarge"
+  do
+      /usr/bin/scancel -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}_htcondor_worker_$sz" -u "$USER" 
+  done
+}
+
 function stop_service {
   readarray -t job_status < <(check_job_running)
   
@@ -46,6 +53,7 @@ function scrontab {
       ;;
     "stop")
       stop_service
+      stop_worker
       ;;
     *)
       echo "Unknown strategy: $strategy"
