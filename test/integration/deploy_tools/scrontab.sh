@@ -6,7 +6,7 @@ function check_job_running {
 }
 
 function stop_worker {
-  for sz in "small medium large xlarge"
+  for sz in small medium large xlarge
   do
       /usr/bin/scancel -n "jaws_${JAWS_SITE_NAME}_${JAWS_DEPLOYMENT_NAME}_htcondor_worker_$sz" -u "$USER" 
   done
