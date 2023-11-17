@@ -123,19 +123,14 @@ def pool_manager_daemon() -> None:
 
 
 @cli.command()
-def task_log_consumer() -> None:
-    """Start task-log message receiver."""
-<<<<<<< HEAD
-    from jaws_site.database import session_factory
-    from jaws_site.task_logger import TaskLogger
-=======
+def consumer() -> None:
+    """Start async message consumer"""
+    from jaws_site.consumer import Consumer
     from jaws_site.database import Session
-    from jaws_site.task_log_consumer import TaskLogConsumer
->>>>>>> 9e292585 (rename task-logger-receive to task-log-consumer)
 
     with Session() as session:
-        consumer = TaskLogConsumer(config.conf, session, logger=logger)
-        consumer.receive_messages()
+        consumer = Consumer(config.conf, session, logger=logger)
+        consumer.consume()
 
 
 def jaws():

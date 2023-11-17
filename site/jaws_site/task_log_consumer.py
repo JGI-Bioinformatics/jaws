@@ -2,11 +2,11 @@ import json
 import logging
 from datetime import datetime
 
+from jaws_common.exceptions import JawsDbUnavailableError
+from jaws_common.messages import Consumer
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 
 from jaws_site import models
-from jaws_common.messages import Consumer
-from jaws_common.exceptions import JawsDbUnavailableError
 
 
 class TaskLoggerConsumer:
@@ -23,7 +23,14 @@ class TaskLoggerConsumer:
         self.logger = kwargs.get("logger", None)
         if self.logger is None:
             self.logger = logging.getLogger(__package__)
-        self.consumer = Consumer()
+        self.queue = f"jaws_{site_id}_{deployment}"
+        self.consumer = Consumer(
+            config=self.config,
+            session=self.session,
+            logger=self.logger,
+            queue=self.queue,
+            operations=operations,
+        )
 
     def save(self, params: dict) -> bool:
         timestamp = params.get("timestamp")
@@ -136,3 +143,9 @@ class TaskLoggerConsumer:
                 f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
             )
         return True
+
+    def consume(self):
+        """
+        Consume messages indefinately
+        """
+        self.consumer.consume()
