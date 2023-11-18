@@ -45,7 +45,9 @@ def test_validate_response():
         [],  # not a dict
         42,  # not a dict
         None,  # undefined
-        {"jsonrpc": "2.0", },  # must have either "error" or "result"
+        {
+            "jsonrpc": "2.0",
+        },  # must have either "error" or "result"
         {"result": {"foo": "bar"}},  # missing "jsonrpc"
         {"jsonrpc": "2.1", "result": 42},  # not jsonrpc 2.0
     ]

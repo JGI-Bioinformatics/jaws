@@ -1,6 +1,6 @@
 import logging
-import jaws_rpc.rpc_client
 
+import jaws_rpc.rpc_client
 
 invalid_test_config = {
     "host": "rmq.spaceforce.gov",

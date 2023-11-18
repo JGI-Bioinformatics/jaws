@@ -107,11 +107,19 @@ class JAWSConfigParser(configparser.ConfigParser):
             # name of the setting.
             strlen = len(env_override)
             if strlen < 3 or strlen > 20:  # The prefix must be 3-20 characters long
-                raise ValueError("env_override prefix must be from 3-20 characters in length")
+                raise ValueError(
+                    "env_override prefix must be from 3-20 characters in length"
+                )
             # should change to use removeprefix() for Python 3.9+ instead of slicing off prefix
-            basevars = {k[strlen:]: os.environ[k] for k in os.environ.keys() if k.startswith(env_override)}
+            basevars = {
+                k[strlen:]: os.environ[k]
+                for k in os.environ.keys()
+                if k.startswith(env_override)
+            }
             if len(basevars) > 0:
-                section_pre = re.compile("^([A-Z][:0-9A-Z_]*)_(.+)")  # match all caps section name, ending in _
+                section_pre = re.compile(
+                    "^([A-Z][:0-9A-Z_]*)_(.+)"
+                )  # match all caps section name, ending in _
                 temp = dict()
                 for key, val in basevars.items():
                     res = section_pre.match(key)
@@ -128,7 +136,9 @@ class JAWSConfigParser(configparser.ConfigParser):
                 elif templen == 0:
                     self._vars = basevars  # No environment variables options contained section names
                 else:
-                    raise KeyError("Cannot mix options with and without section prefixes")
+                    raise KeyError(
+                        "Cannot mix options with and without section prefixes"
+                    )
             else:
                 self._vars = dict()
         else:
@@ -149,15 +159,15 @@ class JAWSConfigParser(configparser.ConfigParser):
             # accidental matches against option name
             usection = section.upper()
             if usection in self._vars:
-                kwargs['vars'] = self._vars[usection]
+                kwargs["vars"] = self._vars[usection]
             elif len(self._vars) > 0:
                 # Section didn't match anything, then either we don't have a matching section
                 # and we use an empty dict() for vars
                 # or else _vars is a simple 1 level dictionary and we just pass along all of _vars
                 key1 = next(iter(self._vars))
                 if type(self._vars[key1]) is dict:
-                    kwargs['vars'] = dict()
+                    kwargs["vars"] = dict()
                 else:
-                    kwargs['vars'] = self._vars
+                    kwargs["vars"] = self._vars
         value = super().get(section, option, **kwargs)
         return value

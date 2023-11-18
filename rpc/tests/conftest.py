@@ -1,9 +1,10 @@
-import pytest
 import configparser
-import os
-import amqpstorm
-import threading
 import json
+import os
+import threading
+
+import amqpstorm
+import pytest
 
 
 @pytest.fixture
@@ -112,7 +113,7 @@ class MockChannel:
 
 
 class MockConnection:
-    """Mocks the RabbitMQ connection """
+    """Mocks the RabbitMQ connection"""
 
     def __init__(self, host, user, password, port, virtual_host="", heartbeat=0):
         self.host = host

@@ -1,12 +1,13 @@
 """RpcClient sends JSON-RPC2 messages to an RpcServer."""
 
+import json
 import threading
+from time import sleep
+
 import amqpstorm
 from amqpstorm import Message
-import json
-from time import sleep
-from jaws_rpc import jsonrpc_utils
 
+from jaws_rpc import jsonrpc_utils
 
 DEFAULT_PORT = 5672
 DEFAULT_WAIT_INTERVAL = 0.25

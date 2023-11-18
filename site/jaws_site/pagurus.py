@@ -28,6 +28,7 @@ class GracefulKiller:
     Kills the process graefully when it gets a signal from the OS.
     https://stackoverflow.com/questions/18499497/how-to-process-sigterm-signal-gracefully
     """
+
     kill_now = False
 
     def __init__(self, old_prefix=None, new_prefix=None, filename=None):
@@ -48,7 +49,8 @@ class GracefulKiller:
             self.running_file.rename(f"{self.new_prefix}/{self.filename}")
             logging.info(f"Killed with {signal.Signals(sig).name}")
             logging.info(
-                f"Moving {self.running_file} to {self.new_prefix}/{self.filename}")
+                f"Moving {self.running_file} to {self.new_prefix}/{self.filename}"
+            )
 
         logging.info("Killing Process")
         self.kill_now = True
@@ -78,18 +80,18 @@ def get_all_user_procs(username=None) -> List[int]:
             continue
 
         # Add user processes to list to return
-        if username == user and p != os.getpid() and name != 'slurm_script':
+        if username == user and p != os.getpid() and name != "slurm_script":
             user_procs.append(p)
 
     return user_procs
 
 
 def get_iocounters(pData: Dict):
-    if 'io_counters' in pData and pData['io_counters'] is not None:
-        read_count = pData['io_counters'].read_count
-        write_count = pData['io_counters'].write_count
-        read_chars = pData['io_counters'].read_chars
-        write_chars = pData['io_counters'].write_chars
+    if "io_counters" in pData and pData["io_counters"] is not None:
+        read_count = pData["io_counters"].read_count
+        write_count = pData["io_counters"].write_count
+        read_chars = pData["io_counters"].read_chars
+        write_chars = pData["io_counters"].write_chars
     else:
         read_count = "nan"
         write_count = "nan"
@@ -99,37 +101,37 @@ def get_iocounters(pData: Dict):
 
 
 def get_meminfo(pData):
-    rss = pData['memory_info'].rss
-    vms = pData['memory_info'].vms
+    rss = pData["memory_info"].rss
+    vms = pData["memory_info"].vms
 
     return rss, vms
 
 
 def get_cputimes(pData):
     # pcputimes(user=0.05, system=0.02, children_user=0.0, children_system=0.0, iowait=0.0)
-    if 'cpu_times' in pData and pData['cpu_times'] is not None:
-        user = pData['cpu_times'].user
-        system = pData['cpu_times'].system
+    if "cpu_times" in pData and pData["cpu_times"] is not None:
+        user = pData["cpu_times"].user
+        system = pData["cpu_times"].system
         try:
-            children_user = pData['cpu_times'].children_user
-            children_system = pData['cpu_times'].children_system
+            children_user = pData["cpu_times"].children_user
+            children_system = pData["cpu_times"].children_system
         except Exception as e:
-            logging.debug(f'Error ({type(e).__name__}): {e}')
+            logging.debug(f"Error ({type(e).__name__}): {e}")
             children_system = "nan"
             children_user = "nan"
 
         try:
-            iowait = pData['cpu_times'].iowait
-            cpu_num = pData['cpu_num']
+            iowait = pData["cpu_times"].iowait
+            cpu_num = pData["cpu_num"]
         except Exception as e:
-            logging.debug(f'Error ({type(e).__name__}): {e}')
+            logging.debug(f"Error ({type(e).__name__}): {e}")
             iowait = "nan"
             cpu_num = "nan"
 
         try:
-            idle = pData['cpu_times'].idle
+            idle = pData["cpu_times"].idle
         except Exception as e:
-            logging.debug(f'Error ({type(e).__name__}): {e}')
+            logging.debug(f"Error ({type(e).__name__}): {e}")
             idle = "nan"
 
     else:
@@ -148,7 +150,7 @@ def cmd_data(pData):
     """
     Gets data from the command line arguments and serilaizes it for csv
     """
-    cmd = pData['cmdline']
+    cmd = pData["cmdline"]
     if len(cmd) == 0:
         return "nan"
     cmd = [c.replace(",", "|") for c in cmd]
@@ -157,11 +159,16 @@ def cmd_data(pData):
 
 
 def runner(
-        path: str = ".", filename: str = "stats.csv",
-        pole_rate: float = 0.1, username: str = "",
-        write_header: bool = True,
-        move: bool = False, rolling: int = 0,
-        json: bool = False, env: Dict = {}):
+    path: str = ".",
+    filename: str = "stats.csv",
+    pole_rate: float = 0.1,
+    username: str = "",
+    write_header: bool = True,
+    move: bool = False,
+    rolling: int = 0,
+    json: bool = False,
+    env: Dict = {},
+):
     """
     Runs while your executable is still running and logs info
     about running process to the output file, defaulting to CSV format
@@ -183,9 +190,9 @@ def runner(
     out_dir.mkdir(exist_ok=True)
 
     if move:
-        killer = GracefulKiller(old_prefix=f"{path}/running",
-                                new_prefix=f"{path}/done",
-                                filename=filename)
+        killer = GracefulKiller(
+            old_prefix=f"{path}/running", new_prefix=f"{path}/done", filename=filename
+        )
         running = out_dir / "running"
         running.mkdir(exist_ok=True)
         (out_dir / "done").mkdir(exist_ok=True)
@@ -194,17 +201,39 @@ def runner(
         killer = GracefulKiller()
         outfile = out_dir / f"{filename}"
 
-    header = ["@timestamp", "pid", "ppid", "name", "num_threads", "cpu_num",
-              "cpu_user", "cpu_system", "cpu_iowait",
-              "cpu_children_system", "cpu_children_user", "idle",
-              "mem_rss", "mem_vms", 'memory_percent',
-              "num_fds", "read_count", "write_count", "read_chars",
-              "write_chars", "cmdline", "current_dir"]
+    header = [
+        "@timestamp",
+        "pid",
+        "ppid",
+        "name",
+        "num_threads",
+        "cpu_num",
+        "cpu_user",
+        "cpu_system",
+        "cpu_iowait",
+        "cpu_children_system",
+        "cpu_children_user",
+        "idle",
+        "mem_rss",
+        "mem_vms",
+        "memory_percent",
+        "num_fds",
+        "read_count",
+        "write_count",
+        "read_chars",
+        "write_chars",
+        "cmdline",
+        "current_dir",
+    ]
 
-    stats_file = FileWriter(outfile=outfile, header=header,
-                            write_header=write_header,
-                            rolling=True if rolling > 0 else False,
-                            jsonout=json, env=env)
+    stats_file = FileWriter(
+        outfile=outfile,
+        header=header,
+        write_header=write_header,
+        rolling=True if rolling > 0 else False,
+        jsonout=json,
+        env=env,
+    )
     itteration = 0
     # Keep pulling data from the process while it's running
     while not killer.kill_now:
@@ -215,33 +244,35 @@ def runner(
                 pData = proc.as_dict()
 
                 # Add new line to the file with relevant data
-                stats = [datetime.now().strftime("%m-%d-%Y %H:%M:%S.%f"),
-                         proc_num,
-                         pData['ppid'],
-                         pData['name'],
-                         pData['num_threads'],
-                         *get_cputimes(pData),
-                         *get_meminfo(pData),
-                         pData['memory_percent'],
-                         pData['num_fds'],
-                         *get_iocounters(pData),
-                         cmd_data(pData),
-                         pData['cwd']]
+                stats = [
+                    datetime.now().strftime("%m-%d-%Y %H:%M:%S.%f"),
+                    proc_num,
+                    pData["ppid"],
+                    pData["name"],
+                    pData["num_threads"],
+                    *get_cputimes(pData),
+                    *get_meminfo(pData),
+                    pData["memory_percent"],
+                    pData["num_fds"],
+                    *get_iocounters(pData),
+                    cmd_data(pData),
+                    pData["cwd"],
+                ]
 
                 stats_file.write(*stats)
 
             except psutil.NoSuchProcess as e:
-                logging.debug(f'Error ({type(e).__name__}): {e}')
+                logging.debug(f"Error ({type(e).__name__}): {e}")
                 # Comes when a process is killed between getting the number and getting the data
                 pass
             except AttributeError as e:
-                logging.debug(f'Error ({type(e).__name__}): {e}')
+                logging.debug(f"Error ({type(e).__name__}): {e}")
                 pass
             except TypeError as e:
-                logging.debug(f'Error ({type(e).__name__}): {e}')
+                logging.debug(f"Error ({type(e).__name__}): {e}")
                 pass
             except Exception as e:
-                logging.error(f'Error ({type(e).__name__}): {e}')
+                logging.error(f"Error ({type(e).__name__}): {e}")
                 pass
                 # Breaks out of just the loop and not the function
 
@@ -260,35 +291,66 @@ def runner(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--outfile", type=str,
-                        help="File name for csv.",
-                        default="stats.csv")
-    parser.add_argument("-p", "--path", type=str,
-                        help="Path to put csv file.",
-                        default=".")
-    parser.add_argument("-d", "--debug", action="store_true",
-                        help="Run with debugging info.",
-                        default=False)
-    parser.add_argument("-r", "--rate", type=float,
-                        help="Polling rate for process.", default=0.1)
-    parser.add_argument("-u", "--user", type=str,
-                        help="Username to get stats for.", default=None)
-    parser.add_argument("-noh", "--no-header",
-                        help="Turn off writting the header.", default=True, action='store_false')
-    parser.add_argument("-mv", "--move",
-                        help="Moves file from 'running' to 'done' directories", default=False, action='store_true')
-    parser.add_argument("-l", "--rolling", type=int, help="Time to roll file over to number to file name in ~minutes.",
-                        default=0)
-    parser.add_argument("--json", default=False, action="store_true", help="Output JSON strings instead of CSV lines")
-    parser.add_argument("--envvar", action="append", default=[],
-                        help="Add environment variables to json output (can be specified multiple times)")
+    parser.add_argument(
+        "-o", "--outfile", type=str, help="File name for csv.", default="stats.csv"
+    )
+    parser.add_argument(
+        "-p", "--path", type=str, help="Path to put csv file.", default="."
+    )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Run with debugging info.",
+        default=False,
+    )
+    parser.add_argument(
+        "-r", "--rate", type=float, help="Polling rate for process.", default=0.1
+    )
+    parser.add_argument(
+        "-u", "--user", type=str, help="Username to get stats for.", default=None
+    )
+    parser.add_argument(
+        "-noh",
+        "--no-header",
+        help="Turn off writting the header.",
+        default=True,
+        action="store_false",
+    )
+    parser.add_argument(
+        "-mv",
+        "--move",
+        help="Moves file from 'running' to 'done' directories",
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-l",
+        "--rolling",
+        type=int,
+        help="Time to roll file over to number to file name in ~minutes.",
+        default=0,
+    )
+    parser.add_argument(
+        "--json",
+        default=False,
+        action="store_true",
+        help="Output JSON strings instead of CSV lines",
+    )
+    parser.add_argument(
+        "--envvar",
+        action="append",
+        default=[],
+        help="Add environment variables to json output (can be specified multiple times)",
+    )
 
     args = parser.parse_args()
 
     # Turn on logging if in debug mode
     if args.debug:
         logging.basicConfig(
-            format='%(asctime)s %(levelname)s ==> %(message)s', level=logging.DEBUG)
+            format="%(asctime)s %(levelname)s ==> %(message)s", level=logging.DEBUG
+        )
     else:
         logging.basicConfig(level=logging.FATAL)
 
@@ -302,6 +364,14 @@ def main():
     env = {ev: os.getenv(ev) for ev in args.envvar}
 
     # Start the recorder
-    runner(path=args.path, filename=args.outfile, pole_rate=args.rate,
-           username=args.user, write_header=args.no_header, move=args.move,
-           rolling=rolling, json=args.json, env=env)
+    runner(
+        path=args.path,
+        filename=args.outfile,
+        pole_rate=args.rate,
+        username=args.user,
+        write_header=args.no_header,
+        move=args.move,
+        rolling=rolling,
+        json=args.json,
+        env=env,
+    )

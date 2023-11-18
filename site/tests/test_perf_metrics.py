@@ -1,14 +1,11 @@
-import pytest
 import os
-from jaws_site import perf_metrics
+
+import pytest
+from jaws_site import perf_metrics, runs
 from jaws_site.perf_metrics import PerformanceMetrics
-from tests.conftest import (
-    MockSession,
-    MockRunModel,
-)
-from jaws_site import runs
 from jaws_site.runs import RunNotFoundError
 
+from tests.conftest import MockRunModel, MockSession
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,8 +94,8 @@ def test_remove_beginning_path():
 
 
 def test_compute_rate():
-    import pandas as pd
     import numpy as np
+    import pandas as pd
     from pandas import Timestamp
 
     df_time = pd.DataFrame(

@@ -1,5 +1,5 @@
-from jaws_site import log
 import pytest
+from jaws_site import log
 
 
 def test_setup_logger(tmp_path):

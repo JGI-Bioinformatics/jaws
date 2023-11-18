@@ -13,17 +13,16 @@ from typing import Dict, List
 class FileWriter:
     compressed = False
 
-    def __init__(self, outfile,
-                 header: List[str] = [""],
-                 write_header: bool = True,
-                 rolling: bool = False,
-                 jsonout: bool = False,
-                 env: Dict = {}) -> None:
-        self.extensions = {
-            'gz': 'csv.gz',
-            'bz2': 'csv.bz2',
-            'csv': 'csv'
-        }
+    def __init__(
+        self,
+        outfile,
+        header: List[str] = [""],
+        write_header: bool = True,
+        rolling: bool = False,
+        jsonout: bool = False,
+        env: Dict = {},
+    ) -> None:
+        self.extensions = {"gz": "csv.gz", "bz2": "csv.bz2", "csv": "csv"}
 
         self.header: List[str] = header + list(env.keys())
         self.number: int = 0
@@ -45,6 +44,7 @@ class FileWriter:
                 temp = dict(zip(self.header, args))
                 temp.update(env)
                 return "{}\n".format(json.dumps(temp))
+
             self.fmt_func = lambda *args: fmt(*args)
 
         else:
@@ -66,15 +66,15 @@ class FileWriter:
         self.output_file.close()
 
     def _open_file(self):
-        extenstion = self.outfile.name.split('.')[-1]
-        if extenstion == 'gz':
+        extenstion = self.outfile.name.split(".")[-1]
+        if extenstion == "gz":
             self.compressed = True
             logging.info(f"Writing gzip pagurus gzip file {self.outfile}")
-            self.output_file = gzip.open(self.outfile, 'wt')
-        elif extenstion == 'bz2':
+            self.output_file = gzip.open(self.outfile, "wt")
+        elif extenstion == "bz2":
             self.compressed = True
             logging.info(f"Writing bz2 pagurus bz2 file {self.outfile}")
-            self.output_file = bz2.open(self.outfile, 'wt')
+            self.output_file = bz2.open(self.outfile, "wt")
         else:
             logging.info(f"Writing pagurus file {self.outfile}")
             self.output_file = open(self.outfile, "w")
@@ -92,7 +92,7 @@ class FileWriter:
 
         if self.rolling:
             # Split name into it's parts
-            name_split = self.outfile.as_posix().split('.')
+            name_split = self.outfile.as_posix().split(".")
             # Get the right extention
             ext = self.extensions[name_split[-1]]
             # Add in the file number into the name

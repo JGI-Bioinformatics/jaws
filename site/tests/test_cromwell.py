@@ -1,19 +1,15 @@
-import pytest
+import io
 import json
 import os
-from deepdiff import DeepDiff
-from jaws_site import cromwell
-from jaws_site.cromwell import (
-    CallError,
-    TaskError,
-    CromwellServiceError,
-    CromwellRunError,
-    CromwellRunNotFoundError,
-)
+
+import pytest
 import requests
 import requests_mock
-import io
-
+from deepdiff import DeepDiff
+from jaws_site import cromwell
+from jaws_site.cromwell import (CallError, CromwellRunError,
+                                CromwellRunNotFoundError, CromwellServiceError,
+                                TaskError)
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 

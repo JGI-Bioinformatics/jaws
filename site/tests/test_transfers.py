@@ -1,35 +1,24 @@
-import pytest
 import json
 import os
 import os.path
 import stat
-from jaws_site.transfers import (
-    Transfer,
-    mkdir,
-    TransferDbError,
-    TransferValueError,
-    TransferNotFoundError,
-    check_transfer_queue,
-    list_all_files_under_dir,
-    abs_to_rel_paths,
-    get_abs_files,
-    parallel_chmod,
-    FixPerms,
-    check_fix_perms_queue,
-)
-from tests.conftest import (
-    MockSession,
-    MockTransferModel,
-    initTransferModel,
-    MockTransfer,
-    S3_BUCKET,
-)
-import sqlalchemy
-import jaws_site
-from jaws_site import transfers
-import botocore
+
 import boto3
+import botocore
+import jaws_site
+import pytest
+import sqlalchemy
 from deepdiff import DeepDiff
+from jaws_site import transfers
+from jaws_site.transfers import (FixPerms, Transfer, TransferDbError,
+                                 TransferNotFoundError, TransferValueError,
+                                 abs_to_rel_paths, check_fix_perms_queue,
+                                 check_transfer_queue, get_abs_files,
+                                 list_all_files_under_dir, mkdir,
+                                 parallel_chmod)
+
+from tests.conftest import (S3_BUCKET, MockSession, MockTransfer,
+                            MockTransferModel, initTransferModel)
 
 
 def test_mkdir(tmp_path):

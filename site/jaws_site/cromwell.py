@@ -229,7 +229,9 @@ class Call:
             self.result = "succeeded"
 
         if "runtimeAttributes" in self.data:
-            self.requested_runtime_minutes = self.data["runtimeAttributes"].get("runtime_minutes", None)
+            self.requested_runtime_minutes = self.data["runtimeAttributes"].get(
+                "runtime_minutes", None
+            )
             self.requested_memory = self.data["runtimeAttributes"].get("memory", None)
             if "cpu" in self.data["runtimeAttributes"]:
                 self.requested_cpu = int(self.data["runtimeAttributes"]["cpu"])

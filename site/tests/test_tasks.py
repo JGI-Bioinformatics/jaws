@@ -1,7 +1,8 @@
-from tests.conftest import MockSession, MockLogger
-from jaws_site.tasks import TaskLog
 from datetime import datetime
 
+from jaws_site.tasks import TaskLog
+
+from tests.conftest import MockLogger, MockSession
 
 DATETIME_FMT = "%Y-%m-%d %H:%M:%S"
 

@@ -1,12 +1,12 @@
 """
 A Scalable and threaded Consumer that will automatically re-connect on failure.
 """
+import json
 import threading
 import time
-import json
+
 import amqpstorm
 from sqlalchemy.orm import scoped_session
-
 
 DEFAULT_PORT = 5672
 DEFAULT_NUM_THREADS = 5
@@ -85,7 +85,10 @@ class Consumer(object):
             self.logger.error(f"Unexpected error: {error}")
             response = {
                 "jsonrpc": "2.0",
-                "error": {"code": 400, "message": f"Unexpected error {error} for {request}"},
+                "error": {
+                    "code": 400,
+                    "message": f"Unexpected error {error} for {request}",
+                },
             }
             return self.__respond__(message, response)
 
@@ -134,7 +137,6 @@ class Consumer(object):
                     "code": 500,
                     "message": f"RPC function error: {error}",
                 },
-
             }
         self.__respond__(message, response)
         if session:
@@ -273,7 +275,12 @@ class RpcServer(object):
             assert isinstance(scoped_session_factory, scoped_session)
         self.scoped_session_factory = scoped_session_factory
         self.consumers = [
-            Consumer(self.logger, params["queue"], self.operations, self.scoped_session_factory)
+            Consumer(
+                self.logger,
+                params["queue"],
+                self.operations,
+                self.scoped_session_factory,
+            )
             for _ in range(self.num_threads)
         ]
         self.stopped = threading.Event()

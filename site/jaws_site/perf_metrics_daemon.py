@@ -3,8 +3,8 @@ import time
 from pathlib import Path
 
 import schedule
-
 from jaws_rpc import rpc_client_basic
+
 from jaws_site import config, database, perf_metrics
 
 logger = logging.getLogger(__package__)

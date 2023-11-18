@@ -446,7 +446,9 @@ class Run:
                 try:
                     set_atime_now(abspath)
                 except PermissionError as error:
-                    logger.error(f"Run {self.data.id}: Unable to change atime for {abspath}: {error}")
+                    logger.error(
+                        f"Run {self.data.id}: Unable to change atime for {abspath}: {error}"
+                    )
                 return abspath
             else:
                 return data
@@ -784,7 +786,9 @@ class Run:
             metadata = self.get_metadata()
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
-            self.update_run_status("complete", "Cromwell metadata could not be retrieved")
+            self.update_run_status(
+                "complete", "Cromwell metadata could not be retrieved"
+            )
             return
         else:
             metadata_file = os.path.join(root, "metadata.json")

@@ -1,8 +1,8 @@
-import jaws_site.config
 import os
+
+import jaws_site.config
 import pytest
 from jaws_site.config import ConfigurationError
-
 
 # Move large variable declarations out method definition to here
 expected_rmq_sections = [
@@ -60,7 +60,6 @@ def check_section(section_to_test, expected_entries, actual_config):
 
 
 def test_overwrite_all_default_values(config_file):
-
     # Because Configuration is a singleton, we call a destructor method to
     # remove any old reference.
     try:
@@ -91,7 +90,6 @@ def test_overwrite_all_default_values(config_file):
 
 
 def test_config_overwrite_partial_values(partial_config):
-
     # Because Configuration is a singleton, we call a destructor method to
     # remove any old reference.
     jaws_site.config.Configuration._destructor()
@@ -305,5 +303,11 @@ def test_get_site_config(config_file):
     cfg = jaws_site.config.Configuration(config_path)
 
     result = cfg.get_site_config()
-    for key in ['max_ram_gb', 'inputs_dir', 'access_group', 'globus_host_path', 'globus_endpoint']:
+    for key in [
+        "max_ram_gb",
+        "inputs_dir",
+        "access_group",
+        "globus_host_path",
+        "globus_endpoint",
+    ]:
         assert key in result

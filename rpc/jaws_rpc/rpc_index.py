@@ -3,14 +3,13 @@ It is useful if you wish to maintain a persistent shared object or
 have many RPC Servers to communicate with."""
 
 from typing import List
-from jaws_rpc import rpc_client
 
+from jaws_rpc import rpc_client
 
 rpc_index = None
 
 
 class Singleton(type):
-
     _instances = {}
 
     def __call__(cls, *args, **kwargs):

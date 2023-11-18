@@ -53,8 +53,8 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
     else:
         sys.exit("Unable to find config file.")
 
-    from jaws_site.database import engine
     from jaws_site import models
+    from jaws_site.database import engine
 
     try:
         models.Base.metadata.create_all(bind=engine)
@@ -66,10 +66,11 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
 def rpc_server() -> None:
     """Start RPC server."""
     # database must be imported after config
-    from jaws_site.database import session_factory
-    from jaws_site import rpc_operations
     from jaws_rpc import rpc_server
     from sqlalchemy.orm import scoped_session
+
+    from jaws_site import rpc_operations
+    from jaws_site.database import session_factory
 
     # start RPC server
     rpc_server_params = config.conf.get_section("RMQ")
@@ -124,8 +125,8 @@ def pool_manager_daemon() -> None:
 @cli.command()
 def task_logger_receive() -> None:
     """Start task-log message receiver."""
-    from jaws_site.task_logger import TaskLogger
     from jaws_site.database import session_factory
+    from jaws_site.task_logger import TaskLogger
 
     session = session_factory()
     task_logger = TaskLogger(config.conf, session)

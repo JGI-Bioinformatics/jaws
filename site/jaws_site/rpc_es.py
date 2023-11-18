@@ -2,7 +2,6 @@ import json
 import logging
 
 from amqpstorm import Message
-
 from jaws_rpc import rpc_client
 
 

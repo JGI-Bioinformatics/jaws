@@ -51,7 +51,7 @@ def check_queue_wait(logger):
     now = datetime.now()
     result = {}
     pattern = re.compile(r"to\sstart\sat\s(\S+)")
-    for (key, value) in dictData.items():
+    for key, value in dictData.items():
         if value:
             match = re.search(pattern, value)
             if match:

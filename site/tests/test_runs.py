@@ -1,23 +1,19 @@
-import pytest
-import json
-from deepdiff import DeepDiff
-import jaws_site
-from jaws_site.runs import (
-    Run,
-    RunLog,
-    RunDbError,
-    RunNotFoundError,
-    RunFileNotFoundError,
-    RunInputError,
-    send_run_status_logs,
-)
-from datetime import datetime
-from tests.conftest import MockSession, MockRunModel, initRunModel
-from jaws_site.cromwell import CromwellServiceError
-from jaws_rpc.rpc_client_basic import RpcClientBasic
-from unittest.mock import patch
-import os
 import io
+import json
+import os
+from datetime import datetime
+from unittest.mock import patch
+
+import jaws_site
+import pytest
+from deepdiff import DeepDiff
+from jaws_rpc.rpc_client_basic import RpcClientBasic
+from jaws_site.cromwell import CromwellServiceError
+from jaws_site.runs import (Run, RunDbError, RunFileNotFoundError,
+                            RunInputError, RunLog, RunNotFoundError,
+                            send_run_status_logs)
+
+from tests.conftest import MockRunModel, MockSession, initRunModel
 
 # from unittest.mock import MagicMock
 
@@ -581,7 +577,6 @@ def test_summary2(mock_sqlalchemy_session):
 
 
 def test_did_run_start(mock_metadata, mock_sqlalchemy_session):
-
     data = initRunModel(cromwell_run_id=None)
     run = Run(mock_sqlalchemy_session, data)
     ret = run.did_run_start()
@@ -596,7 +591,6 @@ def test_task_log(mock_metadata, mock_sqlalchemy_session):
 
 
 def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
-
     data = initRunModel(status="succeeded")
     run = Run(mock_sqlalchemy_session, data)
     ret = run.summary()
@@ -839,9 +833,7 @@ def test_rel_to_abs(mock_sqlalchemy_session, monkeypatch):
         "filelist": ["./JGI/x/bar"],
         "dictionary": {"apple": "red", "banana": "yellow"},
         "dict_val_files": {"foo": "./JGI/1/2/foo.txt"},
-        "dict_key_files": {
-            "./JGI/1/2/bar.txt": "bar"
-        },
+        "dict_key_files": {"./JGI/1/2/bar.txt": "bar"},
     }
     expected = {
         "string": "foo",

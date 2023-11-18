@@ -1,10 +1,11 @@
-import pytest
+import argparse
 import json
 import os
-import sys
-import psutil
 import signal
-import argparse
+import sys
+
+import psutil
+import pytest
 from jaws_site import pagurus
 
 pids = ["1", "2", "3"]

@@ -1,15 +1,10 @@
-import pytest
 import jaws_site.rpc_operations
-from jaws_site.runs import RunNotFoundError
+import pytest
 from jaws_site import runs, transfers
-from tests.conftest import (
-    MockSession,
-    MockRun,
-    #    MockCromwell,
-    MockCromwellException,
-    MockTransferModel,
-    MockTransfer,
-)
+from jaws_site.runs import RunNotFoundError
+
+from tests.conftest import (MockCromwellException, MockRun,  # MockCromwell,
+                            MockSession, MockTransfer, MockTransferModel)
 
 
 def test_server_status(monkeypatch):

@@ -1,7 +1,9 @@
-import logging
 import json
+import logging
+
 from amqpstorm import Message
-from jaws_rpc import rpc_client, responses
+
+from jaws_rpc import responses, rpc_client
 
 
 class RpcClientBasic(rpc_client.RpcClient):
@@ -100,7 +102,7 @@ class RpcClientBasic(rpc_client.RpcClient):
 
         status_code = 0
 
-        if jsondata and 'error' in jsondata:
-            status_code = jsondata['error'].get('code', 500)
+        if jsondata and "error" in jsondata:
+            status_code = jsondata["error"].get("code", 500)
 
         return jsondata, status_code

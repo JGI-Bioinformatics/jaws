@@ -2,19 +2,19 @@
 File contains all the mock classes and fixtures that will be used during
 testing.
 """
-import pytest
+import json
 import os
 import shutil
-import json
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from dataclasses import dataclass
-from jaws_site import models, config, cromwell, runs
-import sqlalchemy
-from sqlalchemy.orm.exc import NoResultFound
-from moto import mock_s3
-import boto3
 
+import boto3
+import pytest
+import sqlalchemy
+from jaws_site import config, cromwell, models, runs
+from moto import mock_s3
+from sqlalchemy.orm.exc import NoResultFound
 
 S3_BUCKET = "site"
 this_date = datetime.today()
@@ -165,7 +165,7 @@ def initRunModel(**kwargs):
         updated=kwargs.get("updated", datetime.utcnow()),
         workflow_root=kwargs.get("workflow_root", None),
         workflow_name=kwargs.get("workflow_name", None),
-        cpu_hours=kwargs.get("cpu_hours", None)
+        cpu_hours=kwargs.get("cpu_hours", None),
     )
 
 
@@ -667,14 +667,12 @@ def mock_query_user_id(monkeypatch):
 @pytest.fixture()
 def mock_data_transfer(monkeypatch):
     # import jaws_site.datatansfer_protocol
+    from jaws_site.datatransfer_protocol import (DataTransferAPIError,
+                                                 DataTransferError,
+                                                 DataTransferFactory,
+                                                 DataTransferNetworkError,
+                                                 Status)
     from jaws_site.runs import Run
-    from jaws_site.datatransfer_protocol import (
-        Status,
-        DataTransferError,
-        DataTransferAPIError,
-        DataTransferNetworkError,
-        DataTransferFactory,
-    )
 
     class MockDataTransfer:
         @staticmethod

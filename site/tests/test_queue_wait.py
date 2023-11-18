@@ -1,6 +1,8 @@
-from jaws_site import queue_wait as slurm_queue_wait
-from .conftest import MockLogger
 from datetime import datetime, timedelta
+
+from jaws_site import queue_wait as slurm_queue_wait
+
+from .conftest import MockLogger
 
 
 def test_check_queue_wait(monkeypatch):

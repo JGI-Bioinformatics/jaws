@@ -1,4 +1,5 @@
 import os
+
 from jaws_site import config
 
 abspath = os.path.abspath(__file__)

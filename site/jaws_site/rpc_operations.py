@@ -1,6 +1,7 @@
 import logging
 
 from jaws_rpc.responses import failure, success
+
 from jaws_site import config
 from jaws_site import queue_wait as slurm_queue_wait
 from jaws_site.cromwell import Cromwell
