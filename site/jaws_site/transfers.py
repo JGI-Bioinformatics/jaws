@@ -13,7 +13,6 @@ from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
 
 from jaws_site import config, models
-import time
 
 logger = logging.getLogger(__package__)
 
