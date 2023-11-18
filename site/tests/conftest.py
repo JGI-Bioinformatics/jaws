@@ -670,11 +670,13 @@ def mock_query_user_id(monkeypatch):
 @pytest.fixture()
 def mock_data_transfer(monkeypatch):
     # import jaws_site.datatansfer_protocol
-    from jaws_site.datatransfer_protocol import (DataTransferAPIError,
-                                                 DataTransferError,
-                                                 DataTransferFactory,
-                                                 DataTransferNetworkError,
-                                                 Status)
+    from jaws_site.datatransfer_protocol import (
+        DataTransferAPIError,
+        DataTransferError,
+        DataTransferFactory,
+        DataTransferNetworkError,
+        Status,
+    )
     from jaws_site.runs import Run
 
     class MockDataTransfer:
@@ -1069,6 +1071,9 @@ def mock_sqlalchemy_session():
             data_obj = Data()
             data_obj.queries = []
             self.data = data_obj
+
+        def remove(self):
+            pass
 
     @dataclass
     class Data:

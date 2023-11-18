@@ -24,15 +24,13 @@ MAX_ERROR_STRING_LEN = 1024
 
 def mkdir(path, mode=None):
     if mode is None:
-        mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-    if os.path.isdir(path):
-        return
-    else:
+        mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
+    if not os.path.isdir(path):
         (head, tail) = os.path.split(path)
         mkdir(head, mode)
         if not os.path.exists(path):
             os.mkdir(path)
-            os.chmod(path, mode)
+    os.chmod(path, mode)
 
 
 class TransferError(Exception):
@@ -303,11 +301,7 @@ class Transfer:
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
-        try:
-            mkdir(dest)
-        except IOError as error:
-            logger.error(f"Transfer {self.data.id} failed: {error}")
-            raise IOError(f"Transfer {self.data.id} failed: {error}")
+        mkdir(dest)
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
