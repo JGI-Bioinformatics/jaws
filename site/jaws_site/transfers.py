@@ -25,12 +25,14 @@ MAX_ERROR_STRING_LEN = 1024
 def mkdir(path, mode=None):
     if mode is None:
         mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
-    if not os.path.isdir(path):
+    if os.path.isdir(path):
+        os.chmod(path, mode)
+    else:
         (head, tail) = os.path.split(path)
         mkdir(head, mode)
         if not os.path.exists(path):
             os.mkdir(path)
-    os.chmod(path, mode)
+            os.chmod(path, mode)
 
 
 class TransferError(Exception):
@@ -315,10 +317,6 @@ class Transfer:
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
         parallel_chmod(dest, file_mode, folder_mode, parallelism)
-
-        # temporarily add for testing
-        logger.debug("Sleeping to test db connection")
-        time.sleep(3700)
 
 
 def check_transfer_queue(session) -> None:
