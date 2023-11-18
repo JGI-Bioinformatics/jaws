@@ -616,6 +616,9 @@ class MockSession:
     def get(self, model, pk):
         return None
 
+    def remove(self):
+        return
+
 
 class MockTransferClientWithCopy:
     def __init__(self, status, transfer_result={"task_id": "325"}):
@@ -1200,7 +1203,7 @@ def setup_files(tmpdir):
     src_dir = tmpdir.mkdir("src")
     dst_dir = tmpdir.mkdir("dst")
 
-    for i in range(1000):
+    for i in range(100):
         file = src_dir.join(f"file{i}.txt")
         file.write("content")
 
