@@ -1,5 +1,8 @@
-from jaws_common import messages
 import logging
+
+from jaws_common import messages
+
+from jaws_site.task_logger import TaskLogger
 
 
 def save_task_log(params, **kwargs):

@@ -1,15 +1,13 @@
-import json
 import logging
 from datetime import datetime
 
 from jaws_common.exceptions import JawsDbUnavailableError
-from jaws_common.messages import Consumer
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 
 from jaws_site import models
 
 
-class TaskLoggerConsumer:
+class TaskLogger:
     def __init__(self, config, session, **kwargs) -> None:
         """
         The task logger receives RabbitMQ messages and saves them in the RDb.
@@ -23,27 +21,18 @@ class TaskLoggerConsumer:
         self.logger = kwargs.get("logger", None)
         if self.logger is None:
             self.logger = logging.getLogger(__package__)
-        self.queue = f"jaws_{site_id}_{deployment}"
-        self.consumer = Consumer(
-            config=self.config,
-            session=self.session,
-            logger=self.logger,
-            queue=self.queue,
-            operations=operations,
-        )
 
     def save(self, params: dict) -> bool:
         timestamp = params.get("timestamp")
         params["timestamp"] = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
         status = params.get("status")
+        if status not in ["queued", "running", "done"]:
+            raise ValueError(f"Invalid status: {status}")
 
         if status == "queued":
-            return self._insert(**params)
-        elif status in ("running", "done"):
-            return self._update(**params)
+            self._insert(**params)
         else:
-            self.logger.error(f"Invalid log status: {status}")
-            return True
+            self._update(**params)
 
     def _insert(self, **kwargs) -> bool:
         """
@@ -64,16 +53,17 @@ class TaskLoggerConsumer:
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
             self.logger.error(f"Unable to connect to db: {error}")
-            return False
+            raise JawsDbUnavailableError(str(error))
         except IntegrityError as error:
             self.session.rollback()
             self.logger.error(f"Invalid task-log message, {kwargs}: {error}")
+            raise
         except SQLAlchemyError as error:
             self.session.rollback()
             self.logger.exception(
                 f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
             )
-        return True
+            raise
 
     @staticmethod
     def delta_minutes(start, end) -> int:
@@ -111,16 +101,15 @@ class TaskLoggerConsumer:
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
             self.logger.error(f"Unable to connect to db: {error}")
-            return False
+            raise JawsDbUnavailableError(str(error))
         except Exception as error:
             err_msg = f"Unexpected error; unable to select task log {cromwell_run_id} {task_dir}: {error}"
             self.logger.error(err_msg)
-            return True
+            raise
 
         if row is None:
             # this can only happen if the queued message was lost
             self.logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
-            return True
 
         try:
             if status == "running":
@@ -136,16 +125,10 @@ class TaskLoggerConsumer:
             # this is the only case in which we would not want to ack the message
             self.session.rollback()
             self.logger.error(f"Unable to connect to db: {error}")
-            return False
+            raise JawsDbUnavailableError(str(error))
         except SQLAlchemyError as error:
             self.session.rollback()
             self.logger.exception(
                 f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
             )
-        return True
-
-    def consume(self):
-        """
-        Consume messages indefinately
-        """
-        self.consumer.consume()
+            raise

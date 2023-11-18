@@ -21,6 +21,10 @@ JAWS_CONFIG_ENV = "JAWS_SITE_CONFIG"
 JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
 
 
+logger = None
+conf = None
+
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("--config", "config_file", default=None, help="Config INI file")
 @click.option("--log", "log_file", default=None, help="Log file")
@@ -39,6 +43,7 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
         log_file = (
             os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
         )
+    global logger
     logger = log.setup_logger(__package__, log_file, log_level)
 
     if config_file is None:
@@ -47,6 +52,7 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
             if JAWS_CONFIG_ENV in os.environ
             else JAWS_CWD_CONFIG
         )
+    global conf
     conf = config.Configuration(config_file, env_override)
     if conf:
         logger.info(f"Config using {config_file}")
