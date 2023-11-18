@@ -23,7 +23,7 @@ MAX_ERROR_STRING_LEN = 1024
 
 def mkdir(path, mode=None):
     if mode is None:
-        mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
+        mode = int(config.conf.get("SITE", "folder_permissions", "775"), base=8)
     if os.path.isdir(path):
         os.chmod(path, mode)
     else:
