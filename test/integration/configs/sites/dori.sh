@@ -23,4 +23,4 @@ export JAWS_SUPERVISOR_PORT_DEV=64101
 export JAWS_AUTH_PORT_DEV=3001
 export JAWS_REST_PORT_DEV=5001
 export JAWS_CROMWELL_PORT_DEV=50101
-export JAWS_QUEUE_WAIT_LARGE="sbatch --test-only --time=72:00:00 -A grp-org-dsi-aa -p dori -q jgi_normal --wrap 'sleep 30' 2>&1"
+export JAWS_QUEUE_WAIT_LARGE="sbatch --test-only --time=336:00:00 -A grp-org-dsi-aa -p dori -q jgi_normal --wrap 'sleep 30' 2>&1"
