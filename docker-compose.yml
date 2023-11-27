@@ -1,163 +1,101 @@
-version: '3.9'
 
-networks:
-  jaws-tier:
-    driver: bridge
+---
+
 services:
-  central:
-    image: central:${JAWS_VERSION:-2.6.0-dev}
-    depends_on:
-      - db
-      - rabbitmq
-    networks:
-      - jaws-tier
-    expose:
-      - 3000
-      - 80
-    ports:
-      - "80:80"
-    command:
-      - "jaws-central"
-      - "--config"
-      - "/etc/config/jaws-central.conf"
-      - "--log"
-      - "/var/log/jaws-central/jaws-central.log"
-      - "--log-level"
-      - "DEBUG"
-      - "rest"
-    volumes:
-      - $DATA_HOME/configs/central/jaws-central.conf:/etc/config/jaws-central.conf
-      - $DATA_HOME/laptop:/data/jaws/laptop:rw
-      - $DATA_HOME/local:/data/jaws/local:rw
-      - $DATA_HOME/logs/central:/var/log/jaws-central:rw
-  auth:
-    image: central:${JAWS_VERSION:-2.6.0-dev}
-    networks:
-      - jaws-tier
-    ports:
-      - "3000:3000"
-    depends_on:
-      - db
-      - rabbitmq
-    expose:
-      - 3000
-    command:
-      - "jaws-central"
-      - "--config"
-      - "/etc/config/jaws-central.conf"
-      - "--log"
-      - "/var/log/jaws-auth/auth.log"
-      - "--log-level"
-      - "DEBUG"
-      - "auth"
-    volumes:
-      - $DATA_HOME/configs/auth/jaws-central.conf:/etc/config/jaws-central.conf
-      - $DATA_HOME/logs/auth:/var/log/jaws-auth:rw
-  central-rpc:
-    image: central:${JAWS_VERSION:-2.6.0-dev}
-    networks:
-      - jaws-tier
-    depends_on:
-      - db
-      - rabbitmq
-    expose:
-      - 3000
-    command:
-      - "jaws-central"
-      - "--config"
-      - "/etc/config/jaws-central.conf"
-      - "--log"
-      - "/var/log/central-rpc/central-rpc.log"
-      - "--log-level"
-      - "DEBUG"
-      - "rpc"
-    volumes:
-      - $DATA_HOME/configs/central-rpc/jaws-central.conf:/etc/config/jaws-central.conf
-      - $DATA_HOME/logs/central-rpc:/var/log/central-rpc:rw
-  db:
-    image: mysql:8.0.28
-    restart: always
-    environment:
-      MYSQL_USER: jaws
-      MYSQL_PASSWORD: jawstest
-      MYSQL_DATABASE: jaws_central_dev
-      MYSQL_ROOT_PASSWORD: jawstest
-    expose:
-      - 3306
-    networks:
-      - jaws-tier
-    ports:
-      - "3306:3306"
-  site:
-    image: site:${JAWS_VERSION:-2.6.0-dev}
-    command:
-      - "jaws-site"
-      - "--config"
-      - "/etc/config/jaws-site.conf"
-      - "--log"
-      - "/var/log/site-central/site-central.log"
-      - "--log-level"
-      - "DEBUG"
-      - "central-rpc"
-    networks:
-      - jaws-tier
-    depends_on:
-      - db
-      - rabbitmq
-    volumes:
-      - $DATA_HOME/configs/site-central/jaws-site.conf:/etc/config/jaws-site.conf
-      - $DATA_HOME/logs/site-central:/var/log/site-central:rw
-      - $DATA_HOME/local/uploads:/data/uploads
-  site-daemon:
-    image: site:${JAWS_VERSION:-2.6.0-dev}
-    networks:
-      - jaws-tier
-    depends_on:
-      - db
-      - rabbitmq
-    command:
-      - "jaws-site"
-      - "--log"
-      - "/tmp/site-daemon.log"
-      - "--config"
-      - "/etc/config/jaws-site.conf"
-      - "--log"
-      - "/var/log/daemon/daemon.log"
-      - "--log-level"
-      - "DEBUG"
-      - "daemon"
-    volumes:
-      - $DATA_HOME/configs/daemon/jaws-site.conf:/etc/config/jaws-site.conf
-      - $DATA_HOME/local/uploads:/data/uploads
-      - $DATA_HOME/logs/daemon:/var/log/daemon:rw
-      - $DATA_HOME/local/uploads/cromwell-executions:/cromwell-executions:rw
-      - $DATA_HOME/laptop/output/:/data/jaws/laptop/output:rw
-  rabbitmq:
-    image: rabbitmq:3-management
-    environment:
-      RABBITMQ_DEFAULT_VHOST: jaws_dev
-      RABBITMQ_DEFAULT_USER: jaws
-      RABBITMQ_DEFAULT_PASS: jawstest
-    expose:
-      - 15672
-      - 5672
-      - 5673
-    networks:
-      - jaws-tier
-    ports:
-      - "15672:15672"
-      - "5672:5672"
-      - "5673:5673"
-  cromwell:
-    image: broadinstitute/cromwell:58
-    command: "server"
-    expose:
-      - 8000
-    volumes:
-      - $DATA_HOME/configs/cromwell:/app-config
-      - $DATA_HOME/local/cromwell-workflow-logs:/var/log/cromwell-workflow-logs:rw
-      - $DATA_HOME/local/uploads/cromwell-executions:/cromwell-executions:rw
-    networks:
-      - jaws-tier
-    ports:
-      - "8000:8000"
+    # site:
+    #     image: site:${JAWS_VERSION:-2.6.0-dev}
+    #     command:
+    #         - "jaws-site"
+    #         - "--config"
+    #         - "/etc/config/jaws-site.conf"
+    #         - "--log"
+    #         - "/var/log/site-central/site-central.log"
+    #         - "--log-level"
+    #         - "DEBUG"
+    #         - "central-rpc"
+    #     depends_on:
+    #         - db
+    #         - rabbitmq
+    #     volumes:
+    #         - $DATA_HOME/configs/site-central/jaws-site.conf:/etc/config/jaws-site.conf
+    #         - $DATA_HOME/logs/site-central:/var/log/site-central:rw
+    #         - $DATA_HOME/local/uploads:/data/uploads
+    db:
+        image: mariadb
+        container_name: "jaws-mysql"
+        restart: always
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+            interval: 3s
+            retries: 5
+            start_period: 30s
+        environment:
+            MARIADB_DATABASE: 'jaws'
+            MARIADB_USER: 'admin'
+            MARIADB_PASSWORD: 'root'
+            MARIADB_ROOT_PASSWORD: 'root'
+        volumes:
+            - jaws_mysql_data:/var/lib/mysql
+    cromwell:
+        build:
+            context: .
+            dockerfile: cromwell.Dockerfile
+        container_name: cromwell_server
+        ports:
+            - "8000:8080"
+        volumes:
+            - jaws_rabbitmq_data:/data/cromwell
+
+    rabbitmq:
+        image: rabbitmq:3-management-alpine
+        container_name: 'rabbitmq'
+        restart: unless-stopped
+        environment:
+            RABBITMQ_DEFAULT_VHOST: jaws_dev
+            RABBITMQ_DEFAULT_USER: jaws
+            RABBITMQ_DEFAULT_PASS: jawstest
+        ports:
+            - "15672:15672"
+            - "5672:5672"
+        volumes:
+            - jaws_rabbitmq_data:/data/rabbitmq
+            - ./tests:/app_tests
+    # rpc_server:
+    #     build:
+remove extra requires version
+    #         context: .
+    #         dockerfile: site.Dockerfile
+    #     container_name: rpc_server
+    #     depends_on:
+    #         - rabbitmq
+    #     volumes:
+    #         - .:/code
+    site:
+        build:
+            context: .
+            dockerfile: site.Dockerfile
+        container_name: jaws_site
+        command:
+            - "jaws-site"
+            - "--config"
+            - "/etc/config/jaws-site.conf"
+            - "--log"
+            - "/var/log/site-central/site-central.log"
+            - "--log-level"
+            - "DEBUG"
+            - "-h"
+        links:
+            - "db:database"
+            - "rabbitmq:rpc"
+        depends_on:
+            - rabbitmq
+            - db
+        volumes:
+            - .:/code
+volumes:
+    jaws_mysql_data:
+        driver: local
+    jaws_cromwell_data:
+        driver: local
+    jaws_rabbitmq_data:
+        driver: local
