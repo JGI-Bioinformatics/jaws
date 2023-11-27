@@ -39,7 +39,11 @@ from jaws_site.utils import write_json_file
 
 logger = logging.getLogger(__package__)
 
-cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+
+if config.conf is not None:
+    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+else:
+    cromwell = Cromwell("localhost")
 
 MAX_ERROR_STRING_LEN = 1024
 

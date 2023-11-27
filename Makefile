@@ -1,7 +1,28 @@
 VERSION := $(shell git describe --always --tags --abbrev=0)
 Q := $(if $V,,@)
 
+init:
+	pip install -r requirements.txt
+
+
+update-deps:
+	pip install --upgrade pip-tools pip setuptools
+	pip-compile --upgrade --build-isolation \
+		--allow-unsafe --resolver=backtracking --strip-extras \
+		--output-file requirements.txt \
+		pyproject.toml
+
+update: update-deps init
+
+
+up-dev:
+	podman-compose up --build --force-recreate --detach --remove-orphans
+
+
+down-dev:
+	podman-compose down
 ## Package Section BEGIN
+
 .PHONY: pkg-requirements
 pkg-requirements:
 	$(if $(shell which wheel),,$(error "Packaging needs Python wheel installed. Please run 'pip install wheel'"))
