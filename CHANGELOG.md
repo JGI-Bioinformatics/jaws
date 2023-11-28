@@ -3,6 +3,7 @@
 # Inbound changes not assigned to version # yet
 - Add function to chmod files/folders transferred via Globus (#1739)
 - Increase wall clock time to 14 days for dori site (#1754))
+- change NMDC site's refdata dir path (#1756)
 
 ### External Facing Changes
 
