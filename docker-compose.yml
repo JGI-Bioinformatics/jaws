@@ -2,24 +2,6 @@
 ---
 
 services:
-    # site:
-    #     image: site:${JAWS_VERSION:-2.6.0-dev}
-    #     command:
-    #         - "jaws-site"
-    #         - "--config"
-    #         - "/etc/config/jaws-site.conf"
-    #         - "--log"
-    #         - "/var/log/site-central/site-central.log"
-    #         - "--log-level"
-    #         - "DEBUG"
-    #         - "central-rpc"
-    #     depends_on:
-    #         - db
-    #         - rabbitmq
-    #     volumes:
-    #         - $DATA_HOME/configs/site-central/jaws-site.conf:/etc/config/jaws-site.conf
-    #         - $DATA_HOME/logs/site-central:/var/log/site-central:rw
-    #         - $DATA_HOME/local/uploads:/data/uploads
     db:
         image: mariadb
         container_name: "jaws-mysql"
@@ -44,7 +26,7 @@ services:
         ports:
             - "8000:8080"
         volumes:
-            - jaws_rabbitmq_data:/data/cromwell
+            - jaws_cromwell_data:/data/cromwell
 
     rabbitmq:
         image: rabbitmq:3-management-alpine
@@ -60,16 +42,15 @@ services:
         volumes:
             - jaws_rabbitmq_data:/data/rabbitmq
             - ./tests:/app_tests
-    # rpc_server:
-    #     build:
-remove extra requires version
-    #         context: .
-    #         dockerfile: site.Dockerfile
-    #     container_name: rpc_server
-    #     depends_on:
-    #         - rabbitmq
-    #     volumes:
-    #         - .:/code
+    rpc_server:
+        build:
+            context: .
+            dockerfile: site.Dockerfile
+        container_name: rpc_server
+        depends_on:
+            - rabbitmq
+        volumes:
+            - .:/code
     site:
         build:
             context: .
