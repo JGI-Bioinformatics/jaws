@@ -1,8 +1,8 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
-- add function to chmod files/folders transferred via Globus (#1739)
-- Changed JAWS_QUEUE_WAIT_LARGE to 14 days for Dori site (#1754)
+- Add function to chmod files/folders transferred via Globus (#1739)
+- Increase wall clock time to 14 days for dori site (#1754))
 
 ### External Facing Changes
 
