@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jaws_site"
+requires-python = ">=3.8"
 dynamic = ["version"]
 description = "JAWS Site Server"
 authors = [
@@ -17,7 +18,6 @@ authors = [
 {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
 {name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
 {name = "Elais Player", email = "elais@lbl.gov"}]
-requires-python = ">=3.9,<3.12"
 dependencies = [
     "AMQPStorm",
     "boto3",
@@ -28,7 +28,6 @@ dependencies = [
     "schedule",
     "shortuuid",
     "SQLAlchemy",
-    "typing_extensions",
     "zipp",
     "numpy",
     "pandas",
@@ -40,15 +39,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "requests-mock", "pytest-cov", "flake8", "deepdiff"]
+dev = ["pytest", "requests-mock", "pytest-cov", "flake8", "deepdiff", "typing_extensions"]
+
+[project.scripts]
+jaws-site = "jaws_site.cli:jaws"
 
 [project.urls]
 repository = "https://library.jgi.doe.gov/advanced-analysis/jaws-site"
 changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws-site/-/blob/main/CHANGELOG.md"
 documentation = "https://jaws-docs.readthedocs.io/en/latest/"
 
-[project.scripts]
-jaws-site = "jaws_site.cli:jaws"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
