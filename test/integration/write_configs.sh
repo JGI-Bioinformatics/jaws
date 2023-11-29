@@ -3,7 +3,7 @@
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 function write_jaws_configs {
-  echo "Writing config files"
+  echo "Writing config files (jeff)"
   envsubst < "$DIR/templates/site.conf" > "$JAWS_CONFIG_DIR/jaws-site.conf"
   envsubst < "$DIR/templates/site.env.templ" > "$JAWS_CONFIG_DIR/site.env"
   envsubst < "$DIR/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
@@ -33,6 +33,7 @@ function write_supervisor_configs {
 }
 
 function write_systemd_configs {
+  echo "Writting systemd configs (jeff)"
   SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger-receive")
   service_dir="${HOME}/.config/systemd/user"
   for service in "${SERVICES[@]}"; do
