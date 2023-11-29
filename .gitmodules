@@ -1,0 +1,3 @@
+[subproject "jaws_common"]
+path = jaws_common
+url = https://code.jgi.doe.gov/advanced-analysis/jaws-common.git
