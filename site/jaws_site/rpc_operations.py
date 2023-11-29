@@ -180,7 +180,6 @@ def fix_perms_status(params, session):
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
-    "queue_wait": {"function": queue_wait},
     "submit_run": {
         "function": submit_run,
         "required_params": [
