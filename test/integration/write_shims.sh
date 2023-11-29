@@ -19,7 +19,6 @@ function write_venv_shims {
     envsubst < "$DIR/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "$DIR/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "$DIR/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
-    envsubst < "$DIR/templates/queue-wait.sh" > "$JAWS_BIN_DIR/queue-wait.sh"
 }
 
 function write_perlmutter_shims {
