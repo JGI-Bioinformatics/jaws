@@ -130,10 +130,8 @@ Port numbers used by various services in the development environment.
 **dori.sh**  
 - `JAWS_PERFORMANCE_METRICS_SCRIPT`: Specifies the script for performance metrics.
 - `JAWS_PERFORMANCE_METRICS_DIR`: Directory to store performance metrics.
-- `JAWS_QUEUE_WAIT_LARGE`: A specific slurm command for queuing large jobs.
 
 **jgi.sh**  
-- `JAWS_QUEUE_WAIT_SMALL`, `JAWS_QUEUE_WAIT_MEDIUM`, `JAWS_QUEUE_WAIT_LARGE`: Slurm commands for queuing jobs of various sizes.
 
 **nmdc.sh**
 - `JAWS_ACCESS_GROUP`: Access group name for NMDC.
@@ -143,9 +141,7 @@ Port numbers used by various services in the development environment.
 
 **perlmutter.sh**
 - `JAWS_PERLMUTTER`: Indicates that the script runs on the Perlmutter system.
-- `JAWS_QUEUE_WAIT_MEDIUM`, `JAWS_QUEUE_WAIT_XLARGE`: Slurm commands for queuing jobs of various sizes.
 - `TSIGPATH`: Path for the TSIG authentication key to update DNS.
 
 **tahoma.sh**
 - `JAWS_BIG_SCRATCH_DIR`: Specifies a directory for large temporary data storage.
-- `JAWS_QUEUE_WAIT_MEDIUM`, `JAWS_QUEUE_WAIT_XLARGE`: Slurm commands for queuing jobs of various sizes.
