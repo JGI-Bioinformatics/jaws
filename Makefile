@@ -2,7 +2,8 @@ VERSION := $(shell git describe --always --tags --abbrev=0)
 Q := $(if $V,,@)
 
 init:
-	pip install -r requirements.txt
+	pip install --no-cache -r requirements.txt
+	pip install --no-cache -e .
 
 
 update-deps:
@@ -48,13 +49,13 @@ test-requirements:
 
 .PHONY: test-rpc
 test-rpc: test-requirements
-	$Q flake8 rpc
-	$Q cd rpc && python -m pytest --cov=jaws_rpc --junitxml=rpc.xml tests/ && coverage xml
+	$Q flake8 src/jaws_rpc
+	$Q python -m pytest --cov=jaws_rpc --junitxml=rpc.xml rpc/tests/ && coverage xml
 
 .PHONY: test-site
 test-site: test-requirements
-	$Q flake8 site
-	$Q cd site && python -m pytest --cov=jaws_site --junitxml=site.xml tests/ && coverage xml
+	$Q flake8 src/jaws_site
+	$Q python -m pytest --cov=jaws_site --junitxml=site.xml site/tests/ && coverage xml
 
 .PHONY: test
 test: test-rpc test-site
