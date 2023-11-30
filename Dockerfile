@@ -7,7 +7,7 @@ RUN groupadd -g ${JAWS_GID} jaws && useradd -u ${JAWS_UID} -g ${JAWS_GID} -c  "J
 WORKDIR /usr/app
 COPY . /usr/app/
 RUN pip install --upgrade pip \
-    && pip install --no-cache -r requirements.txt && \
+    && pip install --no-cache -r requirements.txt
 
 FROM builder as test-rpc
 WORKDIR /usr/app
