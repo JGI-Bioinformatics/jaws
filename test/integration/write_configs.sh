@@ -7,7 +7,6 @@ function write_jaws_configs {
   envsubst < "$DIR/templates/site.conf" > "$JAWS_CONFIG_DIR/jaws-site.conf"
   envsubst < "$DIR/templates/site.env.templ" > "$JAWS_CONFIG_DIR/site.env"
   envsubst < "$DIR/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
-#  envsubst < "$DIR/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
   chmod 600 $JAWS_CONFIG_DIR/*.conf
 
   envsubst < "$DIR/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
@@ -24,10 +23,7 @@ function write_jaws_configs {
 }
 
 function write_supervisor_configs {
-#  envsubst < "$DIR/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
   envsubst < "$DIR/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
-#  envsubst < "$DIR/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
-#  envsubst < "$DIR/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
   chmod 600 $JAWS_CONFIG_DIR/*.conf
   chmod 700 $JAWS_BIN_DIR/*
 }
