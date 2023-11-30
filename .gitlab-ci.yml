@@ -81,7 +81,7 @@ variables:
   variables:
     CONTAINER_RUNTIME: "apptainer"
     JAWS_SITE_NAME: "JGI"
-    APPTAINER_CACHEDIR: "/tmp"  
+    APPTAINER_CACHEDIR: "/tmp"
   <<: *supervisor-stop
   script:
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
@@ -160,7 +160,7 @@ test-rpc:
   <<: *docker-default
   stage: unit-test
   script:
-    - docker build -t jaws-site-rpc --target test-rpc .
+    - docker build -t jaws-site-rpc --target test .
     - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
   artifacts:
     reports:
@@ -172,7 +172,7 @@ test-site:
   <<: *docker-default
   stage: unit-test
   script:
-    - docker build -t jaws-site --target test-site .
+    - docker build -t jaws-site --target test .
     - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
   artifacts:
     reports:
