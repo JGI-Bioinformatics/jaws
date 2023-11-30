@@ -9,10 +9,15 @@ COPY . /usr/app/
 RUN pip install --upgrade pip \
     && pip install --no-cache -r requirements.txt && \
 
-FROM builder as test
+FROM builder as test-rpc
 WORKDIR /usr/app
 RUN pip install .[dev]
-CMD make test
+CMD make test-rpc
+
+FROM builder as test-site
+WORKDIR /usr/app
+RUN pip install .[dev]
+CMD make test-site
 
 FROM builder as site
 WORKDIR /usr/app
