@@ -1,1 +1,1 @@
-import ..jaws_common
+import jaws_common
