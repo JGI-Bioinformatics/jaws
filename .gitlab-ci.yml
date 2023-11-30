@@ -160,7 +160,7 @@ test-rpc:
   <<: *docker-default
   stage: unit-test
   script:
-    - docker build -t jaws-site-rpc --target test .
+    - docker build -t jaws-site-rpc --target test-rpc .
     - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
   artifacts:
     reports:
@@ -172,7 +172,7 @@ test-site:
   <<: *docker-default
   stage: unit-test
   script:
-    - docker build -t jaws-site --target test .
+    - docker build -t jaws-site --target test-site .
     - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
   artifacts:
     reports:
