@@ -5,6 +5,8 @@ init:
 	pip install --no-cache -r requirements.txt
 	pip install --no-cache -e .
 
+init-dev: init
+	pip-install .[dev]
 
 update-deps:
 	pip install --upgrade pip-tools pip setuptools

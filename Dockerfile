@@ -6,8 +6,7 @@ RUN groupadd -g ${JAWS_GID} jaws && useradd -u ${JAWS_UID} -g ${JAWS_GID} -c  "J
 
 WORKDIR /usr/app
 COPY . /usr/app/
-RUN pip install --upgrade pip \
-    && pip install --no-cache -r requirements.txt
+RUN make init-dev
 
 FROM builder as test-rpc
 WORKDIR /usr/app
@@ -22,7 +21,7 @@ CMD make test-site
 FROM builder as site
 WORKDIR /usr/app
 COPY image_version.yml image_version.yml
-RUN pip install -e .
+RUN make init
 
 ENTRYPOINT ["jaws-site", "--config", "/etc/config/site/jaws-site.conf"]
 CMD ["--log", "/var/log/rpc-server.log", "--log-level", "DEBUG", "rpc-server"]
