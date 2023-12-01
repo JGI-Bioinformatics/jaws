@@ -20,6 +20,7 @@ authors = [
 requires-python = ">=3.9,<3.12"
 
 dependencies = [
+    "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git#egg=main",
     "AMQPStorm",
     "boto3",
     "click",
