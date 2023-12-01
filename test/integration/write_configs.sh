@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
-DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) # noqa
 
 function write_jaws_configs {
   echo "Writing config files"
   envsubst < "$DIR/templates/site.conf" > "$JAWS_CONFIG_DIR/jaws-site.conf"
   envsubst < "$DIR/templates/site.env.templ" > "$JAWS_CONFIG_DIR/site.env"
   envsubst < "$DIR/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
-  envsubst < "$DIR/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
   chmod 600 $JAWS_CONFIG_DIR/*.conf
 
   envsubst < "$DIR/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
@@ -24,15 +23,13 @@ function write_jaws_configs {
 }
 
 function write_supervisor_configs {
-  envsubst < "$DIR/templates/supervisor.conf" > "$JAWS_CONFIG_DIR/supervisor.conf"
   envsubst < "$DIR/templates/supervisor.site.conf" > "$JAWS_CONFIG_DIR/supervisor.site.conf"
-  envsubst < "$DIR/templates/supervisord.sh" > "$JAWS_BIN_DIR/supervisord"
-  envsubst < "$DIR/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
   chmod 600 $JAWS_CONFIG_DIR/*.conf
   chmod 700 $JAWS_BIN_DIR/*
 }
 
 function write_systemd_configs {
+  echo "Writting systemd service files"
   SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "task-logger-receive")
   service_dir="${HOME}/.config/systemd/user"
   for service in "${SERVICES[@]}"; do
