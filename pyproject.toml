@@ -18,7 +18,9 @@ authors = [
 {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
 {name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
 {name = "Elais Player", email = "elais@lbl.gov"}]
+
 dependencies = [
+    "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git#egg=main",
     "AMQPStorm",
     "boto3",
     "click",
@@ -28,6 +30,7 @@ dependencies = [
     "schedule",
     "shortuuid",
     "SQLAlchemy",
+    "typing_extensions",
     "zipp",
     "numpy",
     "pandas",
