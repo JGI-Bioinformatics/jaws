@@ -395,6 +395,10 @@ deploy-jaws-perlmutter-staging:
     name: "perlmutter/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
   allow_failure: true
 
 deploy-jaws-perlmutter-prod:
@@ -428,6 +432,9 @@ deploy-jaws-dori-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
       when: manual
@@ -453,6 +460,7 @@ dori-staging-test:
     CLIENT_SOURCE_FILE: "/clusterfs/jgi/groups/dsi/homes/svc-jaws/${JAWS_SITE_NAME}-${JAWS_DEPLOYMENT_NAME}/jaws-${JAWS_DEPLOYMENT_NAME}.sh"
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
   trigger:
@@ -470,6 +478,7 @@ perlmutter-staging-test:
     CLIENT_SOURCE_FILE: "/global/cfs/projectdirs/jaws/${JAWS_SITE_NAME}-${JAWS_DEPLOYMENT_NAME}/jaws-${JAWS_DEPLOYMENT_NAME}.sh"
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
     - if: '$CI_PIPELINE_SOURCE == "push"'
       when: manual
   trigger:
