@@ -12,7 +12,6 @@ import os
 import sys
 
 import click
-
 from jaws_site import config, log
 
 JAWS_LOG_ENV = "JAWS_SITE_LOG"
@@ -73,10 +72,9 @@ def rpc_server() -> None:
     """Start RPC server."""
     # database must be imported after config
     from jaws_rpc import rpc_server
-    from sqlalchemy.orm import scoped_session
-
     from jaws_site import rpc_operations
     from jaws_site.database import Session
+    from sqlalchemy.orm import scoped_session
 
     # start RPC server
     rpc_server_params = config.conf.get_section("RMQ")
