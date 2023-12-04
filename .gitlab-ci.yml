@@ -456,17 +456,3 @@ dori-staging-test:
     project: advanced-analysis/jaws-tests
     strategy: depend
   allow_failure: true
-
-perlmutter-staging-test:
-  stage: end-to-end-test
-  variables:
-    JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "perlmutter"
-    RUN_END_TO_END: "true"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
-  trigger:
-    project: advanced-analysis/jaws-tests
-    strategy: depend
-  allow_failure: true
