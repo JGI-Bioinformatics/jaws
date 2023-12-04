@@ -386,6 +386,10 @@ deploy-jaws-perlmutter-dev:
     name: "perlmutter/dev"
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
 
 deploy-jaws-perlmutter-staging:
   extends: .perlmutter-deployment
@@ -422,6 +426,10 @@ deploy-jaws-dori-dev:
     name: "dori/dev"
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: manual
 
 deploy-jaws-dori-staging:
   extends: .dori-deployment
@@ -431,10 +439,6 @@ deploy-jaws-dori-staging:
     name: "dori/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      when: manual
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
       when: manual
@@ -453,7 +457,7 @@ deploy-jaws-dori-prod:
 dori-staging-test:
   stage: end-to-end-test
   variables:
-    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "dori"
     RUN_END_TO_END: "true"
     TAG: "dori"
@@ -471,7 +475,7 @@ dori-staging-test:
 perlmutter-staging-test:
   stage: end-to-end-test
   variables:
-    JAWS_DEPLOYMENT_NAME: "staging"
+    JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_NAME: "perlmutter"
     RUN_END_TO_END: "true"
     TAG: "perlmutter"
