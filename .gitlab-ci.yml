@@ -449,6 +449,7 @@ dori-staging-test:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "dori"
     RUN_END_TO_END: "true"
+    TAG: "dori"
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       when: manual
@@ -463,6 +464,7 @@ perlmutter-staging-test:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_NAME: "perlmutter"
     RUN_END_TO_END: "true"
+    TAG: "perlmutter"
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       when: manual
