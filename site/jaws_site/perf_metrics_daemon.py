@@ -67,7 +67,7 @@ class PerformanceMetricsDaemon:
         """
         Check for newly completed Runs.
         """
-        with database.session_factory() as session:
+        with database.Session() as session:
             performance_metrics = perf_metrics.PerformanceMetrics(
                 session, self.rpc_client
             )

@@ -21,6 +21,7 @@ FROM builder as test-site
 WORKDIR /usr/app
 COPY site .
 RUN pip install -r dev-requirements.txt
+RUN pip install .
 CMD python -m pytest --cov=jaws_site --junitxml=coverage/site.xml tests/ && coverage xml
 
 FROM builder as site

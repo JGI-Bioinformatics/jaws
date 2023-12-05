@@ -3,7 +3,8 @@ import time
 
 import schedule
 
-from jaws_site import database, transfers
+from jaws_site import transfers
+from jaws_site.database import Session
 
 logger = logging.getLogger(__package__)
 
@@ -16,7 +17,7 @@ class TransferDaemon:
 
     def __init__(self):
         logger.info("Initializing transfer daemon")
-        with database.session_factory() as session:
+        with Session() as session:
             transfers.reset_queue(session)
 
     def start_daemon(self):
@@ -33,12 +34,12 @@ class TransferDaemon:
         """
         Do any chmods now.
         """
-        with database.session_factory() as session:
+        with Session() as session:
             transfers.check_fix_perms_queue(session)
 
     def check_transfer_queue(self):
         """
         Do any queued transfers now.
         """
-        with database.session_factory() as session:
+        with Session() as session:
             transfers.check_transfer_queue(session)

@@ -5,6 +5,9 @@
 - remove worker nodes for new deployment or workflow node change (#1666)
 - increase wall clock time to 14 days for dori site (#1754))
 - change NMDC site's refdata dir path (#1756)
+- add function to chmod files/folders transferred via Globus (#1739)
+- try to address db update failures after to long transfer operation (#1746)
+- Cromwell run submission error message shall be saved in the run log (#1568)
 
 ### External Facing Changes
 

@@ -616,6 +616,9 @@ class MockSession:
     def get(self, model, pk):
         return None
 
+    def remove(self):
+        return
+
 
 class MockTransferClientWithCopy:
     def __init__(self, status, transfer_result={"task_id": "325"}):
@@ -667,11 +670,13 @@ def mock_query_user_id(monkeypatch):
 @pytest.fixture()
 def mock_data_transfer(monkeypatch):
     # import jaws_site.datatansfer_protocol
-    from jaws_site.datatransfer_protocol import (DataTransferAPIError,
-                                                 DataTransferError,
-                                                 DataTransferFactory,
-                                                 DataTransferNetworkError,
-                                                 Status)
+    from jaws_site.datatransfer_protocol import (
+        DataTransferAPIError,
+        DataTransferError,
+        DataTransferFactory,
+        DataTransferNetworkError,
+        Status,
+    )
     from jaws_site.runs import Run
 
     class MockDataTransfer:
@@ -1067,6 +1072,9 @@ def mock_sqlalchemy_session():
             data_obj.queries = []
             self.data = data_obj
 
+        def remove(self):
+            pass
+
     @dataclass
     class Data:
         queries = []
@@ -1200,7 +1208,7 @@ def setup_files(tmpdir):
     src_dir = tmpdir.mkdir("src")
     dst_dir = tmpdir.mkdir("dst")
 
-    for i in range(1000):
+    for i in range(100):
         file = src_dir.join(f"file{i}.txt")
         file.write("content")
 

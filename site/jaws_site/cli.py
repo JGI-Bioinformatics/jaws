@@ -12,13 +12,16 @@ import os
 import sys
 
 import click
-
 from jaws_site import config, log
 
 JAWS_LOG_ENV = "JAWS_SITE_LOG"
 JAWS_CWD_LOG = os.path.join(os.getcwd(), f"{__package__}.log")
 JAWS_CONFIG_ENV = "JAWS_SITE_CONFIG"
 JAWS_CWD_CONFIG = os.path.join(os.getcwd(), f"{__package__}.conf")
+
+
+logger = None
+conf = None
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -39,6 +42,7 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
         log_file = (
             os.environ[JAWS_LOG_ENV] if JAWS_LOG_ENV in os.environ else JAWS_CWD_LOG
         )
+    global logger
     logger = log.setup_logger(__package__, log_file, log_level)
 
     if config_file is None:
@@ -47,6 +51,7 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
             if JAWS_CONFIG_ENV in os.environ
             else JAWS_CWD_CONFIG
         )
+    global conf
     conf = config.Configuration(config_file, env_override)
     if conf:
         logger.info(f"Config using {config_file}")
@@ -67,10 +72,9 @@ def rpc_server() -> None:
     """Start RPC server."""
     # database must be imported after config
     from jaws_rpc import rpc_server
-    from sqlalchemy.orm import scoped_session
-
     from jaws_site import rpc_operations
-    from jaws_site.database import session_factory
+    from jaws_site.database import Session
+    from sqlalchemy.orm import scoped_session
 
     # start RPC server
     rpc_server_params = config.conf.get_section("RMQ")
@@ -80,7 +84,7 @@ def rpc_server() -> None:
         rpc_server_params,
         logger,
         rpc_operations.operations,
-        scoped_session(session_factory),
+        scoped_session(Session),
     )
     app.start_server()
 
@@ -123,14 +127,14 @@ def pool_manager_daemon() -> None:
 
 
 @cli.command()
-def task_logger_receive() -> None:
-    """Start task-log message receiver."""
-    from jaws_site.database import session_factory
-    from jaws_site.task_logger import TaskLogger
+def consumer() -> None:
+    """Start async message consumer"""
+    from jaws_site.consumer import Consumer
+    from jaws_site.database import Session
 
-    session = session_factory()
-    task_logger = TaskLogger(config.conf, session)
-    task_logger.receive_messages()
+    with Session() as session:
+        consumer = Consumer(config.conf, session, logger=logger)
+        consumer.consume()
 
 
 def jaws():
