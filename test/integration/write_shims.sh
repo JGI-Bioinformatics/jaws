@@ -15,7 +15,7 @@ function write_apptainer_shims {
 
 function write_venv_shims {
     envsubst < "$DIR/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
-    envsubst < "$DIR/templates/consumer.sh" > "$JAWS_BIN_DIR/consumer"
+#    envsubst < "$DIR/templates/consumer.sh" > "$JAWS_BIN_DIR/consumer"
     envsubst < "$DIR/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "$DIR/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "$DIR/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
