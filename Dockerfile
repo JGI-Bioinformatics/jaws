@@ -10,12 +10,12 @@ RUN make init-dev
 
 FROM builder as test-rpc
 WORKDIR /usr/app
-RUN pip install .[dev]
+RUN make init-dev
 CMD make test-rpc
 
 FROM builder as test-site
 WORKDIR /usr/app
-RUN pip install .[dev]
+RUN make init-dev
 CMD make test-site
 
 FROM builder as site
