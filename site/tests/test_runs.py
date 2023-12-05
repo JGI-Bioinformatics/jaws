@@ -8,10 +8,16 @@ import jaws_site
 import pytest
 from deepdiff import DeepDiff
 from jaws_rpc.rpc_client_basic import RpcClientBasic
-from jaws_site.cromwell import CromwellServiceError
-from jaws_site.runs import (Run, RunDbError, RunFileNotFoundError,
-                            RunInputError, RunLog, RunNotFoundError,
-                            send_run_status_logs)
+from jaws_site.cromwell import CromwellRunError, CromwellServiceError
+from jaws_site.runs import (
+    Run,
+    RunDbError,
+    RunFileNotFoundError,
+    RunInputError,
+    RunLog,
+    RunNotFoundError,
+    send_run_status_logs,
+)
 
 from tests.conftest import MockRunModel, MockSession, initRunModel
 
@@ -242,6 +248,7 @@ def test_inputs_fh(monkeypatch):
 
 
 def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
+    # test successfull submission:
     def mock_cromwell_submit(self, fhs, options):
         return "ABCD-EFGH"
 
@@ -261,6 +268,21 @@ def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
     )
 
     run.submit_run()
+    assert run.data.status == "submitted"
+    assert mock_sqlalchemy_session.data.session["commit"] is True
+    assert mock_sqlalchemy_session.data.session["close"] is False
+
+    # test failed submission:
+    def mock_cromwell_submit(self, fhs, options):
+        raise jaws_site.cromwell.CromwellRunError("Invalid input file")
+
+    mock_data = MockRunModel(status="upload complete")
+    run = Run(mock_sqlalchemy_session, mock_data)
+
+    monkeypatch.setattr(jaws_site.cromwell.Cromwell, "submit", mock_cromwell_submit)
+
+    run.submit_run()
+    assert run.data.status == "submission failed"
     assert mock_sqlalchemy_session.data.session["commit"] is True
     assert mock_sqlalchemy_session.data.session["close"] is False
 
