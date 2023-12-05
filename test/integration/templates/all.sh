@@ -43,11 +43,7 @@ if [[ -n ${JAWS_PERLMUTTER:-} ]]; then
     export JAWS_SITE_DNS_NAME="${site_name}-${JAWS_DEPLOYMENT_NAME}.jaws.dyn.jgi.doe.gov"
     export IP_ADDRESS="http://$JAWS_SITE_DNS_NAME"
     export JAWS_SUPERVISOR_HOST="*"
-    export JAWS_SUPERVISOR_NODAEMON="true"
-    for sz in small medium large xlarge
-    do
-      /usr/bin/scancel -n "jaws_${site_name}_${JAWS_DEPLOYMENT_NAME}_htcondor_worker_$sz" -u "$USER" 
-    done
+    export JAWS_SUPERVISOR_NODAEMON="true"    
 else
     export IP_ADDRESS="http://localhost"
     export JAWS_SUPERVISOR_HOST="0.0.0.0"
