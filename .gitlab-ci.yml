@@ -405,7 +405,7 @@ deploy-jaws-perlmutter-staging:
     name: "perlmutter/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END == 'perlmutter'
+    - if: $RUN_END_TO_END == 'true'
   allow_failure: true
 
 deploy-jaws-perlmutter-prod:
@@ -438,7 +438,7 @@ deploy-jaws-dori-staging:
     name: "dori/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END == 'dori'
+    - if: $RUN_END_TO_END == 'true'
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
