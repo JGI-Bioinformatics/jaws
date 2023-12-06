@@ -27,15 +27,19 @@ from random import shuffle
 
 import boto3
 import botocore
+from jaws_site import config, models
+from jaws_site.cromwell import (
+    Cromwell,
+    CromwellError,
+    CromwellRunError,
+    CromwellRunNotFoundError,
+    CromwellServiceError,
+)
+from jaws_site.tasks import TaskLog
+from jaws_site.utils import write_json_file
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import sessionmaker
-
-from jaws_site import config, models
-from jaws_site.cromwell import (Cromwell, CromwellError,
-                                CromwellRunNotFoundError, CromwellServiceError)
-from jaws_site.tasks import TaskLog
-from jaws_site.utils import write_json_file
 
 logger = logging.getLogger(__package__)
 
@@ -543,8 +547,15 @@ class Run:
             self.update_run_status("submission failed", f"Options error: {error}")
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
+        except CromwellRunError as error:
+            logger.error(
+                f"Run {self.data.id}: Submission failed (value error): {error}"
+            )
+            self.update_run_status("submission failed", f"{error}")
         except CromwellError as error:
-            logger.error(f"Run {self.data.id}: Submission failed: {error}")
+            logger.error(
+                f"Run {self.data.id}: Submission failed (service unavailable): {error}"
+            )
             # self.update_run_status("submission failed", f"{error}")
             return  # try again later
         else:

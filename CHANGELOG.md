@@ -6,6 +6,7 @@
 - change NMDC site's refdata dir path (#1756)
 - add function to chmod files/folders transferred via Globus (#1739)
 - try to address db update failures after to long transfer operation (#1746)
+- Cromwell run submission error message shall be saved in the run log (#1568)
 
 ### External Facing Changes
 
