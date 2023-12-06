@@ -23,6 +23,10 @@ services:
             context: .
             dockerfile: cromwell.Dockerfile
         container_name: cromwell_server
+        ulimits:
+            nofile:
+                soft: 10000
+                hard: 15000
         ports:
             - "8000:8080"
         volumes:
