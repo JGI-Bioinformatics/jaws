@@ -427,7 +427,7 @@ deploy-jaws-dori-staging:
     name: "dori/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END == 'true'
+    - if: $RUN_END_TO_END == 'dori'
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
