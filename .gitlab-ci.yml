@@ -154,7 +154,6 @@ flake-rpc:
   stage: linter
   script:
     - flake8 --show-source --statistics rpc
-    - echo $RUN_END_TO_END
   rules:
     - if: ($RUN_END_TO_END == "dori" || $RUN_END_TO_END == "perlmutter" || $RUN_END_TO_END == "jgi" || $RUN_END_TO_END == "tahoma" || $RUN_END_TO_END == "nmdc")
       when: never
@@ -164,6 +163,9 @@ flake-site:
   stage: linter
   script:
     - flake8 --show-source --statistics site
+  rules:
+    - if: ($RUN_END_TO_END == "dori" || $RUN_END_TO_END == "perlmutter" || $RUN_END_TO_END == "jgi" || $RUN_END_TO_END == "tahoma" || $RUN_END_TO_END == "nmdc")
+      when: never
 
 test-rpc:
   <<: *docker-default
