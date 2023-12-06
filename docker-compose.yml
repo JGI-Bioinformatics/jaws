@@ -40,16 +40,13 @@ services:
             RABBITMQ_DEFAULT_VHOST: jaws_dev
             RABBITMQ_DEFAULT_USER: jaws
             RABBITMQ_DEFAULT_PASS: jawstest
-        ports:
-            - "15672:15672"
-            - "5672:5672"
+            RABBITMQ_DEFAULT_QUEUE: eagle
         volumes:
             - jaws_rabbitmq_data:/data/rabbitmq
-            - ./tests:/app_tests
     transfer_daemon:
         build:
             context: .
-            dockerfile: site.Dockerfile
+            dockerfile: Dockerfile
         container_name: jaws_site_transfer_daemon
         restart: unless-stopped
         command:
@@ -64,31 +61,7 @@ services:
         links:
             - "db:database"
             - "rabbitmq:rpc"
-        command: ["npx", "exec", "nodemon", "--exec", "jaws-site", "transfer-daemon"]
-        depends_on:
-            - rabbitmq
-            - db
-        volumes:
-            - .:/code
-    task_logger:
-        build:
-            context: .
-            dockerfile: site.Dockerfile
-        container_name: jaws_site_task_logger
-        restart: unless-stopped
-        command:
-            - "jaws-site"
-            - "--config"
-            - "/etc/config/jaws-site.conf"
-            - "--log"
-            - "/var/log/site-central/site-central.log"
-            - "--log-level"
-            - "DEBUG"
-            - "-h"
-        links:
-            - "db:database"
-            - "rabbitmq:rpc"
-        command: ["npx", "exec", "nodemon", "--exec", "jaws-site", "task-logger-receive"]
+        command: ["npx", "nodemon", "-L", "-e", "py,yml,toml,yaml", "--exitcrash", "--exec", "jaws-site", "transfer-daemon"]
         depends_on:
             - rabbitmq
             - db
@@ -97,7 +70,7 @@ services:
     rpc_server:
         build:
             context: .
-            dockerfile: site.Dockerfile
+            dockerfile: Dockerfile
         container_name: jaws_site_rpc_server
         restart: unless-stopped
         command:
@@ -112,7 +85,7 @@ services:
         links:
             - "db:database"
             - "rabbitmq:rpc"
-        command: ["npx", "exec", "nodemon", "--exec", "jaws-site", "rpc-server"]
+        command: ["npx", "nodemon", "-L", "-e", "py,yml,toml,yaml", "--exitcrash", "--exec", "jaws-site", "rpc-server"]
         depends_on:
             - rabbitmq
             - db
@@ -121,7 +94,7 @@ services:
     runs_daemon:
         build:
             context: .
-            dockerfile: site.Dockerfile
+            dockerfile: Dockerfile
         container_name: jaws_site_run_daemon
         restart: unless-stopped
         command:
@@ -136,7 +109,7 @@ services:
         links:
             - "db:database"
             - "rabbitmq:rpc"
-        command: ["npx", "exec", "nodemon", "--exec", "jaws-site", "runs"]
+        command: ["npx", "nodemon", "-L", "-e", "py,yml,toml,yaml", "--exitcrash", "--exec", "jaws-site", "run-daemon"]
         depends_on:
             - rabbitmq
             - db

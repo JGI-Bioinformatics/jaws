@@ -2,8 +2,8 @@ VERSION := $(shell git describe --always --tags --abbrev=0)
 Q := $(if $V,,@)
 
 init:
-	pip install --no-cache -r requirements.txt
-	pip install --no-cache -e .
+	pip install --no-cache-dir -r requirements.txt
+	pip install --no-cache-dir -e .
 
 init-dev: init
 	pip install .[dev]
