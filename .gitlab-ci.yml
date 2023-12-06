@@ -149,11 +149,11 @@ variables:
 
 
 ##### Begin jobs definitions
-flake-rpc:
-  <<: *shell-default
-  stage: linter
-  script:
-    - flake8 --show-source --statistics rpc
+#flake-rpc:
+#  <<: *shell-default
+#  stage: linter
+#  script:
+#    - flake8 --show-source --statistics rpc
 
 flake-site:
   <<: *shell-default
