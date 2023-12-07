@@ -301,6 +301,7 @@ deploy-jaws-jgi-staging:
     name: "jgi/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $RUN_END_TO_END == 'true'
   allow_failure: true
 
 deploy-jaws-jgi-prod:
@@ -332,6 +333,7 @@ deploy-jaws-tahoma-staging:
     name: "tahoma/staging"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
+    - if: $RUN_END_TO_END == 'true'
       allow_failure: true
   allow_failure: true
 
@@ -364,6 +366,7 @@ deploy-jaws-nmdc-staging:
     name: "nmdc/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $RUN_END_TO_END == 'true'
   allow_failure: true
 
 deploy-jaws-nmdc-prod:
@@ -429,7 +432,6 @@ deploy-jaws-dori-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END == 'true'
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
       when: manual
