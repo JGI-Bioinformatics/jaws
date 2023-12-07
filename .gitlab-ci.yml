@@ -7,7 +7,6 @@ stages:
   - deploy-jaws
   - package
   - release-jaws
-  - end-to-end-test
 
 include:
   - project: "advanced-analysis/ci-templates"
@@ -302,7 +301,6 @@ deploy-jaws-jgi-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END == 'true'
-  allow_failure: true
 
 deploy-jaws-jgi-prod:
   extends: .jgi-deployment
@@ -334,8 +332,6 @@ deploy-jaws-tahoma-staging:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
     - if: $RUN_END_TO_END == 'true'
-      allow_failure: true
-  allow_failure: true
 
 deploy-jaws-tahoma-prod:
   extends: .tahoma-deployment
@@ -367,7 +363,6 @@ deploy-jaws-nmdc-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END == 'true'
-  allow_failure: true
 
 deploy-jaws-nmdc-prod:
   extends: .nmdc-deployment
@@ -399,7 +394,6 @@ deploy-jaws-perlmutter-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END == 'true'
-  allow_failure: true
 
 deploy-jaws-perlmutter-prod:
   extends: .perlmutter-deployment
