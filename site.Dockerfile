@@ -1,30 +1,33 @@
-FROM python:3.10-slim
+FROM python:3.10-slim-bookworm as builder
 
-# Install security updates, and some useful packages.
-#
-# * Make sure apt-get doesn't run in interactive mode.
-# * Update system packages.
-# * Pre-install some useful tools.
-# * Minimize system package installation.
+ARG JAWS_UID=75388
+ARG JAWS_GID=75388
 RUN export DEBIAN_FRONTEND=noninteractive && \
   apt-get update && \
   apt-get -y upgrade && \
-  apt-get install -y --no-install-recommends tini procps npm \
+  apt-get install -y --no-install-recommends tini procps rsync npm \
   build-essential git make zip && \
   apt-get -y clean && \
   rm -rf /var/lib/apt/lists/*
+RUN groupadd -g ${JAWS_GID} jaws && useradd -u ${JAWS_UID} -g ${JAWS_GID} -c  "JAWS User" --no-create-home jaws
 
-# Install requirements
-WORKDIR /code
+WORKDIR /usr/app
+COPY . /usr/app/
+RUN make init-dev
 
-COPY ./requirements.txt /code/requirements.txt
+FROM builder as test-rpc
+WORKDIR /usr/app
+RUN make init-dev
+CMD make test-rpc
 
-RUN pip install --no-cache-dir -r /code/requirements.txt
+FROM builder as test-site
+WORKDIR /usr/app
+RUN make init-dev
+CMD make test-site
 
-# Add repository code
-COPY . /code
-RUN pip install --no-cache-dir --editable .
-# Prepare for C crashes.
-ENV PYTHONFAULTHANDLER=1
+FROM builder as site
+WORKDIR /usr/app
+COPY image_version.yml image_version.yml
+RUN make init
 
-CMD ["npx" "exec" "nodemon" "--exec" "jaws-site" "-h"]
+CMD ["--log", "/var/log/rpc-server.log", "--log-level", "DEBUG", "rpc-server"]

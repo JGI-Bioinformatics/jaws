@@ -46,7 +46,7 @@ services:
     transfer_daemon:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: site.Dockerfile
         container_name: jaws_site_transfer_daemon
         restart: unless-stopped
         command:
@@ -70,7 +70,7 @@ services:
     rpc_server:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: site.Dockerfile
         container_name: jaws_site_rpc_server
         restart: unless-stopped
         command:
@@ -94,7 +94,7 @@ services:
     runs_daemon:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: site.Dockerfile
         container_name: jaws_site_run_daemon
         restart: unless-stopped
         command:
