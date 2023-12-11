@@ -166,7 +166,7 @@ test-rpc:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: rpc/coverage/rpc.xml
+        path: rpc.xml
 
 test-site:
   <<: *docker-default
@@ -178,7 +178,7 @@ test-site:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: site/coverage/site.xml
+        path: site.xml
 
 # generates a version file that is used by the docker/apptainer build
 # most images don't have git installed so we use this in a separate job
@@ -444,4 +444,3 @@ deploy-jaws-dori-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
-
