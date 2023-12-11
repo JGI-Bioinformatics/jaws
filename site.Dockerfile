@@ -30,5 +30,4 @@ WORKDIR /usr/app
 COPY image_version.yml image_version.yml
 RUN make init
 
-ENTRYPOINT ["jaws-site", "--config", "/etc/config/site/jaws-site.conf"]
 CMD ["--log", "/var/log/rpc-server.log", "--log-level", "DEBUG", "rpc-server"]
