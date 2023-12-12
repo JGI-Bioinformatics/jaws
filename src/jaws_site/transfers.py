@@ -12,8 +12,8 @@ import boto3
 from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
 
-from database import Session
 from jaws_site import config, models
+from jaws_site.database import Session
 
 logger = logging.getLogger(__package__)
 
