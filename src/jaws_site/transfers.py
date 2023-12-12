@@ -12,6 +12,7 @@ import boto3
 from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
 
+from database import Session
 from jaws_site import config, models
 
 logger = logging.getLogger(__package__)
@@ -190,7 +191,8 @@ class Transfer:
             result = "succeeded"
 
         # session may be stale, so close it to get a new connection
-        self.session.remove()
+        self.session.close()
+        self.session = Session()
         self.update_status(result, reason)
 
     def aws_s3_resource(self):
