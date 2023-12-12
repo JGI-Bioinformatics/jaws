@@ -32,11 +32,11 @@ pkg-requirements:
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
-	$Q cd rpc && python -m build
+	$Q python -m build
 
 .PHONY: pkg-site
 pkg-site: pkg-requirements
-	$Q cd rpc && python -m build && cd ../site && python -m build
+	$Q python -m build
 
 .PHONY: pkg
 pkg: pkg-rpc pkg-site
