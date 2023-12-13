@@ -265,6 +265,7 @@ deploy-jaws-aws-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-assembly-prod:
   stage: release-jaws
@@ -281,6 +282,7 @@ deploy-jaws-assembly-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-jgi-dev:
   extends: .jgi-deployment
@@ -300,7 +302,7 @@ deploy-jaws-jgi-staging:
     name: "jgi/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END == 'true'
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-jgi-prod:
@@ -313,6 +315,7 @@ deploy-jaws-jgi-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-tahoma-dev:
   extends: .tahoma-deployment
@@ -332,7 +335,7 @@ deploy-jaws-tahoma-staging:
     name: "tahoma/staging"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
-    - if: $RUN_END_TO_END == 'true'
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-tahoma-prod:
@@ -345,6 +348,7 @@ deploy-jaws-tahoma-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-nmdc-dev:
   extends: .nmdc-deployment
@@ -364,7 +368,7 @@ deploy-jaws-nmdc-staging:
     name: "nmdc/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END == 'true'
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-nmdc-prod:
@@ -377,6 +381,7 @@ deploy-jaws-nmdc-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-perlmutter-dev:
   extends: .perlmutter-deployment
@@ -396,7 +401,7 @@ deploy-jaws-perlmutter-staging:
     name: "perlmutter/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END == 'true'
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-perlmutter-prod:
@@ -410,6 +415,7 @@ deploy-jaws-perlmutter-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-dori-dev:
   extends: .dori-deployment
@@ -431,7 +437,7 @@ deploy-jaws-dori-staging:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
-    - if: $RUN_END_TO_END == 'true'
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-dori-prod:
@@ -444,3 +450,4 @@ deploy-jaws-dori-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
