@@ -13,6 +13,7 @@ from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
 
 from jaws_site import config, models
+from jaws_site.database import Session
 
 logger = logging.getLogger(__package__)
 
@@ -176,22 +177,12 @@ class Transfer:
         self.update_status("transferring")
         result = None
         reason = None
-        try:
-            if self.data.src_base_dir.startswith("s3://"):
-                self.s3_download()
-            elif self.data.dest_base_dir.startswith("s3://"):
-                self.s3_upload()
-            else:
-                self.local_copy()
-        except Exception as error:
-            result = "failed"
-            reason = str(error)
+        if self.data.src_base_dir.startswith("s3://"):
+            self.s3_download()
+        elif self.data.dest_base_dir.startswith("s3://"):
+            self.s3_upload()
         else:
-            result = "succeeded"
-
-        # session may be stale, so close it to get a new connection
-        self.session.remove()
-        self.update_status(result, reason)
+            self.local_copy()
 
     def aws_s3_resource(self):
         aws_access_key_id = config.conf.get("AWS", "aws_access_key_id")
@@ -318,27 +309,49 @@ class Transfer:
         parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
-def check_transfer_queue(session) -> None:
+def check_transfer_queue() -> None:
     """
-    Check the transfer queue and start the oldest transfer task, if any.  This only does one task because
-    transfers typically take many minutes and the queue may change (e.g. a transfer is cancelled).
+    Check the transfer queue and start the oldest transfer task, if any.
     """
-    rows = []
-    try:
-        rows = (
-            session.query(models.Transfer)
-            .filter(models.Transfer.status == "queued")
-            .order_by(models.Transfer.id)
-            .limit(1)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.warning(
-            f"Failed to select transfer task from db: {error}", exc_info=True
-        )
-    if len(rows):
-        transfer = Transfer(session, rows[0])
-        transfer.transfer_files()
+    while True:
+        # Select only the oldest queued transfer task because transfers can take a while and
+        # a subsequent transfer task may be cancelled in the meanwhile.
+        transfer_id = None
+        result = None
+        err_msg = None
+        with Session() as session:
+            try:
+                rows = (
+                    session.select(models.Transfer.id)
+                    .filter(models.Transfer.status == "queued")
+                    .order_by(models.Transfer.id)
+                    .limit(1)
+                    .all()
+                )
+            except SQLAlchemyError as error:
+                logger.warning(
+                    f"Failed to select transfer task from db: {error}", exc_info=True
+                )
+            if len(rows) == 0:
+                return
+            transfer = Transfer(session, rows[0])
+            transfer_id = transfer.data.id
+            try:
+                transfer.transfer_files()
+            except Exception as error:
+                result = False
+                err_msg = f"Transfer {transfer_id} failed: {error}"
+            else:
+                result = True
+
+        # since the transfer may take a long time, the session could be stale, so get a new one
+        # before saving the result.
+        with Session() as session:
+            transfer = Transfer.from_id(session, transfer_id)
+            if result is True:
+                transfer.update_status("succeeded")
+            else:
+                transfer.update_status("failed", err_msg)
 
 
 def get_abs_files(root, rel_paths) -> list:
@@ -471,21 +484,25 @@ def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):
                     logger.warning(f"Error changing permissions of {file_path}: {e}")
 
 
-def reset_queue(session):
-    rows = []
-    try:
-        rows = (
-            session.query(models.Transfer)
-            .filter(models.Transfer.status == "transferring")
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.warning(
-            f"Failed to select transfer task from db: {error}", exc_info=True
-        )
-    for row in rows:
-        transfer = Transfer(session, row)
-        transfer.update_status("queued")
+def reset_queue():
+    """
+    This function is run by the daemon on start-up to cleanup any tasks that were interrupted.
+    """
+    with Session() as session:
+        rows = []
+        try:
+            rows = (
+                session.query(models.Transfer)
+                .filter(models.Transfer.status == "transferring")
+                .all()
+            )
+        except SQLAlchemyError as error:
+            logger.warning(
+                f"Failed to select transfer task from db: {error}", exc_info=True
+            )
+        for row in rows:
+            transfer = Transfer(session, row)
+            transfer.update_status("queued")
 
 
 class FixPermsError(Exception):
@@ -564,13 +581,7 @@ class FixPerms:
         """
         file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
         folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-        try:
-            parallel_chmod(self.data.base_dir, file_mode, folder_mode, parallelism)
-        except Exception as error:
-            logger.error(f"Fix perms {self.data.id} failed: {error}")
-            self.update_status("failed", str(error))
-        else:
-            self.udpate("succeeded")
+        parallel_chmod(self.data.base_dir, file_mode, folder_mode, parallelism)
 
     def update_status(self, new_status: str, reason: str = None) -> None:
         """
@@ -591,22 +602,43 @@ class FixPerms:
             logger.exception(f"Unable to update Fix Perms {self.data.id}: {error}")
 
 
-def check_fix_perms_queue(session) -> None:
+def check_fix_perms_queue() -> None:
     """
-    Do any chmod tasks for Globus transfers.
+    Do all chmod tasks for Globus transfers.
     """
-    rows = []
-    try:
-        rows = (
-            session.query(models.Fix_Perms)
-            .filter(models.Fix_Perms.status == "queued")
-            .order_by(models.Fix_Perms.id)
-            .all()
-        )
-    except SQLAlchemyError as error:
-        logger.warning(
-            f"Failed to select transfer task from db: {error}", exc_info=True
-        )
-    for row in rows:
-        fix_perms = FixPerms(session, row)
-        fix_perms.fix_perms()
+    # first get a list of all chmod tasks
+    fix_perms_ids = []
+    with Session() as session:
+        try:
+            rows = (
+                session.select(models.Fix_Perms)
+                .filter(models.Fix_Perms.status == "queued")
+                .order_by(models.Fix_Perms.id)
+                .all()
+            )
+        except SQLAlchemyError as error:
+            logger.warning(
+                f"Failed to select transfer task from db: {error}", exc_info=True
+            )
+        for row in rows:
+            fix_perms_ids.append(row.id)
+
+    for fix_perms_id in fix_perms_ids:
+        result = None
+        err_msg = None
+        with Session() as session:
+            fix_perms = FixPerms.from_id(session, fix_perms_id)
+            try:
+                fix_perms.fix_perms()
+            except Exception as error:
+                result = False
+                err_msg = f"Fix Perms {fix_perms_id} failed: {error}"
+            else:
+                result = True
+        # since the chmod may take a long time, get a new session
+        with Session() as session:
+            fix_perms = FixPerms.from_id(session, fix_perms_id)
+            if result is True:
+                fix_perms.update_status("succeeded")
+            else:
+                fix_perms.update_status("failed", err_msg)
