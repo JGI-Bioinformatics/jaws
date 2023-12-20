@@ -7,7 +7,6 @@ stages:
   - deploy-jaws
   - package
   - release-jaws
-  - end-to-end-test
 
 include:
   - project: "advanced-analysis/ci-templates"
@@ -82,7 +81,7 @@ variables:
   variables:
     CONTAINER_RUNTIME: "apptainer"
     JAWS_SITE_NAME: "JGI"
-    APPTAINER_CACHEDIR: "/tmp"  
+    APPTAINER_CACHEDIR: "/tmp"
   <<: *supervisor-stop
   script:
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
@@ -167,7 +166,7 @@ test-rpc:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: rpc/coverage/rpc.xml
+        path: rpc.xml
 
 test-site:
   <<: *docker-default
@@ -179,7 +178,7 @@ test-site:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: site/coverage/site.xml
+        path: site.xml
 
 # generates a version file that is used by the docker/apptainer build
 # most images don't have git installed so we use this in a separate job
@@ -266,6 +265,7 @@ deploy-jaws-aws-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-assembly-prod:
   stage: release-jaws
@@ -282,6 +282,7 @@ deploy-jaws-assembly-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-jgi-dev:
   extends: .jgi-deployment
@@ -301,6 +302,7 @@ deploy-jaws-jgi-staging:
     name: "jgi/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-jgi-prod:
@@ -313,6 +315,7 @@ deploy-jaws-jgi-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-tahoma-dev:
   extends: .tahoma-deployment
@@ -332,7 +335,7 @@ deploy-jaws-tahoma-staging:
     name: "tahoma/staging"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
-      allow_failure: true
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-tahoma-prod:
@@ -345,6 +348,7 @@ deploy-jaws-tahoma-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-nmdc-dev:
   extends: .nmdc-deployment
@@ -364,6 +368,7 @@ deploy-jaws-nmdc-staging:
     name: "nmdc/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-nmdc-prod:
@@ -376,6 +381,7 @@ deploy-jaws-nmdc-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-perlmutter-dev:
   extends: .perlmutter-deployment
@@ -395,6 +401,7 @@ deploy-jaws-perlmutter-staging:
     name: "perlmutter/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
+    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-perlmutter-prod:
@@ -408,6 +415,7 @@ deploy-jaws-perlmutter-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-dori-dev:
   extends: .dori-deployment
@@ -427,10 +435,10 @@ deploy-jaws-dori-staging:
     name: "dori/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
-      when: manual
+    - if: $RUN_END_TO_END_STAGING == 'true'
+  allow_failure: true
 
 deploy-jaws-dori-prod:
   extends: .dori-deployment
@@ -442,17 +450,4 @@ deploy-jaws-dori-prod:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
-
-dori-staging-test:
-  stage: end-to-end-test
-  variables:
-    JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_NAME: "dori"
-    RUN_END_TO_END: "true"
-  rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-      when: manual
-  trigger:
-    project: advanced-analysis/jaws-tests
-    strategy: depend
-  allow_failure: true
+    - if: $RUN_END_TO_END_PROD == 'true'

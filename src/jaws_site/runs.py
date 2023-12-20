@@ -43,7 +43,11 @@ from sqlalchemy.orm.session import sessionmaker
 
 logger = logging.getLogger(__package__)
 
-cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+
+if config.conf is not None:
+    cromwell = Cromwell(config.conf.get("CROMWELL", "url"))
+else:
+    cromwell = Cromwell("localhost")
 
 MAX_ERROR_STRING_LEN = 1024
 
