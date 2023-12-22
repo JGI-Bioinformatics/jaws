@@ -147,12 +147,8 @@ def fix_perms_request(params, session):
     """
     Request change of file/folder permissions.
     """
-    file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
-    folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
     try:
-        fix_perms = FixPerms.from_params(
-            session, params, file_mode=file_mode, folder_mode=folder_mode
-        )
+        fix_perms = FixPerms.from_params(session, params)
     except Exception as error:
         logger.error(f"Failed to request fix_perms {params['base_dir']}: {error}")
         return failure(error)
