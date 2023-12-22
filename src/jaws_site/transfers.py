@@ -567,6 +567,9 @@ class FixPerms:
             else:
                 return cls(session, data)
 
+    def status(self) -> str:
+        return self.data.status
+
     def fix_perms(self, parallelism=3):
         """
         Recursively change the permissions of folders and files.
