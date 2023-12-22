@@ -16,9 +16,8 @@ class TransferDaemon:
 
     def __init__(self):
         logger.info("Initializing transfer daemon")
-        with Session() as session:
-            # clean up any interrupted transfers so they can be retried
-            transfers.reset_queue()
+        # clean up any interrupted transfers so they can be retried
+        transfers.reset_queue()
 
     def start_daemon(self):
         """
