@@ -321,7 +321,7 @@ def check_transfer_queue() -> None:
     with Session() as session:
         try:
             rows = (
-                session.select(models.Transfer.id)
+                session.query(models.Transfer.id)
                 .filter(models.Transfer.status == "queued")
                 .order_by(models.Transfer.id)
                 .limit(1)
@@ -606,7 +606,7 @@ def check_fix_perms_queue() -> None:
     with Session() as session:
         try:
             rows = (
-                session.select(models.Fix_Perms)
+                session.query(models.Fix_Perms)
                 .filter(models.Fix_Perms.status == "queued")
                 .order_by(models.Fix_Perms.id)
                 .all()
