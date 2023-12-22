@@ -154,7 +154,7 @@ def fix_perms_request(params, session):
             session, params, file_mode=file_mode, folder_mode=folder_mode
         )
     except Exception as error:
-        logger.error(f"Failed to request fix_perms {path}: {error}")
+        logger.error(f"Failed to request fix_perms {params['base_dir']}: {error}")
         return failure(error)
     else:
         return success({"fix_perms_id": fix_perms.data.id})
