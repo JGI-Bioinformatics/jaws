@@ -533,6 +533,7 @@ class FixPerms:
         try:
             data = models.Fix_Perms(
                 base_dir=params["base_dir"],
+                status="queued"
             )
         except SQLAlchemyError as error:
             raise FixPermsValueError(
