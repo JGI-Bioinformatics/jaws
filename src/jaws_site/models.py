@@ -112,7 +112,7 @@ class Fix_Perms(Base):
 
     __tablename__ = "fix_perms"
     id = Column(Integer, primary_key=True)
-    status = Column(String(32), nullable=False)
+    status = Column(String(32), nullable=False, default="queued")
     submitted = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     base_dir = Column(String(1024), nullable=False)

@@ -4,7 +4,6 @@ import time
 import schedule
 
 from jaws_site import transfers
-from jaws_site.database import Session
 
 logger = logging.getLogger(__package__)
 
@@ -17,29 +16,15 @@ class TransferDaemon:
 
     def __init__(self):
         logger.info("Initializing transfer daemon")
-        with Session() as session:
-            transfers.reset_queue(session)
+        # clean up any interrupted transfers so they can be retried
+        transfers.reset_queue()
 
     def start_daemon(self):
         """
         Run scheduled task(s) periodically.
         """
-        schedule.every(10).seconds.do(self.check_fix_perms_queue)
-        schedule.every(10).seconds.do(self.check_transfer_queue)
+        schedule.every(10).seconds.do(transfers.check_fix_perms_queue)
+        schedule.every(10).seconds.do(transfers.check_transfer_queue)
         while True:
             schedule.run_pending()
             time.sleep(1)
-
-    def check_fix_perms_queue(self):
-        """
-        Do any chmods now.
-        """
-        with Session() as session:
-            transfers.check_fix_perms_queue(session)
-
-    def check_transfer_queue(self):
-        """
-        Do any queued transfers now.
-        """
-        with Session() as session:
-            transfers.check_transfer_queue(session)

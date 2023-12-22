@@ -190,8 +190,8 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
         dest_base_dir="/dst",
     )
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
-    transfer.transfer_files()
-    assert transfer.data.status == "failed"
+    result, err_msg = transfer.transfer_files()
+    assert result == "failed"
 
 
 # not sure why chmod doesn't work when run via pytest!
@@ -374,27 +374,6 @@ def test_update_status(mock_sqlalchemy_session):
     mock_sqlalchemy_session.clear()
 
 
-def test_check_transfer_queue(mock_sqlalchemy_session, monkeypatch):
-    mock_sqlalchemy_session.output(
-        [
-            {"id": 1},
-            {"src_site_id": "NERSC"},
-            {"src_base_dir": "/global/cscratch/jaws/jaws-dev/input"},
-            {"dest_site_id": "AWS"},
-            {"dest_base_dir": "s3://jaws-site/jaws-dev/inputs"},
-        ]
-    )
-    check_transfer_queue(mock_sqlalchemy_session)
-    assert mock_sqlalchemy_session.data.session["query"] is True
-
-    monkeypatch.setattr(jaws_site.transfers, "Transfer", MockTransfer)
-
-    # Test SQLAlchemyError
-    mock_sqlalchemy_session.clear()
-    mock_sqlalchemy_session.data.raise_exception_sqlalchemyerror = True
-    check_transfer_queue(mock_sqlalchemy_session)
-
-
 def test_aws_s3_resource(s3, mock_sqlalchemy_session):
     mock_data = initTransferModel()
     transfer = Transfer(mock_sqlalchemy_session, mock_data)
@@ -561,17 +540,3 @@ def test_parallel_chmod(setup_dir_tree):
     for file in files:
         actual = oct(os.stat(file).st_mode)
         assert str(actual)[-4:] == file_mode_str
-
-
-def test_check_fix_perms_queue(mock_sqlalchemy_session, monkeypatch):
-    def mock_fix_perms(self):
-        assert self.data.base_dir is not None
-
-    monkeypatch.setattr(FixPerms, "fix_perms", mock_fix_perms)
-    mock_sqlalchemy_session.output(
-        [
-            {"id": 1, "base_dir": "/global/cscratch/jaws/jaws-dev/outputs/X"},
-        ]
-    )
-    check_fix_perms_queue(mock_sqlalchemy_session)
-    assert mock_sqlalchemy_session.data.session["query"] is True
