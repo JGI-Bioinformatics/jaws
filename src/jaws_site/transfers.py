@@ -334,8 +334,9 @@ def check_transfer_queue() -> None:
             return
         if len(rows) == 0:
             return
-        transfer_id = rows[0]
-        transfer = Transfer(session, transfer_id)
+        data = rows[0]
+        transfer_id = data[0]
+        transfer = Transfer(session, data)
         result, err_msg = transfer.transfer_files()
 
     # since the transfer may take a long time, the session could be stale, so get a new one
