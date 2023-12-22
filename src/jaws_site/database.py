@@ -31,7 +31,7 @@ except Exception as error:
     logger.exception(error)
     raise
 
-Session = sessionmaker(bind=engine, autobegin=True, autocommit=False)
+Session = sessionmaker(engine, autobegin=True, autocommit=False)
 
 mapper_registry = registry()
 Base = mapper_registry.generate_base()
