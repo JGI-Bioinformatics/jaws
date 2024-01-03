@@ -25,11 +25,11 @@ function install_venv {
   [[ -n "$JAWS_LOAD_PYTHON" ]] && $JAWS_LOAD_PYTHON
   $python -m venv $venv_dir && \
   . "$venv_dir/bin/activate" && \
+  pip install --upgrade pip && \
   pip install build && \
   pip install wheel && \
   make pkg && \
-  pip install rpc/dist/*.whl && \
-  pip install site/dist/*.whl && \
+  pip install dist/*.whl
   deactivate
 }
 
