@@ -8,6 +8,8 @@
 - add function to chmod files/folders transferred via Globus (#1739)
 - Cromwell run submission error message shall be saved in the run log (#1568)
 - fix db update failures after to long transfer operation (#1746)
+- Fix JAWS_MAX_RAM_GB for Perlmulter to 492GB (#1767)
+
 
 ### External Facing Changes
 
