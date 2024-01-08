@@ -1,6 +1,11 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+### External Facing Changes
+
+### Internal Facing Changes
+
+# 2.0.3  Summary [01/07/2024 - staging // ]
 - add function to chmod files/folders transferred via Globus (#1739)
 - remove worker nodes for new deployment or workflow node change (#1666)
 - increase wall clock time to 14 days for dori site (#1754))
@@ -10,10 +15,6 @@
 - fix db update failures after to long transfer operation (#1746)
 - Fix JAWS_MAX_RAM_GB for Perlmulter to 492GB (#1767)
 
-
-### External Facing Changes
-
-### Internal Facing Changes
 
 ## 2.0.2  Summary [10/23/2023 - staging // 11/09/2023 - Prod]
 ### External Facing Changes
