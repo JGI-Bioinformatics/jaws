@@ -61,7 +61,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -q && \
     apt-get upgrade -qq && \
-    apt-get -qq -y install podman
+    apt-get -qq -y install podman && \
     apt-get install -y curl wget openjdk-17-jdk iptables && \
     rm -rf /var/lib/apt/lists/*
 
