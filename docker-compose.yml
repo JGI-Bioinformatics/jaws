@@ -23,6 +23,9 @@ services:
             context: .
             dockerfile: cromwell.Dockerfile
         container_name: cromwell_server
+        privileged: true
+        cap_add:
+            - SYS_ADMIN
         ulimits:
             nofile:
                 soft: 10000

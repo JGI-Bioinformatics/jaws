@@ -62,29 +62,32 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -q && \
     apt-get upgrade -qq && \
     apt-get -qq -y install podman && \
-    apt-get install -y curl wget fuse-overlayfs vim openjdk-17-jdk iptables && \
+    apt-get install -y curl wget fuse3 fuse-overlayfs libcap2-bin vim openjdk-17-jdk containers-storage iptables && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -s /bin/bash -d /home/cromwell cromwell; \
     echo cromwell:10000:5000 > /etc/subuid; \
     echo cromwell:10000:5000 > /etc/subgid;
 
-RUN mkdir -p /etc/containers
-RUN touch /etc/containers/storage.conf
 VOLUME /var/lib/containers
-VOLUME /home/cromwell/.local/share/containers
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
-ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/cromwell/.config/containers/containers.conf
+VOLUME /home/podman/.local/share/containers
 
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/containers.conf /etc/containers/containers.conf
+ADD https://raw.githubusercontent.com/containers/libpod/master/contrib/podmanimage/stable/podman-containers.conf /home/podman/.config/containers/containers.conf
+
+RUN ls /etc/containers/
 RUN ln -s /usr/bin/podman /usr/bin/docker
 
+RUN mkdir code
+RUN chown cromwell:cromwell -R /home/cromwell
+RUN chown -R cromwell:cromwell -R /code
+
+RUN cp /usr/share/containers/storage.conf /etc/containers/
 RUN chmod 644 /etc/containers/containers.conf; sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' /etc/containers/storage.conf
 RUN mkdir -p /var/lib/shared/overlay-images /var/lib/shared/overlay-layers /var/lib/shared/vfs-images /var/lib/shared/vfs-layers; touch /var/lib/shared/overlay-images/images.lock; touch /var/lib/shared/overlay-layers/layers.lock; touch /var/lib/shared/vfs-images/images.lock; touch /var/lib/shared/vfs-layers/layers.lock
 
 ENV _CONTAINERS_USERNS_CONFIGURED=""
-RUN mkdir code
-RUN chown cromwell:cromwell -R /home/cromwell
-RUN chown -R cromwell:cromwell /code
+
 COPY --from=0 /code/cromwell/server/target/scala-2.13/cromwell-86*.jar /code/cromwell.jar
 WORKDIR code
 CMD ["java", "-jar", "/code/cromwell.jar", "server"]
