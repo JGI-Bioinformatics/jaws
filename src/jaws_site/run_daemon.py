@@ -42,11 +42,11 @@ class RunDaemon:
         """
         schedule.every(10).seconds.do(self.check_active_runs)
 
-        # schedule the heartbeat for prometheus. The first arguement represents 
+        # schedule the heartbeat for prometheus. The first arguement represents
         # the site, and the second, represents what the service is.
-        site=self.central_rpc_params["queue"].lower()
-        schedule.every(30).minutes.do(lambda: heartbeat(site,"run_daemon"))
-       
+        site = self.central_rpc_params["queue"].lower()
+        schedule.every(30).minutes.do(lambda: heartbeat(site, "run_daemon"))
+
         while True:
             schedule.run_pending()
             time.sleep(1)
