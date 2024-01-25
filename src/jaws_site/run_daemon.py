@@ -41,9 +41,9 @@ class RunDaemon:
         Run scheduled task(s) periodically.
         """
         site_conf = config.conf.get_section("SITE")
-        site = site_conf["id"] 
+        site = site_conf["id"]
         deploy_conf = config.conf.get_section("SITE")
-        deployment = deploy_conf["deployment"] 
+        deployment = deploy_conf["deployment"]
         schedule.every(10).seconds.do(self.check_active_runs)
 
         # schedule the heartbeat for prometheus. The first arguement represents
