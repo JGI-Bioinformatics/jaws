@@ -38,7 +38,8 @@ dependencies = [
     "moto",
     "matplotlib",
     "psutil",
-    "parallel_sync"
+    "parallel_sync",
+    "prometheus_client"
 ]
 
 [project.optional-dependencies]

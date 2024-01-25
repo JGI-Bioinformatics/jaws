@@ -40,12 +40,15 @@ class RunDaemon:
         """
         Run scheduled task(s) periodically.
         """
+        site_conf = config.conf.get_section("SITE")
+        site = site_conf["id"] 
+        deploy_conf = config.conf.get_section("SITE")
+        deployment = deploy_conf["deployment"] 
         schedule.every(10).seconds.do(self.check_active_runs)
 
         # schedule the heartbeat for prometheus. The first arguement represents
         # the site, and the second, represents what the service is.
-        site = self.central_rpc_params["queue"].lower()
-        schedule.every(30).minutes.do(lambda: heartbeat(site, "run_daemon"))
+        schedule.every(30).minutes.do(lambda: heartbeat(site, deployment, "run_daemon"))
 
         while True:
             schedule.run_pending()
