@@ -11,6 +11,7 @@ import schedule
 from jaws_rpc import rpc_client, rpc_client_basic
 
 from jaws_site import config, database, runs
+from jaws_common.jaws_monitor import heartbeat
 
 logger = logging.getLogger(__package__)
 
@@ -40,6 +41,12 @@ class RunDaemon:
         Run scheduled task(s) periodically.
         """
         schedule.every(10).seconds.do(self.check_active_runs)
+
+        # schedule the heartbeat for prometheus. The first arguement represents 
+        # the site, and the second, represents what the service is.
+        site=self.central_rpc_params["queue"].lower()
+        schedule.every(30).minutes.do(lambda: heartbeat(site,"run_daemon"))
+       
         while True:
             schedule.run_pending()
             time.sleep(1)
