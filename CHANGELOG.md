@@ -2,6 +2,7 @@
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
+- catch invalid inputs json (#1775)
 
 ### Internal Facing Changes
 

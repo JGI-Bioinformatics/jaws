@@ -432,7 +432,10 @@ class Run:
         fh = self._read_file(
             os.path.join(self.config["inputs_dir"], f"{self.data.submission_id}.json")
         )
-        inputs = json.load(fh)
+        try:
+            inputs = json.load(fh)
+        except Exception as error:
+            raise ValueError(f"Invalid inputs JSON: {error}")
         return inputs
 
     def rel_to_abs(self, data: any, root: str) -> any:
@@ -481,7 +484,8 @@ class Run:
         :return: input parameters
         :rtype: dict
         """
-        return self.rel_to_abs(self.read_inputs(), self.config["inputs_dir"])
+        inputs = self.read_inputs()
+        return self.rel_to_abs(inputs, self.config["inputs_dir"])
 
     def inputs_fh(self):
         """
@@ -541,14 +545,22 @@ class Run:
 
         try:
             file_handles = self.get_run_inputs()
+        except ValueError as error:
+            logger.error(
+                f"Run {self.data.id}: Submission failed; invalid inputs JSON: {error}"
+            )
+            self.update_run_status("submission failed", f"Invalid inputs JSON: {error}")
+            return
         except RunFileNotFoundError as error:
             logger.error(f"Run {self.data.id}: Submission failed; {error}")
             self.update_run_status("submission failed", str(error))
+            return
         try:
             options = self.cromwell_options()
         except Exception as error:
             logger.error(f"Run {self.data.id}: Submission failed; {error}")
             self.update_run_status("submission failed", f"Options error: {error}")
+            return
         try:
             cromwell_run_id = cromwell.submit(file_handles, options)
         except CromwellRunError as error:
@@ -560,8 +572,8 @@ class Run:
             logger.error(
                 f"Run {self.data.id}: Submission failed (service unavailable): {error}"
             )
-            # self.update_run_status("submission failed", f"{error}")
-            return  # try again later
+            # do not change status to failed; try again later
+            return
         else:
             self.data.cromwell_run_id = cromwell_run_id
             self.update_run_status("submitted")
