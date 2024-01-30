@@ -31,8 +31,9 @@ class Consumer:
         site_id = self.config["JAWS"]["site_id"]
         deployment = self.config["JAWS"]["deployment"]
         self.queue = f"jaws_{site_id}_{deployment}"
+        rmq_config = self.config.get_section("RMQ")
         self.consumer = messages.Consumer(
-            config=self.config,
+            config=rmq_config,
             session=self.session,
             logger=self.logger,
             operations=dispatch,
