@@ -3,6 +3,8 @@
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
 - catch invalid inputs json (#1775)
+- add tag to runs' summary.json file (#1758)
+- increase json basename field length (#1776)
 
 ### Internal Facing Changes
 

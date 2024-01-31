@@ -143,6 +143,7 @@ class Run:
                 status="ready",
                 wdl_basename=params["wdl_basename"],
                 json_basename=params["json_basename"],
+                tag=params.get("tag", None),
             )
         except SQLAlchemyError as error:
             raise RunDbError(
@@ -219,6 +220,8 @@ class Run:
             "run_id": self.data.id,
             "user_id": self.data.user_id,
             "cromwell_run_id": self.data.cromwell_run_id,
+            "json_basename": self.data.json_basename,
+            "tag": self.data.tag,
             "workflow_root": self.data.workflow_root,
             "workflow_name": self.data.workflow_name,
             "submitted": self.data.submitted.strftime("%Y-%m-%d %H:%M:%S"),
