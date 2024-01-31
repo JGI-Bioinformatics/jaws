@@ -10,6 +10,7 @@ Each computing site also has a Cromwell server instance, typically installed on 
 import logging
 import os
 import sys
+import time
 
 import click
 from jaws_site import config, log
@@ -139,7 +140,7 @@ def message_consumer() -> None:
                 message_consumer.consume()
         except Exception as error:
             logger.error(error)
-            sleep(60)
+            time.sleep(60)
 
 
 def jaws():
