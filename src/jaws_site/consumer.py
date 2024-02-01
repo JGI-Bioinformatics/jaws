@@ -13,9 +13,10 @@ def save_task_log(params, **kwargs):
     task_logger.save(params)
 
 
-dispatch = {
+# dispatch table
+operations = {
     "task_logger": {
-        "function": "save_task_log",
+        "function": save_task_log,
         "required_params": ["status", "cromwell_run_id"],
     },
 }
@@ -36,7 +37,7 @@ class Consumer:
             config=rmq_config,
             session=self.session,
             logger=self.logger,
-            operations=dispatch,
+            operations=operations,
             queue=self.queue,
         )
 
