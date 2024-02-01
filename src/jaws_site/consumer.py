@@ -9,7 +9,7 @@ def save_task_log(params, **kwargs):
     config = kwargs.get("config")
     session = kwargs.get("session")
     logger = kwargs.get("logger")
-    task_logger = TaskLogger(config, session, logger)
+    task_logger = TaskLogger(config, session, logger=logger)
     task_logger.save(params)
 
 
