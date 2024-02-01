@@ -248,8 +248,8 @@ svc-jaws@ln010.jgi:/clusterfs/jgi/groups/dsi/homes/svc-jaws$ systemctl --user st
            │ ├─2769151 Apptainer instance: svc-jaws [jaws-run-daemon-staging]
            ├─rpc-server-staging.service
            │ ├─2769007 Apptainer instance: svc-jaws [jaws-rpc-server-staging]
-           ├─task-logger-receive-staging.service
-           │ ├─1897786 Apptainer instance: svc-jaws [jaws-task-logger-receive-staging]
+           ├─message-consumer-staging.service
+           │ ├─1897786 Apptainer instance: svc-jaws [jaws-message-consumer-staging]
            ├─transfer-daemon-staging.service
            │ ├─2769532 Apptainer instance: svc-jaws [jaws-transfer-daemon-staging]
 ```

@@ -2,6 +2,11 @@
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
+- catch invalid inputs json (#1775)
+- add tag to runs' summary.json file (#1758)
+- increase json basename field length (#1776)
+- fixed task-logger bug introduced when moved to submodule (#1769)
+- add job_id to task log (#1749)
 
 ### Internal Facing Changes
 

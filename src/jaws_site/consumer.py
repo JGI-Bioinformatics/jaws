@@ -9,13 +9,14 @@ def save_task_log(params, **kwargs):
     config = kwargs.get("config")
     session = kwargs.get("session")
     logger = kwargs.get("logger")
-    task_logger = TaskLogger(config, session, logger)
+    task_logger = TaskLogger(config, session, logger=logger)
     task_logger.save(params)
 
 
-dispatch = {
+# dispatch table
+operations = {
     "task_logger": {
-        "function": "save_task_log",
+        "function": save_task_log,
         "required_params": ["status", "cromwell_run_id"],
     },
 }
@@ -28,14 +29,15 @@ class Consumer:
         self.logger = kwargs.get("logger", None)
         if self.logger is None:
             self.logger = logging.getLogger()
-        site_id = self.config["JAWS"]["site_id"]
-        deployment = self.config["JAWS"]["deployment"]
+        site_id = self.config.get("SITE", "id")
+        deployment = self.config.get("SITE", "deployment")
         self.queue = f"jaws_{site_id}_{deployment}"
+        rmq_config = self.config.get_section("RMQ")
         self.consumer = messages.Consumer(
-            config=self.config,
+            config=rmq_config,
             session=self.session,
             logger=self.logger,
-            operations=dispatch,
+            operations=operations,
             queue=self.queue,
         )
 

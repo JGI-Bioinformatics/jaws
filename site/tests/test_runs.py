@@ -193,6 +193,19 @@ def test_inputs(monkeypatch):
     assert inputs["fasta_file"] == "/jaws/inputs/CORI/mydata/genome.fasta"
     assert inputs["min_score"] == 95
 
+    # test: invalid inputs json
+    def mock_read_inputs(self):
+        raise ValueError("Invalid inputs JSON")
+
+    monkeypatch.setattr(jaws_site.runs.Run, "read_inputs", mock_read_inputs)
+
+    mock_session = MockSession()
+    mock_data = MockRunModel(input_site_id="CORI")
+    run = Run(mock_session, mock_data)
+    run.config["inputs_dir"] = "/jaws/inputs"
+    with pytest.raises(ValueError):
+        inputs = run.inputs()
+
 
 def test_inputs_fh(monkeypatch):
     def mock_inputs(self):
