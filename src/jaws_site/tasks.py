@@ -340,6 +340,7 @@ class TaskLog:
             req_minutes = self.int_or_none(
                 summary[task_dir].get("requested_runtime_minutes", None)
             )
+            job_id = summary[task_dir].get("job_id", None)
             update = {
                 "id": row_id,
                 "job_id": job_id,
