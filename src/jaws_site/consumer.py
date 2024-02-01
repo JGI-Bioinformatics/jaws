@@ -28,8 +28,8 @@ class Consumer:
         self.logger = kwargs.get("logger", None)
         if self.logger is None:
             self.logger = logging.getLogger()
-        site_id = self.config.get("JAWS", "site_id")
-        deployment = self.config.get("JAWS", "deployment")
+        site_id = self.config.get("SITE", "id")
+        deployment = self.config.get("SITE", "deployment")
         self.queue = f"jaws_{site_id}_{deployment}"
         rmq_config = self.config.get_section("RMQ")
         self.consumer = messages.Consumer(
