@@ -756,17 +756,13 @@ class Run:
 
         # get Cromwell metadata and set workflow_root if undefined
         try:
-            metadata = self.check_cromwell__metadata()
+            metadata = self.check_cromwell_metadata()
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
             self.update_run_status(
                 "complete", "Cromwell metadata could not be retrieved"
             )
             return
-        else:
-            metadata_file = os.path.join(root, "metadata.json")
-            logger.debug(f"Run {self.data.id}: Writing {metadata_file}")
-            write_json_file(metadata_file, metadata.data)
 
         # confirm workflow_root is defined
         root = self.data.workflow_root
@@ -778,6 +774,11 @@ class Run:
         if not os.path.isdir(root):
             self.update_run_status("complete", "Cromwell run folder does not exist")
             return
+
+        # write metadata json
+        metadata_file = os.path.join(root, "metadata.json")
+        logger.debug(f"Run {self.data.id}: Writing {metadata_file}")
+        write_json_file(metadata_file, metadata.data)
 
         # copy wdl
         infiles = []
