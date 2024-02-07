@@ -6,21 +6,24 @@
 ### Internal Facing Changes
 
 # 2.0.3  Summary [01/07/2024 - staging // ]
-- catch invalid inputs json (#1775)
-- add tag to runs' summary.json file (#1758)
-- increase json basename field length (#1776)
-- fixed task-logger bug introduced when moved to submodule (#1769)
-- add job_id to task log (#1749)
-- make sure workflow_root is defined (#1747)
-- add function to chmod files/folders transferred via Globus (#1739)
-- remove worker nodes for new deployment or workflow node change (#1666)
-- increase wall clock time to 14 days for dori site (#1754))
+
+
+### External Facing Changes
+- fix db update failures after to long transfer operation (#1746)
 - change NMDC site's refdata dir path (#1756)
 - add function to chmod files/folders transferred via Globus (#1739)
 - Cromwell run submission error message shall be saved in the run log (#1568)
-- fix db update failures after to long transfer operation (#1746)
-- Fix JAWS_MAX_RAM_GB for Perlmulter to 492GB (#1767)
+- make sure workflow_root is defined (#1747)
+- add tag to runs' summary.json file (#1758)
+- increase json basename field length (#1776)
+- add job_id to task log (#1749)
 
+### Internal Facing Changes
+- Fix JAWS_MAX_RAM_GB for Perlmulter to 492GB (#1767)
+- increase wall clock time to 14 days for dori site (#1754))
+- remove worker nodes for new deployment or workflow node change (#1666)
+- catch invalid inputs json (#1775)
+- fixed task-logger bug introduced when moved to submodule (#1769)
 
 ## 2.0.2  Summary [10/23/2023 - staging // 11/09/2023 - Prod]
 ### External Facing Changes
