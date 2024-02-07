@@ -7,6 +7,7 @@
 - increase json basename field length (#1776)
 - fixed task-logger bug introduced when moved to submodule (#1769)
 - add job_id to task log (#1749)
+- make sure workflow_root is defined (#1747)
 
 ### Internal Facing Changes
 
