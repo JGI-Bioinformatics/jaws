@@ -9,9 +9,17 @@ Full [documentation](https://jaws-docs.readthedocs.io) for running and installin
 ### Resources for JAWS Developers
 
 ### Installing JAWS site
-See docs/install_Cli_and_Site.md  
-See docs/startingServices.md  
+See docs/install_Cli_and_Site.md
+See docs/startingServices.md
 
+#### Local Development
+
+```bash
+cd jaws-site/
+podman machine init -v $HOME:HOME --cpus 2 --memory 8192
+podman machine start
+make up-dev
+```
 
 ### Requirements
 
@@ -87,6 +95,7 @@ of installing projects with `pip install .` There is an interesting discussion i
 Developers
 * Edward Kirton
 * Mario Melara
+* Elais Player
 * Georg Rath
 * Seung-jin Sul
 * Stephan Trong
@@ -96,7 +105,7 @@ Developers
 Documentation and WDL authoring
 * Jeff Froula
 * Ramani Kothadia
- 
+
 User support
 * Jeff Froula
 * Ed Kirton
@@ -111,4 +120,3 @@ System and integration testing
 Functional design consulting, project and resource coordination
 * Kjiersten Fagnan
 * Stephan Chan
-
