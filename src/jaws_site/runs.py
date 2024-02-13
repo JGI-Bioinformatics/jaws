@@ -1012,7 +1012,7 @@ def check_active_runs(session, reports_rpc_client) -> None:
         run.check_status()
 
 
-def send_run_status_logs(session, **kwargs) -> None:
+def send_run_logs(session, **kwargs) -> None:
     """
     Send new run logs to Central via messaging service.
     The logs are stored in a persistent db until they have been acknowledged as "sent" by the messaging service,
@@ -1063,7 +1063,7 @@ def send_run_status_logs(session, **kwargs) -> None:
             params["result"] = run.params.result
 
         # attempt to send message
-        msg = {
+        message = {
             "operation": "run_log",
             "params": params,
         }
