@@ -48,4 +48,4 @@ class RunDaemon:
         """
         with database.Session() as session:
             runs.check_active_runs(session, self.report_rpc_client)
-            runs.send_run_status_logs(session)
+            runs.send_run_logs(session)
