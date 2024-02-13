@@ -7,8 +7,9 @@ import logging
 import time
 
 import schedule
+
 # from jaws_site import perf_metrics_es
-from jaws_rpc import rpc_client, rpc_client_basic
+from jaws_rpc import rpc_client_basic
 
 from jaws_site import config, database, runs
 
@@ -26,9 +27,6 @@ class RunDaemon:
 
     def __init__(self):
         logger.info("Initializing daemon")
-        central_rpc_params = config.conf.get_section("RMQ")
-        central_rpc_params["queue"] = "CENTRAL"
-        self.central_rpc_client = rpc_client.RpcClient(central_rpc_params, logger)
         report_rpc_params = config.conf.get_section("RMQ")
         report_rpc_params["queue"] = "RUNS_ES_RPC_CLIENT"
         self.report_rpc_client = rpc_client_basic.RpcClientBasic(
@@ -49,7 +47,5 @@ class RunDaemon:
         Check for runs in particular states.
         """
         with database.Session() as session:
-            runs.check_active_runs(
-                session, self.central_rpc_client, self.report_rpc_client
-            )
-            runs.send_run_status_logs(session, self.central_rpc_client)
+            runs.check_active_runs(session, self.report_rpc_client)
+            runs.send_run_status_logs(session)

@@ -27,6 +27,10 @@ from random import shuffle
 
 import boto3
 import botocore
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.session import sessionmaker
+
 from jaws_site import config, models
 from jaws_site.cromwell import (
     Cromwell,
@@ -37,9 +41,6 @@ from jaws_site.cromwell import (
 )
 from jaws_site.tasks import TaskLog
 from jaws_site.utils import write_json_file
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.orm.session import sessionmaker
 
 logger = logging.getLogger(__package__)
 
@@ -96,9 +97,6 @@ class Run:
             "complete": self.publish_report,
             "cancel": self.cancel,
         }
-        self.central_rpc_client = (
-            kwargs["central_rpc_client"] if "central_rpc_client" in kwargs else None
-        )
         self.reports_rpc_client = (
             kwargs["reports_rpc_client"] if "reports_rpc_client" in kwargs else None
         )
@@ -127,9 +125,7 @@ class Run:
             logger.error(f"Error loading config: {error}")
 
     @classmethod
-    def from_params(
-        cls, session, params, central_rpc_client=None, reports_rpc_client=None
-    ):
+    def from_params(cls, session, params, reports_rpc_client=None):
         """Insert new Run into RDb.  Site only receives Runs in the "upload complete" state."""
         try:
             if not isinstance(params["caching"], bool):
@@ -159,12 +155,11 @@ class Run:
             return cls(
                 session,
                 data,
-                central_rpc_client=central_rpc_client,
                 reports_rpc_client=reports_rpc_client,
             )
 
     @classmethod
-    def from_id(cls, session, run_id, central_rpc_client=None, reports_rpc_client=None):
+    def from_id(cls, session, run_id, reports_rpc_client=None):
         """Select Run record from RDb given primary key"""
         try:
             data = session.query(models.Run).get(run_id)
@@ -179,14 +174,11 @@ class Run:
             return cls(
                 session,
                 data,
-                central_rpc_client=central_rpc_client,
                 reports_rpc_client=reports_rpc_client,
             )
 
     @classmethod
-    def from_cromwell_run_id(
-        cls, session, cromwell_run_id, central_rpc_client=None, reports_rpc_client=None
-    ):
+    def from_cromwell_run_id(cls, session, cromwell_run_id, reports_rpc_client=None):
         """Select Run record from RDb given Cromwell Run ID"""
         try:
             data = (
@@ -205,7 +197,6 @@ class Run:
             return cls(
                 session,
                 data,
-                central_rpc_client=central_rpc_client,
                 reports_rpc_client=reports_rpc_client,
             )
 
@@ -982,7 +973,7 @@ class Run:
             self.update_run_status("finished")
 
 
-def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
+def check_active_runs(session, reports_rpc_client) -> None:
     """
     Get active runs from db and have each check and update their status.
     """
@@ -1016,20 +1007,26 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
         run = Run(
             session,
             row,
-            central_rpc_client=central_rpc_client,
             reports_rpc_client=reports_rpc_client,
         )
         run.check_status()
 
 
-def send_run_status_logs(session, central_rpc_client) -> None:
-    """Send run logs to Central"""
+def send_run_status_logs(session, **kwargs) -> None:
+    """
+    Send new run logs to Central via messaging service.
+    The logs are stored in a persistent db until they have been acknowledged as "sent" by the messaging service,
+    thus allowing processing to continue while the messaging service is unavailable.
+    """
+    from jaws_common import messages
+
+    logger = kwargs.get("logger", None)
+    if logger is None:
+        logger = logging.getLogger(__package__)
 
     # get updates from datbase
     try:
-        query = (
-            session.query(models.Run_Log).filter(models.Run_Log.sent.is_(False)).all()
-        )
+        query = session.query(models.Run_Log).all()
     except SQLAlchemyError as error:
         logger.exception(f"Unable to select from run_logs: {error}")
         return
@@ -1038,8 +1035,12 @@ def send_run_status_logs(session, central_rpc_client) -> None:
         return
     logger.debug(f"Sending {num_logs} run logs")
 
+    # init Producer
+    msg_config = config.conf.get_section("RMQ")
+    producer = messages.Producer(config=msg_config, logger=logger, queue="CENTRAL")
+
     for log in query:
-        data = {
+        params = {
             "site_id": config.conf.get("SITE", "id"),
             "run_id": log.run_id,
             "status_from": log.status_from,
@@ -1047,32 +1048,36 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "reason": log.reason,
         }
+
         # add special fields
         run = Run.from_id(session, log.run_id)
-        if run.data.cromwell_run_id is not None:
-            data["cromwell_run_id"] = run.data.cromwell_run_id
-        if run.data.workflow_root is not None:
-            data["workflow_root"] = run.data.workflow_root
-            data["workflow_name"] = run.data.workflow_name
+        if run.params.cromwell_run_id is not None:
+            params["cromwell_run_id"] = run.params.cromwell_run_id
+        if run.params.workflow_root is not None:
+            params["workflow_root"] = run.params.workflow_root
+            params["workflow_name"] = run.params.workflow_name
         if log.status_to == "complete":
-            data["output_manifest"] = run.output_manifest()
-            data["cpu_hours"] = run.data.cpu_hours
+            params["output_manifest"] = run.output_manifest()
+            params["cpu_hours"] = run.params.cpu_hours
         elif log.status_to in ("succeeded", "failed", "cancelled"):
-            data["result"] = run.data.result
+            params["result"] = run.params.result
+
+        # attempt to send message
+        msg = {
+            "operation": "run_log",
+            "params": params,
+        }
         try:
-            response = central_rpc_client.request("update_run_log", data)
+            producer.send(message)
         except Exception as error:
-            logger.exception(f"RPC update_run_log error: {error}")
-            continue
-        if "error" in response:
-            logger.info(f"RPC update_run_status failed: {response['error']['message']}")
+            logger.exception(f"send run log error: {error}")
             continue
         try:
-            log.sent = True
+            session.delete(log)
             session.commit()
         except Exception as error:
             session.rollback()
-            logger.exception(f"Error updating run_logs as sent: {error}")
+            logger.exception(f"Error deleting sent run-log: {error}")
 
 
 def max_active_runs_exceeded(
@@ -1137,7 +1142,7 @@ class RunLog:
         """Reformat logs table to (verbose) dictionary"""
         logs = []
         for row in self.data:
-            (id, run_id, status_from, status_to, timestamp, reason, sent) = row
+            (id, run_id, status_from, status_to, timestamp, reason) = row
             log = {
                 "status_from": status_from,
                 "status_to": status_to,
