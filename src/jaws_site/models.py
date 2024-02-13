@@ -68,7 +68,6 @@ class Run_Log(Base):
     status_to = Column(String(32), nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=False, default="")
-    sent = Column(Boolean, default=False, nullable=False)
 
 
 class Tasks(Base):
