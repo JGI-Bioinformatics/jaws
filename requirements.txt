@@ -5,21 +5,21 @@
 #    pip-compile --allow-unsafe --output-file=requirements.txt --strip-extras pyproject.toml
 #
 amqpstorm==2.10.7
-    # via jaws-site (pyproject.toml)
-bcrypt==4.1.1
+    # via jaws_site (pyproject.toml)
+bcrypt==4.1.2
     # via paramiko
-boto3==1.33.1
+boto3==1.34.42
     # via
-    #   jaws-site (pyproject.toml)
+    #   jaws_site (pyproject.toml)
     #   moto
-botocore==1.33.1
+botocore==1.34.42
     # via
     #   boto3
     #   moto
     #   s3transfer
 bunch==1.0.1
     # via parallel-sync
-certifi==2023.11.17
+certifi==2024.2.2
     # via requests
 cffi==1.16.0
     # via
@@ -28,22 +28,26 @@ cffi==1.16.0
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
-    # via jaws-site (pyproject.toml)
+    # via jaws_site (pyproject.toml)
 contourpy==1.2.0
     # via matplotlib
-cryptography==41.0.7
+cryptography==42.0.2
     # via
     #   moto
     #   paramiko
 cycler==0.12.1
     # via matplotlib
 deepdiff==6.7.1
-    # via jaws-site (pyproject.toml)
-fonttools==4.45.1
+    # via jaws_site (pyproject.toml)
+fonttools==4.48.1
     # via matplotlib
+greenlet==3.0.3
+    # via sqlalchemy
 idna==3.6
     # via requests
-jinja2==3.1.2
+jaws-common @ git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git
+    # via jaws_site (pyproject.toml)
+jinja2==3.1.3
     # via moto
 jmespath==1.0.1
     # via
@@ -51,20 +55,20 @@ jmespath==1.0.1
     #   botocore
 kiwisolver==1.4.5
     # via matplotlib
-markupsafe==2.1.3
+markupsafe==2.1.5
     # via
     #   jinja2
     #   werkzeug
 matplotlib==3.8.2
-    # via jaws-site (pyproject.toml)
-moto==4.2.10
-    # via jaws-site (pyproject.toml)
-mysql-connector-python==8.2.0
-    # via jaws-site (pyproject.toml)
-numpy==1.26.2
+    # via jaws_site (pyproject.toml)
+moto==5.0.1
+    # via jaws_site (pyproject.toml)
+mysql-connector-python==8.3.0
+    # via jaws_site (pyproject.toml)
+numpy==1.26.4
     # via
     #   contourpy
-    #   jaws-site (pyproject.toml)
+    #   jaws_site (pyproject.toml)
     #   matplotlib
     #   pandas
 ordered-set==4.1.0
@@ -73,20 +77,20 @@ packaging==23.2
     # via matplotlib
 pamqp==2.3.0
     # via amqpstorm
-pandas==2.1.3
-    # via jaws-site (pyproject.toml)
+pandas==2.2.0
+    # via jaws_site (pyproject.toml)
 parallel-sync==1.16
-    # via jaws-site (pyproject.toml)
-paramiko==3.3.1
+    # via jaws_site (pyproject.toml)
+paramiko==3.4.0
     # via parallel-sync
 pika==1.3.2
-    # via jaws-site (pyproject.toml)
-pillow==10.1.0
+    # via
+    #   jaws-common
+    #   jaws_site (pyproject.toml)
+pillow==10.2.0
     # via matplotlib
-protobuf==4.21.12
-    # via mysql-connector-python
-psutil==5.9.6
-    # via jaws-site (pyproject.toml)
+psutil==5.9.8
+    # via jaws_site (pyproject.toml)
 pycparser==2.21
     # via cffi
 pynacl==1.5.0
@@ -99,32 +103,34 @@ python-dateutil==2.8.2
     #   matplotlib
     #   moto
     #   pandas
-pytz==2023.3.post1
+pytz==2024.1
     # via pandas
 pyyaml==6.0.1
     # via responses
 requests==2.31.0
     # via
-    #   jaws-site (pyproject.toml)
+    #   jaws_site (pyproject.toml)
     #   moto
     #   responses
-responses==0.24.1
+responses==0.25.0
     # via moto
-s3transfer==0.8.0
+s3transfer==0.10.0
     # via boto3
 schedule==1.2.1
-    # via jaws-site (pyproject.toml)
+    # via jaws_site (pyproject.toml)
 shortuuid==1.0.11
-    # via jaws-site (pyproject.toml)
+    # via jaws_site (pyproject.toml)
 six==1.16.0
     # via
     #   parallel-sync
     #   python-dateutil
-sqlalchemy==2.0.23
-    # via jaws-site (pyproject.toml)
-typing-extensions==4.8.0
-    # via sqlalchemy
-tzdata==2023.3
+sqlalchemy==2.0.27
+    # via jaws_site (pyproject.toml)
+typing-extensions==4.9.0
+    # via
+    #   jaws_site (pyproject.toml)
+    #   sqlalchemy
+tzdata==2024.1
     # via pandas
 urllib3==2.0.7
     # via
@@ -136,4 +142,4 @@ werkzeug==3.0.1
 xmltodict==0.13.0
     # via moto
 zipp==3.17.0
-    # via jaws-site (pyproject.toml)
+    # via jaws_site (pyproject.toml)
