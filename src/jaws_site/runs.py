@@ -1012,17 +1012,13 @@ def check_active_runs(session, reports_rpc_client) -> None:
         run.check_status()
 
 
-def send_run_logs(session, **kwargs) -> None:
+def send_run_logs(session) -> None:
     """
     Send new run logs to Central via messaging service.
     The logs are stored in a persistent db until they have been acknowledged as "sent" by the messaging service,
     thus allowing processing to continue while the messaging service is unavailable.
     """
     from jaws_common import messages
-
-    logger = kwargs.get("logger", None)
-    if logger is None:
-        logger = logging.getLogger(__package__)
 
     # get updates from datbase
     try:
@@ -1051,16 +1047,16 @@ def send_run_logs(session, **kwargs) -> None:
 
         # add special fields
         run = Run.from_id(session, log.run_id)
-        if run.params.cromwell_run_id is not None:
-            params["cromwell_run_id"] = run.params.cromwell_run_id
-        if run.params.workflow_root is not None:
-            params["workflow_root"] = run.params.workflow_root
-            params["workflow_name"] = run.params.workflow_name
+        if run.data.cromwell_run_id is not None:
+            params["cromwell_run_id"] = run.data.cromwell_run_id
+        if run.data.workflow_root is not None:
+            params["workflow_root"] = run.data.workflow_root
+            params["workflow_name"] = run.data.workflow_name
         if log.status_to == "complete":
             params["output_manifest"] = run.output_manifest()
-            params["cpu_hours"] = run.params.cpu_hours
+            params["cpu_hours"] = run.data.cpu_hours
         elif log.status_to in ("succeeded", "failed", "cancelled"):
-            params["result"] = run.params.result
+            params["result"] = run.data.result
 
         # attempt to send message
         message = {
