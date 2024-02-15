@@ -61,7 +61,7 @@ markupsafe==2.1.5
     #   werkzeug
 matplotlib==3.8.2
     # via jaws_site (pyproject.toml)
-moto==5.0.1
+moto==4.2.14
     # via jaws_site (pyproject.toml)
 mysql-connector-python==8.3.0
     # via jaws_site (pyproject.toml)
