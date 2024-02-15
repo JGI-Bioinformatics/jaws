@@ -35,10 +35,10 @@ dependencies = [
     "numpy",
     "pandas",
     "pika",
-    "moto",
+    "moto==4.2.14",
     "matplotlib",
     "psutil",
-    "parallel_sync"
+    "parallel-sync==1.16"
 ]
 
 [project.optional-dependencies]
