@@ -4,6 +4,7 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- parallel-sync requires 1.16 (#1782)
 
 # 2.0.3  Summary [01/07/2024 - staging // ]
 

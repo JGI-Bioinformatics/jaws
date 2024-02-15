@@ -32,10 +32,12 @@ pkg-requirements:
 
 .PHONY: pkg-rpc
 pkg-rpc: pkg-requirements
+	$Q pip install -r requirements.txt
 	$Q python -m build
 
 .PHONY: pkg-site
 pkg-site: pkg-requirements
+	$Q pip install -r requirements.txt
 	$Q python -m build
 
 .PHONY: pkg
