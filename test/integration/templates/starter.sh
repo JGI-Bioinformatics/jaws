@@ -13,7 +13,8 @@ fi
 
 STR_TIME=$(scontrol show res -o | egrep 'login|workflow' | awk -F'[= ]' '{print $4}'| head -n 1)
 
-sbatch_cmd="sbatch --job-name=${SCRONTAB_NAME} --dependency=singleton --time=90-00:00:00 --output=${JAWS_LOGS_DIR}/jaws-site-slurm-%j.out --error=${JAWS_LOGS_DIR}/jaws-site-slurm-%j.err --cpus-per-task=16"
+mkdir -p ${JAWS_LOGS_DIR}/site-slurm
+sbatch_cmd="sbatch --job-name=${SCRONTAB_NAME} --dependency=singleton --time=90-00:00:00 --output=${JAWS_LOGS_DIR}/site-slurm/jaws-site-slurm-%j.out --error=${JAWS_LOGS_DIR}/jaws-site-slurm-%j.err --cpus-per-task=16"
 
 if [[ "$STR_TIME" == "" ]]; then
     printf '[%s] No maintenance found\n' "$(date "+%m-%d-%Y-%H:%M:%S")"
