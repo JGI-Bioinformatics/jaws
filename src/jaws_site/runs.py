@@ -621,9 +621,14 @@ class Run:
         Returns cached object unless "force" option is provided.
         A CromwellError exception may be raised if Cromwell is unreachable.
         """
+        logger.debug("BEFORE cromwell.get_metadata call")
         force = kwargs.get("force", False)
-        if force or self._metadata is None:
-            self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+        if force or self._metadata is None: 
+            try:
+                self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            except Exception as e:
+                logger.critical(f"cromwell.get_metadata rasied an exception: {e}")
+        logger.debug(f"AFTER cromwell.get_metadata call")
         return self._metadata
 
     def check_cromwell_metadata(self):
@@ -634,8 +639,14 @@ class Run:
         """
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
         metadata = self.get_metadata()
+        logger.debug(f"AFTER check_cromwell_metadata.get_metadata function {metadata}")
         workflow_name = metadata.get("workflowName")
+        logger.debug(f"AFTER check_cromwell_metadata.get_metadata(workflow name) function")
         workflow_root = metadata.get("workflowRoot")
+        logger.debug(f"AFTER check_cromwell_metadata.get_metadata(workflow root) function")
+
+        logger.debug(f"workflow_name = {workflow_name} and workflow_root = {workflow_root}")
+
         if workflow_name or workflow_root:
             logger.debug(
                 f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"

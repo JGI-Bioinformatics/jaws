@@ -21,18 +21,21 @@ logger = logging.getLogger(__package__)
 FILES_PER_THREAD = 10000
 MAX_ERROR_STRING_LEN = 1024
 
-
 def mkdir(path, mode=None):
-    if mode is None:
-        mode = int(config.conf.get("SITE", "folder_permissions", "775"), base=8)
-    if os.path.isdir(path):
-        os.chmod(path, mode)
-    else:
-        (head, tail) = os.path.split(path)
-        mkdir(head, mode)
-        if not os.path.exists(path):
-            os.mkdir(path)
-            os.chmod(path, mode)
+    mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
+
+    # Split the path into components, skip the first element if it's empty
+    path_parts = path.strip("/").split("/")
+
+    # Reconstruct the path and create directories
+    current_path = "/"
+    for part in path_parts:
+        current_path = os.path.join(current_path, part)
+
+        # Create the directory if it doesn't exist and set permissions
+        if not os.path.exists(current_path):
+            os.makedirs(current_path, mode=mode, exist_ok=True)
+            os.chmod(current_path, mode)
 
 
 class TransferError(Exception):
@@ -296,7 +299,12 @@ class Transfer:
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
-        mkdir(dest)
+        print(f"DEST BASE DIR: {self.data.dest_base_dir}")
+        try:
+            mkdir(dest)
+        except Exception as e:
+            logger.error(f"Failed to mkdir {dest}. {e}", exc_info=True)
+
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
@@ -607,6 +615,7 @@ def check_fix_perms_queue() -> None:
     Do all chmod tasks for Globus transfers.
     """
     fix_perms_ids = []
+    rows = []
     with Session() as session:
         try:
             rows = (
@@ -619,6 +628,10 @@ def check_fix_perms_queue() -> None:
             logger.warning(
                 f"Failed to select transfer task from db: {error}", exc_info=True
             )
+        except Exception as e:
+            logger.error(f"NO ROWS {e}", exc_info=True)
+
+            
         for row in rows:
             fix_perms_ids.append(row.id)
     return fix_perms_ids

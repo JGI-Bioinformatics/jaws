@@ -821,6 +821,7 @@ class Cromwell:
         :return: JSON report from Cromwell
         :rtype: dict
         """
+        logger.debug("BEFORE actual cromwell rest call for getting metadata")
         url = f"{self.workflows_url}/{workflow_id}/{output_type}"
         try:
             response = session.get(url, timeout=REQUEST_TIMEOUT)
@@ -837,6 +838,7 @@ class Cromwell:
             raise CromwellServiceError(
                 f"Error retrieving Cromwell Run report {output_type}: code {response.status_code}"
             )
+        logger.debug("AFTER actual cromwell rest call for getting metadata")
         return response.json()
 
     def get_metadata(self, workflow_id: str, data=None):
