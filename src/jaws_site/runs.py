@@ -26,7 +26,6 @@ from datetime import datetime
 from random import shuffle
 import boto3
 import botocore
-import time
 from tenacity import retry, stop_after_attempt, wait_fixed, before_log, after_log
 
 from jaws_site import config, models
@@ -78,6 +77,7 @@ class RunFileNotFoundError(Exception):
 
 class RunInputError(Exception):
     pass
+
 
 class CromwellGetMetadataError(Exception):
     pass
@@ -620,11 +620,13 @@ class Run:
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
         return {self.data.id: "ready"}
 
-    @retry(reraise=True, 
-           stop=stop_after_attempt(3), 
-           before=before_log(logger, logging.DEBUG),
-           after=after_log(logger, logging.DEBUG),
-           wait=wait_fixed(180))
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(3),
+        before=before_log(logger, logging.DEBUG),
+        after=after_log(logger, logging.DEBUG),
+        wait=wait_fixed(180),
+    )
     def get_metadata(self, **kwargs):
         """
         Get Cromwell metadata, save for future use.
@@ -638,7 +640,9 @@ class Run:
                 self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             except Exception as e:
                 logger.critical(f"cromwell.get_metadata raised an exception: {e}")
-                raise CromwellGetMetadataError(f"cromwell.get_metadata raised an exception: {e}")
+                raise CromwellGetMetadataError(
+                    f"cromwell.get_metadata raised an exception: {e}"
+                )
         logger.debug("AFTER cromwell.get_metadata call")
         return self._metadata
 
@@ -651,9 +655,9 @@ class Run:
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
         metadata = self.get_metadata()
 
-        #num_trials = 0
-        #retry_check = False
-        #while retry_check is not True and num_trials < 3:
+        # num_trials = 0
+        # retry_check = False
+        # while retry_check is not True and num_trials < 3:
         #    metadata = self.get_metadata()
         #    if metadata is not None:
         #        retry_check = True
