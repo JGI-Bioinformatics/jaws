@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import shutil
+import time
 from datetime import datetime
 from random import shuffle
 
@@ -627,7 +628,7 @@ class Run:
             try:
                 self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             except Exception as e:
-                logger.critical(f"cromwell.get_metadata rasied an exception: {e}")
+                logger.critical(f"cromwell.get_metadata raised an exception: {e}")
         logger.debug("AFTER cromwell.get_metadata call")
         return self._metadata
 
@@ -638,7 +639,20 @@ class Run:
         :rtype: Cromwell.Metadata
         """
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
-        metadata = self.get_metadata()
+        num_trials = 0
+        retry_check = False
+
+        while retry_check is not True and num_trials < 3:
+            metadata = self.get_metadata()
+            if metadata is not None:
+                retry_check = True
+            else:
+                num_trials += 1
+                logger.debug(
+                    f"Try to run get_metadata one more time: Retrial numer = {num_trials}"
+                )
+                time.sleep(180)
+
         logger.debug(f"AFTER check_cromwell_metadata.get_metadata function {metadata}")
         workflow_name = metadata.get("workflowName")
         logger.debug(

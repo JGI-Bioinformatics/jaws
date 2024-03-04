@@ -1,6 +1,8 @@
 # Changelog
 
 # Inbound changes not assigned to version # yet
+- Added retrial to get_metadata to handle `None` metadata 
+
 ### External Facing Changes
 
 ### Internal Facing Changes
