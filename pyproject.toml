@@ -38,7 +38,8 @@ dependencies = [
     "moto==4.2.14",
     "matplotlib",
     "psutil",
-    "parallel-sync==1.16"
+    "parallel-sync==1.16",
+    "tenacity"
 ]
 
 [project.optional-dependencies]
