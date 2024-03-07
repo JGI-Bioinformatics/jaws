@@ -622,11 +622,13 @@ class Run:
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
         return {self.data.id: "ready"}
 
-    @retry(reraise=True, 
-           stop=stop_after_attempt(JAWS_GET_METADATA_MAX_RETRIALS), 
-           before=before_log(logger, logging.DEBUG),
-           after=after_log(logger, logging.DEBUG),
-           wait=wait_fixed(JAWS_GET_METADATA_WAIT_SEC))
+    @retry(
+        reraise=True,
+        stop=stop_after_attempt(JAWS_GET_METADATA_MAX_RETRIALS),
+        before=before_log(logger, logging.DEBUG),
+        after=after_log(logger, logging.DEBUG),
+        wait=wait_fixed(JAWS_GET_METADATA_WAIT_SEC),
+    )
     def get_metadata(self, **kwargs):
         """
         Get Cromwell metadata, save for future use.
@@ -638,8 +640,12 @@ class Run:
             try:
                 self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
             except Exception as e:
-                logger.critical(f"cromwell.get_metadata raised an exception: {e} {self._metadata}")
-                raise CromwellGetMetadataError(f"cromwell.get_metadata raised an exception: {e}")
+                logger.critical(
+                    f"cromwell.get_metadata raised an exception: {e} {self._metadata}"
+                )
+                raise CromwellGetMetadataError(
+                    f"cromwell.get_metadata raised an exception: {e}"
+                )
         return self._metadata
 
     def check_cromwell_metadata(self):
