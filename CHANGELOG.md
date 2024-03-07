@@ -5,6 +5,7 @@
 
 ### Internal Facing Changes
 - parallel-sync requires 1.16 (#1782)
+- Add retrials in get_metadata (#1787)
 
 # 2.0.3  Summary [01/07/2024 - staging // ]
 

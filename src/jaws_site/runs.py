@@ -24,9 +24,10 @@ import os
 import shutil
 from datetime import datetime
 from random import shuffle
-
 import boto3
 import botocore
+from tenacity import retry, stop_after_attempt, wait_fixed, before_log, after_log
+
 from jaws_site import config, models
 from jaws_site.cromwell import (
     Cromwell,
@@ -50,6 +51,8 @@ else:
     cromwell = Cromwell("localhost")
 
 MAX_ERROR_STRING_LEN = 1024
+JAWS_GET_METADATA_MAX_RETRIALS = config.get("SITE", "jaws_get_metadata_max_retrials", 3)
+JAWS_GET_METADATA_WAIT_SEC = config.conf.get("SITE", "jaws_get_metadata_wait_sec", 180)
 
 
 def set_atime_now(path: str) -> None:
@@ -75,6 +78,10 @@ class RunFileNotFoundError(Exception):
 
 
 class RunInputError(Exception):
+    pass
+
+
+class CromwellGetMetadataError(Exception):
     pass
 
 
@@ -615,6 +622,11 @@ class Run:
             logger.exception(f"Unable to update Run {self.data.id}: {error}")
         return {self.data.id: "ready"}
 
+    @retry(reraise=True, 
+           stop=stop_after_attempt(JAWS_GET_METADATA_MAX_RETRIALS), 
+           before=before_log(logger, logging.DEBUG),
+           after=after_log(logger, logging.DEBUG),
+           wait=wait_fixed(JAWS_GET_METADATA_WAIT_SEC))
     def get_metadata(self, **kwargs):
         """
         Get Cromwell metadata, save for future use.
@@ -623,7 +635,11 @@ class Run:
         """
         force = kwargs.get("force", False)
         if force or self._metadata is None:
-            self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            try:
+                self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+            except Exception as e:
+                logger.critical(f"cromwell.get_metadata raised an exception: {e} {self._metadata}")
+                raise CromwellGetMetadataError(f"cromwell.get_metadata raised an exception: {e}")
         return self._metadata
 
     def check_cromwell_metadata(self):
