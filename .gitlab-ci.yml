@@ -455,7 +455,7 @@ deploy-jaws-dori-prod:
     - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-nmdc-tahoma-prod:
-  extends: .nmdc-tahoma-deployment
+  extends: .tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_VERSION: "prod"
@@ -468,7 +468,7 @@ deploy-jaws-nmdc-tahoma-prod:
     - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-nmdc-tahoma-staging:
-  extends: .nmdc-tahoma-deployment
+  extends: .tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_VERSION: "staging"
@@ -481,7 +481,7 @@ deploy-jaws-nmdc-tahoma-staging:
   allow_failure: true
 
 deploy-jaws-nmdc-tahoma-dev:
-  extends: .nmdc-tahoma-deployment
+  extends: .tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_VERSION: "dev"
