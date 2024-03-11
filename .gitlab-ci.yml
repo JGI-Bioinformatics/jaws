@@ -115,7 +115,7 @@ variables:
     http_proxy: "http://proxy.emsl.pnl.gov:3128"
     HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
     https_proxy: "http://proxy.emsl.pnl.gov:3128"
-    JAWS_SITE_NAME: "NMDDC_TAHOMA"
+    JAWS_SITE_NAME: "NMDC_TAHOMA"
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
