@@ -104,6 +104,23 @@ variables:
   script:
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
 
+.nmdc_tahoma-deployment: &nmdc_tahoma-deploy
+  stage: deploy-jaws
+  tags:
+    - nmdc_tahoma
+    - twf2
+  variables:
+    no_proxy: "127.0.0.1, localhost, *.pnnl.gov *pnl.gov"
+    HTTP_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    http_proxy: "http://proxy.emsl.pnl.gov:3128"
+    HTTPS_PROXY: "http://proxy.emsl.pnl.gov:3128"
+    https_proxy: "http://proxy.emsl.pnl.gov:3128"
+    JAWS_SITE_NAME: "NMDDC_TAHOMA"
+    CONTAINER_RUNTIME: "apptainer"
+  <<: *supervisor-stop
+  script:
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
+    
 .nmdc-deployment: &nmdc-deploy
   stage: deploy-jaws
   tags:
@@ -455,11 +472,10 @@ deploy-jaws-dori-prod:
     - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-nmdc-tahoma-prod:
-  extends: .tahoma-deployment
+  extends: .nmdc_tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_VERSION: "prod"
-    JAWS_SITE_NAME: "NMDC_TAHOMA"
   environment:
     name: "nmdc-tahoma/prod"
   rules:
@@ -468,11 +484,10 @@ deploy-jaws-nmdc-tahoma-prod:
     - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-nmdc-tahoma-staging:
-  extends: .tahoma-deployment
+  extends: .nmdc_tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
     JAWS_SITE_VERSION: "staging"
-    JAWS_SITE_NAME: "NMDC_TAHOMA"    
   environment:
     name: "nmdc-tahoma/staging"
   rules:
@@ -481,11 +496,10 @@ deploy-jaws-nmdc-tahoma-staging:
   allow_failure: true
 
 deploy-jaws-nmdc-tahoma-dev:
-  extends: .tahoma-deployment
+  extends: .nmdc_tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
     JAWS_SITE_VERSION: "dev"
-    JAWS_SITE_NAME: "NMDC_TAHOMA"
   environment:
     name: "nmdc-tahoma/dev"
   rules:
