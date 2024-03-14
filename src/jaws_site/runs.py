@@ -635,18 +635,24 @@ class Run:
         Returns cached object unless "force" option is provided.
         A CromwellError exception may be raised if Cromwell is unreachable.
         """
-        force = kwargs.get("force", False)
-        if force or self._metadata is None:
-            try:
-                self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            except Exception as e:
-                logger.critical(
-                    f"cromwell.get_metadata raised an exception: {e} {self._metadata}"
-                )
-                raise CromwellGetMetadataError(
-                    f"cromwell.get_metadata raised an exception: {e}"
-                )
-        return self._metadata
+        logger.debug(f"Cromwell id = {self.data.cromwell_run_id}")
+        if self.data.cromwell_run_id is not None:
+            logger.debug("BEFORE cromwell.get_metadata call")
+            force = kwargs.get("force", False)
+            if force or self._metadata is None:
+                try:
+                    self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+                except Exception as e:
+                    logger.critical(
+                        f"cromwell.get_metadata raised an exception: {e} {self._metadata}"
+                    )
+                    raise CromwellGetMetadataError(
+                        f"cromwell.get_metadata raised an exception: {e}"
+                    )
+            return self._metadata
+        else:
+            logger.debug("Return None as Cromwell id is None")
+            return None
 
     def check_cromwell_metadata(self):
         """
@@ -656,8 +662,11 @@ class Run:
         """
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
         metadata = self.get_metadata()
-        workflow_name = metadata.get("workflowName")
-        workflow_root = metadata.get("workflowRoot")
+        workflow_name = None
+        workflow_root = None
+        if metadata is not None:
+            workflow_name = metadata.get("workflowName")
+            workflow_root = metadata.get("workflowRoot")
         if workflow_name or workflow_root:
             logger.debug(
                 f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
