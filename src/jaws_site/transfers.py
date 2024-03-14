@@ -2,6 +2,7 @@
 Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc.)
 Items are stored in a relational database.
 """
+
 import concurrent.futures
 import json
 import logging
@@ -535,10 +536,7 @@ class FixPerms:
     def from_params(cls, session, params):
         """Create new transfer from parameter values and save in RDb."""
         try:
-            data = models.Fix_Perms(
-                base_dir=params["base_dir"],
-                status="queued"
-            )
+            data = models.Fix_Perms(base_dir=params["base_dir"], status="queued")
         except SQLAlchemyError as error:
             raise FixPermsValueError(
                 f"Error creating model for new FixPerms: {params}: {error}"
