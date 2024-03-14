@@ -51,7 +51,9 @@ else:
     cromwell = Cromwell("localhost")
 
 MAX_ERROR_STRING_LEN = 1024
-JAWS_GET_METADATA_MAX_RETRIALS = config.conf.get("SITE", "jaws_get_metadata_max_retrials", 3)
+JAWS_GET_METADATA_MAX_RETRIALS = config.conf.get(
+    "SITE", "jaws_get_metadata_max_retrials", 3
+)
 JAWS_GET_METADATA_WAIT_SEC = config.conf.get("SITE", "jaws_get_metadata_wait_sec", 180)
 
 
