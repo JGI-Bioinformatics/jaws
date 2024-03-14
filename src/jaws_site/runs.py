@@ -648,6 +648,7 @@ class Run:
             logger.debug("AFTER cromwell.get_metadata call")
             return self._metadata
         else:
+            logger.debug("Return None as Cromwell id is None")
             return None
 
     def check_cromwell_metadata(self):
