@@ -633,18 +633,22 @@ class Run:
         Returns cached object unless "force" option is provided.
         A CromwellError exception may be raised if Cromwell is unreachable.
         """
-        logger.debug("BEFORE cromwell.get_metadata call")
-        force = kwargs.get("force", False)
-        if force or self._metadata is None:
-            try:
-                self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
-            except Exception as e:
-                logger.critical(f"cromwell.get_metadata raised an exception: {e}")
-                raise CromwellGetMetadataError(
-                    f"cromwell.get_metadata raised an exception: {e}"
-                )
-        logger.debug("AFTER cromwell.get_metadata call")
-        return self._metadata
+        logger.debug(f"Cromwell id = {self.data.cromwell_run_id}")
+        if self.data.cromwell_run_id is not None:
+            logger.debug("BEFORE cromwell.get_metadata call")
+            force = kwargs.get("force", False)
+            if force or self._metadata is None:
+                try:
+                    self._metadata = cromwell.get_metadata(self.data.cromwell_run_id)
+                except Exception as e:
+                    logger.critical(f"cromwell.get_metadata raised an exception: {e}")
+                    raise CromwellGetMetadataError(
+                        f"cromwell.get_metadata raised an exception: {e}"
+                    )
+            logger.debug("AFTER cromwell.get_metadata call")
+            return self._metadata
+        else:
+            return None
 
     def check_cromwell_metadata(self):
         """
