@@ -23,16 +23,20 @@ MAX_ERROR_STRING_LEN = 1024
 
 
 def mkdir(path, mode=None):
-    if mode is None:
-        mode = int(config.conf.get("SITE", "folder_permissions", "775"), base=8)
-    if os.path.isdir(path):
-        os.chmod(path, mode)
-    else:
-        (head, tail) = os.path.split(path)
-        mkdir(head, mode)
-        if not os.path.exists(path):
-            os.mkdir(path)
-            os.chmod(path, mode)
+    mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
+
+    # Split the path into components, skip the first element if it's empty
+    path_parts = path.strip("/").split("/")
+
+    # Reconstruct the path and create directories
+    current_path = "/"
+    for part in path_parts:
+        current_path = os.path.join(current_path, part)
+
+        # Create the directory if it doesn't exist and set permissions
+        if not os.path.exists(current_path):
+            os.makedirs(current_path, mode=mode, exist_ok=True)
+            os.chmod(current_path, mode)
 
 
 class TransferError(Exception):
