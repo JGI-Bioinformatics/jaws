@@ -659,8 +659,12 @@ class Run:
         """
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
         metadata = self.get_metadata()
-        workflow_name = metadata.get("workflowName")
-        workflow_root = metadata.get("workflowRoot")
+        logger.debug(f"metadata = {metadata}")
+        workflow_name = None
+        workflow_root = None
+        if metadata is not None:
+            workflow_name = metadata.get("workflowName")
+            workflow_root = metadata.get("workflowRoot")
         logger.debug(
             f"workflow_name = {workflow_name} and workflow_root = {workflow_root}"
         )
