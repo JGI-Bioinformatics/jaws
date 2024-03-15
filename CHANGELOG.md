@@ -1,4 +1,5 @@
 # Changelog
+- Fix get_metadata hangs (#1789)
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
