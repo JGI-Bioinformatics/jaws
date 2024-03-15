@@ -1,7 +1,10 @@
 # Changelog
 - Refactor mkdir (#1790)
+- Fix get_metadata hangs (#1789)
 
 # Inbound changes not assigned to version # yet
+- Added nmdc_tahoma site (#1788)
+
 ### External Facing Changes
 
 ### Internal Facing Changes
