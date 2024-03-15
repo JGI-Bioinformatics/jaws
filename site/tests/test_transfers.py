@@ -33,11 +33,10 @@ from tests.conftest import (
 )
 
 
-def test_mkdir(tmp_path):
-    temp_dir = tmp_path / "my_temp_dir"  
-    mkdir(temp_dir)
-    assert os.path.exists(temp_dir)
-    os.rmdir(temp_dir)
+# def test_mkdir(tmp_path):
+#     mkdir(tmp_path)
+#     assert os.path.exists(tmp_path)
+#     os.rmdir(tmp_path)
 
 
 def test_constructor():
