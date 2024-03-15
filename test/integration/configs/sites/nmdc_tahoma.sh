@@ -1,7 +1,7 @@
 export JAWS_INSTALL_BASEDIR="/tahoma/mscnmdc/jaws-install"
 export JAWS_GLOBUS_EP="1d29d628-2fe2-4f4c-8469-2197b140a824"
 export JAWS_GLOBUS_HOST_PATH="/tahoma/mscnmdc"
-export JAWS_LOAD_PYTHON="module load python/3.8.1"
+export JAWS_LOAD_PYTHON="module load python/3.11.2-gcc"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="svcnmdcuser"
 export JAWS_USERS_GROUP="svcnmdcuser"
