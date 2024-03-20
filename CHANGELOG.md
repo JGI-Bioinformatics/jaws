@@ -1,20 +1,24 @@
 # Changelog
-- Refactor mkdir (#1790)
-- Fix get_metadata hangs (#1789)
-- Set JAWS_GROUP as mscnmdc for nmdc_tahoma (#1791)
-- Fix JAWS_MAX_RAM_GB for NMDC to 492GB (#1792)
 
 # Inbound changes not assigned to version # yet
-- Added nmdc_tahoma site (#1788)
-
 ### External Facing Changes
 
 ### Internal Facing Changes
+
+# 2.1.0 Summary [03/19/2024 - Staging // ]
+
+### External Facing Changes
+- Refactor mkdir (#1790)
+- Fix get_metadata hangs (#1789)
+- Added nmdc_tahoma site (#1788)
 - parallel-sync requires 1.16 (#1782)
 - Add retrials in get_metadata (#1787)
 
-# 2.0.3  Summary [01/07/2024 - staging // ]
+### Internal Facing Changes
+- Set JAWS_GROUP as mscnmdc for nmdc_tahoma (#1791)
+- Fix JAWS_MAX_RAM_GB for NMDC to 492GB (#1792)
 
+# 2.0.3  Summary [01/07/2024 - staging // 02/07/2024 --> PROD]
 
 ### External Facing Changes
 - fix db update failures after to long transfer operation (#1746)
