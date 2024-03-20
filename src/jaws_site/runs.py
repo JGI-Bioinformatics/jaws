@@ -23,6 +23,7 @@ import logging
 import os
 import shutil
 from datetime import datetime
+import time
 from random import shuffle
 import boto3
 import botocore
@@ -372,8 +373,11 @@ class Run:
         """
         Read file from NFS into RAM and return a file handle object.
         """
+        logger.info(f"Testing if {path} is a file....sleeping")
+        time.sleep(10)
         if not os.path.isfile(path):
             raise RunFileNotFoundError(f"File not found: {path}")
+        logger.info(f"After Testing if {path} is a file")
         data = None
         mode = "rb" if binary else "r"
         if not os.path.isfile(path):
