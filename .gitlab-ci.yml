@@ -473,6 +473,7 @@ deploy-jaws-dori-prod:
 
 deploy-jaws-nmdc-tahoma-prod:
   extends: .nmdc_tahoma-deployment
+  stage: release-jaws
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
     JAWS_SITE_VERSION: "prod"
@@ -487,7 +488,6 @@ deploy-jaws-nmdc-tahoma-staging:
   extends: .nmdc_tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "staging"
-    JAWS_SITE_VERSION: "staging"
   environment:
     name: "nmdc-tahoma/staging"
   rules:
@@ -499,7 +499,6 @@ deploy-jaws-nmdc-tahoma-dev:
   extends: .nmdc_tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_VERSION: "dev"
   environment:
     name: "nmdc-tahoma/dev"
   rules:
