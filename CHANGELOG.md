@@ -1,7 +1,6 @@
 # Changelog
-- Upgrade Python to 3.11 for tahoma (#1795)
-
 # Inbound changes not assigned to version # yet
+
 ### External Facing Changes
 
 ### Internal Facing Changes
@@ -18,6 +17,7 @@
 ### Internal Facing Changes
 - Set JAWS_GROUP as mscnmdc for nmdc_tahoma (#1791)
 - Fix JAWS_MAX_RAM_GB for NMDC to 492GB (#1792)
+- Upgrade Python to 3.11 for tahoma (#1795)
 
 # 2.0.3  Summary [01/07/2024 - staging // 02/07/2024 --> PROD]
 
