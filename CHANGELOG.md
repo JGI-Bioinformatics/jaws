@@ -1,5 +1,6 @@
 # Changelog
 # Inbound changes not assigned to version # yet
+- Add JAWS_APPTAINER_PATH (#1793)
 
 ### External Facing Changes
 
