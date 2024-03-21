@@ -27,3 +27,4 @@ export JAWS_PERLMUTTER=1
 export TSIGPATH="/global/u2/n/nmjaws/.ssh/jaws_TSIG_key"
 export JAWS_GITLAB_RUNNER="/global/cfs/cdirs/m3408/jaws_runner/usr/bin/gitlab-runner"
 export JAWS_GITLAB_RUNNER_CONFIG="/global/homes/n/nmjaws/.gitlab-runner/config.nmjaws.toml"
+export JAWS_APPTAINER_PATH="/usr/bin/apptainer"
