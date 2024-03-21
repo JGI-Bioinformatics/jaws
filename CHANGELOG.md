@@ -1,4 +1,5 @@
 # Changelog
+- Upgrade Python to 3.11 for tahoma (#1795)
 
 # Inbound changes not assigned to version # yet
 ### External Facing Changes
