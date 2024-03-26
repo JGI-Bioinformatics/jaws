@@ -10,6 +10,7 @@ export JAWS_REF_DATA_DIR="/tahoma/mscnmdc/refdata"
 export JAWS_BIG_SCRATCH_DIR="/big_scratch"
 export JAWS_MAX_RAM_GB=1480
 export JAWS_MAX_CPU=36
+export JAWS_MAX_TIME=3
 export JAWS_SUPERVISOR_PORT_PROD=64103
 export JAWS_AUTH_PORT_PROD=3003
 export JAWS_REST_PORT_PROD=5003

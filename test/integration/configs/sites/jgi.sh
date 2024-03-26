@@ -9,6 +9,7 @@ export JAWS_SCRATCH_BASEDIR="/global/scratch/users/jaws"
 export JAWS_REF_DATA_DIR="/global/scratch/users/jaws/refdata"
 export JAWS_MAX_RAM_GB=492
 export JAWS_MAX_CPU=32
+export JAWS_MAX_TIME=3
 export JAWS_SUPERVISOR_PORT_PROD=64103
 export JAWS_AUTH_PORT_PROD=3003
 export JAWS_REST_PORT_PROD=5003

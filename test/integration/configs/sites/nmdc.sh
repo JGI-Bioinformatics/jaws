@@ -10,6 +10,7 @@ export JAWS_SCRATCH_BASEDIR="/pscratch/sd/n/nmjaws"
 export JAWS_REF_DATA_DIR="/global/cfs/cdirs/m3408/refdata"
 export JAWS_MAX_RAM_GB=492
 export JAWS_MAX_CPU=128
+export JAWS_MAX_TIME=3
 export JAWS_ACCESS_GROUP="nmdc"
 export JAWS_SUPERVISOR_PORT_PROD=64106
 export JAWS_AUTH_PORT_PROD=3006
