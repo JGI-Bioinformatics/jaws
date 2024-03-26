@@ -7,6 +7,7 @@ from jaws_site.env_interpolation import EnvInterpolation, JAWSConfigParser
 
 conf = None
 
+
 class ConfigurationError(Exception):
     pass
 
