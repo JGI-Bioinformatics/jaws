@@ -9,6 +9,7 @@ export JAWS_SCRATCH_BASEDIR="/pscratch/sd/j/jaws"
 export JAWS_REF_DATA_DIR="/global/dna/shared/databases/jaws/refdata"
 export JAWS_MAX_RAM_GB=492
 export JAWS_MAX_CPU=128
+export JAWS_MAX_TIME=1440
 export JAWS_GITLAB_RUNNER="$CFS/jaws/bin/gitlab-runner"
 export JAWS_GITLAB_RUNNER_CONFIG="$HOME/.gitlab-runner/perlmutter.toml"
 export JAWS_PERLMUTTER=1

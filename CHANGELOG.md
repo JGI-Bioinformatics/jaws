@@ -6,6 +6,11 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- Added a max_time variable for all the site config files. This is to have max_ram, max_cpu, and max_time get validated during wdl submission(#1797)
+
+### External Facing Changes
+- Add JAWS_APPTAINER_PATH (#1793)
+
 
 # 2.1.0 Summary [03/19/2024 - Staging // ]
 
