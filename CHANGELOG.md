@@ -1,6 +1,7 @@
 # Changelog
 # Inbound changes not assigned to version # yet
 - Add JAWS_APPTAINER_PATH (#1793)
+- Add exception handling to get_cromwell_metadata (#1799)
 
 ### External Facing Changes
 
