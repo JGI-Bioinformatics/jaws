@@ -1,5 +1,9 @@
 # Changelog
 # Inbound changes not assigned to version # yet
+- Add JAWS_APPTAINER_PATH (#1793)
+- Add exception handling to get_cromwell_metadata (#1799)
+
+### External Facing Changes
 
 ### Internal Facing Changes
 - Added a max_time variable for all the site config files. This is to have max_ram, max_cpu, and max_time get validated during wdl submission(#1797)
