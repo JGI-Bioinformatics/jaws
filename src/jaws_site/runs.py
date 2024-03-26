@@ -666,9 +666,23 @@ class Run:
         metadata = self.get_metadata()
         workflow_name = None
         workflow_root = None
+        logger.debug(f"Returned metadata = {metadata}")
         if metadata is not None:
-            workflow_name = metadata.get("workflowName")
-            workflow_root = metadata.get("workflowRoot")
+            try:
+                workflow_name = metadata.get("workflowName")
+            except Exception as e:
+                logger.critical(f"metadata get failed for workflowName: {e}")
+                workflow_name = None
+                metadata = None
+                pass
+            try:
+                workflow_root = metadata.get("workflowRoot")
+            except Exception as e:
+                logger.critical(f"metadata get failed for workflowRoot: {e}")
+                workflow_root = None
+                metadata = None
+                pass
+
         if workflow_name or workflow_root:
             logger.debug(
                 f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
