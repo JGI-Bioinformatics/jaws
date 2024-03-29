@@ -35,6 +35,7 @@ from jaws_site.cromwell import (
     CromwellRunError,
     CromwellRunNotFoundError,
     CromwellServiceError,
+    CromwellGetMetadataError,
 )
 from jaws_site.tasks import TaskLog
 from jaws_site.utils import write_json_file
@@ -51,10 +52,12 @@ else:
     cromwell = Cromwell("localhost")
 
 MAX_ERROR_STRING_LEN = 1024
-JAWS_GET_METADATA_MAX_RETRIALS = config.conf.get(
-    "SITE", "jaws_get_metadata_max_retrials", 3
+JAWS_GET_METADATA_MAX_RETRIALS = int(
+    config.conf.get("SITE", "jaws_get_metadata_max_retrials", 3)
 )
-JAWS_GET_METADATA_WAIT_SEC = config.conf.get("SITE", "jaws_get_metadata_wait_sec", 180)
+JAWS_GET_METADATA_WAIT_SEC = int(
+    config.conf.get("SITE", "jaws_get_metadata_wait_sec", 180)
+)
 
 
 def set_atime_now(path: str) -> None:
@@ -80,10 +83,6 @@ class RunFileNotFoundError(Exception):
 
 
 class RunInputError(Exception):
-    pass
-
-
-class CromwellGetMetadataError(Exception):
     pass
 
 
@@ -659,30 +658,25 @@ class Run:
     def check_cromwell_metadata(self):
         """
         Check Cromwell metadata for workflow_root and workflow_name.
+        If no metadata found for a run id, return None
         :return: our JAWS Cromwell Metadata object
         :rtype: Cromwell.Metadata
         """
-        logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
-        metadata = self.get_metadata()
+        metadata = None
         workflow_name = None
         workflow_root = None
-        logger.debug(f"Returned metadata = {metadata}")
-        if metadata is not None:
-            try:
-                workflow_name = metadata.get("workflowName")
-            except Exception as e:
-                logger.critical(f"metadata get failed for workflowName: {e}")
-                workflow_name = None
-                metadata = None
-                pass
-            try:
-                workflow_root = metadata.get("workflowRoot")
-            except Exception as e:
-                logger.critical(f"metadata get failed for workflowRoot: {e}")
-                workflow_root = None
-                metadata = None
-                pass
+        logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
+        try:
+            metadata = self.get_metadata()
+        except CromwellGetMetadataError as e:
+            logger.warning(f"Can't find a metadata for {self.data.id}: {e}.")
+            raise
+        except Exception as e:
+            logger.critical(f"Cromwell raises an exception {e}.")
 
+        if metadata is not None:
+            workflow_name = metadata.get("workflowName")
+            workflow_root = metadata.get("workflowRoot")
         if workflow_name or workflow_root:
             logger.debug(
                 f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
@@ -703,7 +697,7 @@ class Run:
         if self.data.workflow_root is None:
             try:
                 metadata = self.check_cromwell_metadata()
-            except CromwellServiceError as error:
+            except CromwellGetMetadataError as error:
                 logger.error(
                     f"Run {self.data.id}: Failed to generate metadata: {error}"
                 )
@@ -718,7 +712,6 @@ class Run:
             return
 
         # check if state has changed.
-        logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
@@ -804,6 +797,9 @@ class Run:
         # get Cromwell metadata and set workflow_root if undefined
         try:
             metadata = self.check_cromwell_metadata()
+        except CromwellGetMetadataError as e:
+            logger.error(f"Run {self.data.id}: Failed to get metadata: {e}")
+            return
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
             self.update_run_status(
