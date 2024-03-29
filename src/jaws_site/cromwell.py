@@ -23,7 +23,6 @@ elsewhere in JAWS, as clarified below:
   - same in JAWS, which uses "backend_job_id" to refer to Cromwell's "job_id"
 """
 
-
 import glob
 import io
 import json
@@ -553,6 +552,12 @@ class CromwellRunError(CromwellError):
 
 class CromwellRunNotFoundError(CromwellRunError):
     """The specified run does not exist"""
+
+    pass
+
+
+class CromwellGetMetadataError(CromwellRunError):
+    """Get metadata failed"""
 
     pass
 

@@ -35,6 +35,7 @@ from jaws_site.cromwell import (
     CromwellRunError,
     CromwellRunNotFoundError,
     CromwellServiceError,
+    CromwellGetMetadataError,
 )
 from jaws_site.tasks import TaskLog
 from jaws_site.utils import write_json_file
@@ -82,10 +83,6 @@ class RunFileNotFoundError(Exception):
 
 
 class RunInputError(Exception):
-    pass
-
-
-class CromwellGetMetadataError(Exception):
     pass
 
 
