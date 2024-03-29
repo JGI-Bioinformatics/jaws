@@ -673,7 +673,7 @@ class Run:
             metadata = self.get_metadata()
         except CromwellGetMetadataError as e:
             logger.warning(f"Can't find a metadata for {self.data.id}: {e}.")
-            pass
+            raise
         except Exception as e:
             logger.critical(f"Cromwell raises an exception {e}.")
 
@@ -700,7 +700,7 @@ class Run:
         if self.data.workflow_root is None:
             try:
                 metadata = self.check_cromwell_metadata()
-            except CromwellServiceError as error:
+            except CromwellGetMetadataError as error:
                 logger.error(
                     f"Run {self.data.id}: Failed to generate metadata: {error}"
                 )
@@ -800,6 +800,9 @@ class Run:
         # get Cromwell metadata and set workflow_root if undefined
         try:
             metadata = self.check_cromwell_metadata()
+        except CromwellGetMetadataError as e:
+            logger.error(f"Run {self.data.id}: Failed to get metadata: {e}")
+            return
         except CromwellServiceError as error:
             logger.error(f"Run {self.data.id}: Failed to generate metadata: {error}")
             self.update_run_status(
