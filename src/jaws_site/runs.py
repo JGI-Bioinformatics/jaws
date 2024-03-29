@@ -715,7 +715,6 @@ class Run:
             return
 
         # check if state has changed.
-        logger.debug(f"Run {self.data.id}: Cromwell status is {cromwell_status}")
         if cromwell_status == "Running":
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
