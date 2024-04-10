@@ -623,7 +623,7 @@ def check_fix_perms_queue() -> None:
             )
         for row in rows:
             fix_perms_ids.append(row.id)
-    return fix_perms_ids
+
     for fix_perms_id in fix_perms_ids:
         with Session() as session:
             fix_perms = FixPerms.from_id(session, fix_perms_id)
@@ -632,3 +632,5 @@ def check_fix_perms_queue() -> None:
         with Session() as session:
             fix_perms = FixPerms.from_id(session, fix_perms_id)
             fix_perms.update_status(result, err_msg)
+
+    return fix_perms_ids

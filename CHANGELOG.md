@@ -3,6 +3,7 @@
 - Add JAWS_APPTAINER_PATH (#1793)
 - Add exception handling to get_cromwell_metadata (#1799)
 - Explicitly set INT values to tenacity (#1800)
+- Fix check_fix_perms_queue() to run fix_perms() periodically (#1796)
 
 ### External Facing Changes
 
