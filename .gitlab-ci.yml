@@ -156,6 +156,19 @@ variables:
   script:
     - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME-instance $JAWS_SITE_VERSION"
     - "./test/integration/deploy_tools/systemd.sh status"
+
+.ornl-deployment: &ornl-deploy
+  stage: deploy-jaws
+  tags:
+    - defiant
+    - ornl
+  variables:
+    JAWS_SITE_NAME: "ORNL"
+    CONTAINER_RUNTIME: "apptainer"
+  <<: *supervisor-stop
+  script:
+    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
+
 ##### End anchors and extends jobs
 
 
@@ -300,6 +313,14 @@ deploy-jaws-assembly-prod:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
       when: manual
     - if: $RUN_END_TO_END_PROD == 'true'
+
+deploy-jaws-ornl-dev:
+  extends: .ornl-deployment
+  variables:
+    JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_VERSION: "dev"
+  environment:
+    name: "ornl/dev"
 
 deploy-jaws-jgi-dev:
   extends: .jgi-deployment
