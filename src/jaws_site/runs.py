@@ -260,7 +260,6 @@ class Run:
     def check_status(self) -> None:
         """Check the run's status, promote to next state if ready"""
         status = self.data.status
-        logger.debug(f"Run {self.data.id} is {self.data.status}")
         if status in self.operations:
             return self.operations[status]()
 
@@ -636,9 +635,7 @@ class Run:
         Returns cached object unless "force" option is provided.
         A CromwellError exception may be raised if Cromwell is unreachable.
         """
-        logger.debug(f"Cromwell id = {self.data.cromwell_run_id}")
         if self.data.cromwell_run_id is not None:
-            logger.debug("BEFORE cromwell.get_metadata call")
             force = kwargs.get("force", False)
             if force or self._metadata is None:
                 try:
@@ -652,7 +649,6 @@ class Run:
                     )
             return self._metadata
         else:
-            logger.debug("Return None as Cromwell id is None")
             return None
 
     def check_cromwell_metadata(self):
@@ -678,9 +674,6 @@ class Run:
             workflow_name = metadata.get("workflowName")
             workflow_root = metadata.get("workflowRoot")
         if workflow_name or workflow_root:
-            logger.debug(
-                f"Run {self.data.id} workflow_name={workflow_name}; workflow_root={workflow_root}"
-            )
             try:
                 self.data.workflow_name = workflow_name
                 self.data.workflow_root = workflow_root
