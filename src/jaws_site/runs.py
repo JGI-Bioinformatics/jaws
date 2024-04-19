@@ -755,11 +755,13 @@ class Run:
                 self.update_run_status("queued")
             if self.data.status == "queued":
                 self.update_run_status("running")
-            self.update_run_status("succeeded")
+            self.update_run_status(
+                "succeeded", cromwell_run_id=self.data.cromwell_run_id
+            )
         elif cromwell_status == "Aborted":
             self.update_run_status("cancelled")
 
-    def update_run_status(self, status_to, reason=None) -> None:
+    def update_run_status(self, status_to, reason=None, cromwell_run_id=None) -> None:
         """
         Update Run's current status in 'runs' table and insert entry into 'run_logs' table.
         """
@@ -774,6 +776,7 @@ class Run:
             status_to=status_to,
             timestamp=timestamp,
             reason=reason,
+            cromwell_run_id=cromwell_run_id,
         )
         try:
             savepoint = self.session.begin_nested()

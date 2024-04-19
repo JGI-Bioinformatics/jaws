@@ -4,8 +4,16 @@ SQLAlchemy models for persistent data structures.
 
 from datetime import datetime
 
-from sqlalchemy import (Boolean, Column, DateTime, Float, ForeignKey, Integer,
-                        SmallInteger, String)
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    SmallInteger,
+    String,
+)
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 
 from jaws_site.database import Base
@@ -69,6 +77,7 @@ class Run_Log(Base):
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     reason = Column(String(1024), nullable=False, default="")
     sent = Column(Boolean, default=False, nullable=False)
+    cromwell_run_id = Column(String(36), nullable=True)
 
 
 class Tasks(Base):
