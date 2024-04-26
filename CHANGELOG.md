@@ -1,19 +1,9 @@
 # Changelog
 # Inbound changes not assigned to version # yet
-- Add JAWS_APPTAINER_PATH (#1793)
-- Add exception handling to get_cromwell_metadata (#1799)
-- Explicitly set INT values to tenacity (#1800)
-- Fix check_fix_perms_queue() to run fix_perms() periodically (#1796)
-- Add cromwell_run_id field to runs table (#1881)
 
 ### External Facing Changes
 
 ### Internal Facing Changes
-- Added a max_time variable for all the site config files. This is to have max_ram, max_cpu, and max_time get validated during wdl submission(#1797)
-
-### External Facing Changes
-- Add JAWS_APPTAINER_PATH (#1793)
-
 
 # 2.1.0 Summary [03/19/2024 - Staging // ]
 
@@ -28,6 +18,12 @@
 - Set JAWS_GROUP as mscnmdc for nmdc_tahoma (#1791)
 - Fix JAWS_MAX_RAM_GB for NMDC to 492GB (#1792)
 - Upgrade Python to 3.11 for tahoma (#1795)
+- Added a max_time variable for all the site config files. This is to have max_ram, max_cpu, and max_time get validated during wdl submission(#1797)
+- Add JAWS_APPTAINER_PATH (#1793)
+- Add exception handling to get_cromwell_metadata (#1799)
+- Explicitly set INT values to tenacity (#1800)
+- Fix check_fix_perms_queue() to run fix_perms() periodically (#1796)
+- Add cromwell_run_id field to runs table (#1881)
 
 # 2.0.3  Summary [01/07/2024 - staging // 02/07/2024 --> PROD]
 
