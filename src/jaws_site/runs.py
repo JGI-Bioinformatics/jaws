@@ -1045,7 +1045,7 @@ def check_active_runs(session, central_rpc_client, reports_rpc_client) -> None:
     n = len(rows)
     if n == 0:
         return
-    logger.debug(f"There are {n} active runs")
+
     # If there is an unexpected error prevening a Run from being processed, it could block
     # other runs from being processed, so we randomize the list.  This isn't usually necessary,
     # but it increases the robustness of the system.
