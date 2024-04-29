@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-export JAWS_INSTALL_BASEDIR="/global/common/software/m3408/jaws-install"
+export JAWS_INSTALL_BASEDIR="/global/cfs/cdirs/m3408/jaws-installjaws-install"
 export JAWS_GLOBUS_EP="9bfa16b3-1b03-4686-9361-d502a3aa1eda"
 export JAWS_GLOBUS_HOST_PATH="/"
 export JAWS_LOAD_PYTHON="module load jgi/python-jamo"
