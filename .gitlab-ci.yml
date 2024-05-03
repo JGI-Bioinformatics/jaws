@@ -476,7 +476,6 @@ deploy-jaws-nmdc-tahoma-prod:
   stage: release-jaws
   variables:
     JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_VERSION: "prod"
   environment:
     name: "nmdc-tahoma/prod"
   rules:
