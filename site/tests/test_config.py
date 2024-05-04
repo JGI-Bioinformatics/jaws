@@ -2,6 +2,7 @@ import os
 
 import jaws_site.config
 import pytest
+import socket
 from jaws_site.config import ConfigurationError
 
 # Move large variable declarations out method definition to here
