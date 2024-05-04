@@ -311,3 +311,25 @@ def test_get_site_config(config_file):
         "globus_endpoint",
     ]:
         assert key in result
+
+
+# List of servers and ports to test
+servers = [
+    ("jaws-db-1.jgi.lbl.gov", 3306),
+    ("rmq-1.jgi.lbl.gov", 5672),
+    ("rmq-2.jgi.lbl.gov", 5672)
+    #("jaws-vm-3.jgi.lbl.gov", 22)
+]
+
+
+def test_firewall_connectivity():
+    """
+    Test firewall connectivity to specific servers and ports.
+    """
+    for host, port in servers:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(10)  # Set timeout to 10 seconds
+        result = sock.connect_ex((host, port))
+        sock.close()
+        assert result == 0, f"Failed to connect to {host} on port {port}"
+
