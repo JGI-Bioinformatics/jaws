@@ -316,10 +316,12 @@ def test_get_site_config(config_file):
 
 # List of servers and ports to test
 servers = [
-    ("jaws-db-1.jgi.lbl.gov", 3306),
-    ("rmq-1.jgi.lbl.gov", 5672),
-    ("rmq-2.jgi.lbl.gov", 5672)
-    #("jaws-vm-3.jgi.lbl.gov", 22)
+    ("jaws-db.lbl.gov", 3306),
+    ("rmq.lbl.gov", 5672),
+    ("jaws-vm-3.jgi.lbl.gov", 22)
+    #("jaws-db-1.jgi.lbl.gov", 3306)
+    #("rmq-1.jgi.lbl.gov", 5672)
+    #("rmq-2.jgi.lbl.gov", 5672)
 ]
 
 
