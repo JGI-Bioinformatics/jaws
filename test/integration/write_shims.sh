@@ -10,15 +10,20 @@ function write_apptainer_shims {
   for service in "${SERVICES[@]}"; do
     export SERVICE="$service"
     envsubst < "$container_templ" > "$JAWS_BIN_DIR/$SERVICE"
+    chmod +x "$JAWS_BIN_DIR/$SERVICE"
   done
 }
 
 function write_venv_shims {
+    services=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "message-consumer")
     envsubst < "$DIR/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
     envsubst < "$DIR/templates/message-consumer.sh" > "$JAWS_BIN_DIR/message-consumer"
     envsubst < "$DIR/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "$DIR/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
     envsubst < "$DIR/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
+    for service in "${services[@]}"; do
+      chmod +x "$JAWS_BIN_DIR/$service"
+    done
 }
 
 function write_perlmutter_shims {
