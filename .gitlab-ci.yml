@@ -321,6 +321,8 @@ deploy-jaws-defiant-dev:
     JAWS_SITE_VERSION: "dev"
   environment:
     name: "defiant/dev"
+  rules:
+    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-jgi-dev:
   extends: .jgi-deployment
