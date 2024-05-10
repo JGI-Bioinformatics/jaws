@@ -46,12 +46,10 @@ variables:
     - if: '$CI_PIPELINE_SOURCE == "push"'
   coverage: '/(?i)TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
 
-
 .supervisor-stop: &supervisor-stop
   before_script:
     - "source ./test/integration/setup_environment.sh"
     - "./test/integration/deploy_tools/supervisor.sh stop"
-
 
 .systemd-stop: &systemd-stop
   before_script:
@@ -62,6 +60,13 @@ variables:
   before_script:
     - "source ./test/integration/setup_environment.sh"
     - "./test/integration/deploy_tools/scrontab.sh stop"
+
+.check-vm-connections: &check-vm-connections
+  script:  
+    - curl -v https://jaws.jgi.doe.gov
+    - curl -v https://jaws-rmq.jgi.doe.gov
+    - curl -v https://jaws-ingest.jgi.doe.gov
+
 
 .aws-deployment: &aws-deploy
   stage: deploy-jaws
@@ -102,6 +107,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
+    - *check-vm-connection
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
 
 .nmdc_tahoma-deployment: &nmdc_tahoma-deploy
