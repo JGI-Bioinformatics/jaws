@@ -1,4 +1,4 @@
-export JAWS_INSTALL_BASEDIR="/ccsopen/home/bif150_auser/jaws-install"
+export JAWS_INSTALL_BASEDIR="/lustre/polis/bif150/proj-shared/jaws-install"
 export JAWS_GLOBUS_EP=""
 export JAWS_GLOBUS_HOST_PATH="/ccsopen/home/bif150_auser/globus-ep"
 export JAWS_LOAD_PYTHON=""
