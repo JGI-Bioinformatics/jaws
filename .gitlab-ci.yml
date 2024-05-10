@@ -107,7 +107,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
-    - *check-vm-connection
+    - *check-vm-connections
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
 
 .nmdc_tahoma-deployment: &nmdc_tahoma-deploy
