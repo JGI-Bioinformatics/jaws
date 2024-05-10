@@ -62,9 +62,9 @@ variables:
     - "./test/integration/deploy_tools/scrontab.sh stop"
 
 .check-vm-connections: &check-vm-connections
-    - curl -v https://jaws.jgi.doe.gov
-    - curl -v https://jaws-rmq.jgi.doe.gov
-    - curl -v https://jaws-ingest.jgi.doe.gov
+  - curl -v https://jaws.jgi.doe.gov
+  - curl -v https://jaws-rmq.jgi.doe.gov
+  - curl -v https://jaws-ingest.jgi.doe.gov
 
 
 .aws-deployment: &aws-deploy
