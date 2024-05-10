@@ -75,8 +75,8 @@ variables:
     JAWS_SITE_NAME: "AWS"
   <<: *supervisor-stop
   script:
+    - *check-vm-connections
     - "./test/integration/deploy.sh supervisor venv $JAWS_SITE_VERSION"
-
 
 .jgi-deployment: &jgi-deploy
   stage: deploy-jaws
@@ -88,8 +88,8 @@ variables:
     APPTAINER_CACHEDIR: "/tmp"
   <<: *supervisor-stop
   script:
+    - *check-vm-connections
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
-
 
 .tahoma-deployment: &tahoma-deploy
   stage: deploy-jaws
@@ -124,6 +124,7 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
+    - *check-vm-connections
     - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
     
 .nmdc-deployment: &nmdc-deploy
@@ -134,6 +135,7 @@ variables:
     JAWS_SITE_NAME: "NMDC"
   <<: *scrontab-stop
   script:
+    - *check-vm-connections
     - "source ./test/integration/write_shims.sh"
     - "write_shims nmdc"
     - "./test/integration/deploy.sh scrontab venv $JAWS_SITE_VERSION"
@@ -146,6 +148,7 @@ variables:
     JAWS_SITE_NAME: "PERLMUTTER"
   <<: *scrontab-stop
   script:
+    - *check-vm-connections
     - "source ./test/integration/write_shims.sh"
     - "write_shims perlmutter"
     - "./test/integration/deploy.sh scrontab venv $JAWS_SITE_VERSION"
@@ -159,14 +162,9 @@ variables:
     CONTAINER_RUNTIME: "apptainer"
   <<: *systemd-stop
   script:
+    - *check-vm-connections
     - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME-instance $JAWS_SITE_VERSION"
     - "./test/integration/deploy_tools/systemd.sh status"
-
-.check_cf_connections: &check_cf_connections
-  script:  
-  - curl -v https://jaws.jgi.doe.gov
-  - curl -v https://jaws-rmq.jgi.doe.gov
-  - curl -v https://jaws-ingest.jgi.doe.gov
 ##### End anchors and extends jobs
 
 
