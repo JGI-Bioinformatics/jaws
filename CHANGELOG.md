@@ -5,6 +5,11 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- Change rmq.lbl.gov to jaws-rmq.jgi.lbl.gov (#1814)
+
+# 2.2.0 Summary [05/21/2024 ]
+- Change DB VM from `jaws-db.jgi.lbl.gov` to `jaws-db.lbl.gov` (#1813)
+- deploy to Defiant
 
 # 2.1.0 Summary [03/19/2024 - Staging // ]
 
