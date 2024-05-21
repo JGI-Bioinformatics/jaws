@@ -1,7 +1,7 @@
 export JAWS_BIG_SCRATCH_DIR=""
-export JAWS_CENTRAL_HOST="http://jaws.lbl.gov"
+export JAWS_CENTRAL_HOST="http://jaws.jgi.lbl.gov"
 export JAWS_CONTAINER_TYPE="docker"
-export JAWS_DB_HOST="jaws-db.lbl.gov"
+export JAWS_DB_HOST="jaws-db.jgi.lbl.gov"
 export JAWS_DB_PORT=3306
 export JAWS_DEFAULT_CONTAINER="ubuntu@sha256:b5a61709a9a44284d88fb12e5c48db0409cfad5b69d4ff8224077c57302df9cf"
 export JAWS_DOCS_URL="https://jaws-docs.readthedocs.io/en/latest/"
