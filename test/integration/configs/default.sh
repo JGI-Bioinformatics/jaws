@@ -1,5 +1,5 @@
 export JAWS_BIG_SCRATCH_DIR=""
-export JAWS_CENTRAL_HOST="http://jaws.jgi.lbl.gov"
+export JAWS_CENTRAL_HOST="https://jaws.jgi.lbl.gov"
 export JAWS_CONTAINER_TYPE="docker"
 export JAWS_DB_HOST="jaws-db.jgi.lbl.gov"
 export JAWS_DB_PORT=3306
