@@ -4,6 +4,8 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- Change DB VM from `jaws-db.jgi.lbl.gov` to `jaws-db.lbl.gov` (#1813)
+
 
 # 2.1.0 Summary [03/19/2024 - Staging // ]
 
