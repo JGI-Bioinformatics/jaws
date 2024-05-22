@@ -285,34 +285,34 @@ deploy-jaws-aws-dev:
   rules:
     - if: '$CI_COMMIT_TAG == "dev"'
 
-deploy-jaws-aws-prod:
-  extends: .aws-deployment
-  stage: release-jaws
-  variables:
-    JAWS_DEPLOYMENT_NAME: "prod"
-  environment:
-    name: "aws/prod"
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
-    - if: $RUN_END_TO_END_PROD == 'true'
+#deploy-jaws-aws-prod:
+#  extends: .aws-deployment
+#  stage: release-jaws
+#  variables:
+#    JAWS_DEPLOYMENT_NAME: "prod"
+#  environment:
+#    name: "aws/prod"
+#  rules:
+#    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+#      when: manual
+#    - if: $RUN_END_TO_END_PROD == 'true'
 
-deploy-jaws-assembly-prod:
-  stage: release-jaws
-  tags:
-    - assembly-prod
-  variables:
-    JAWS_DEPLOYMENT_NAME: "prod"
-    JAWS_SITE_NAME: "ASSEMBLY"
-  environment:
-    name: "assembly/prod"
-  <<: *supervisor-stop
-  script:
-    - "./test/integration/deploy.sh supervisor venv"
-  rules:
-    - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
-    - if: $RUN_END_TO_END_PROD == 'true'
+#deploy-jaws-assembly-prod:
+#  stage: release-jaws
+# tags:
+#    - assembly-prod
+#  variables:
+#   JAWS_DEPLOYMENT_NAME: "prod"
+#    JAWS_SITE_NAME: "ASSEMBLY"
+#  environment:
+#    name: "assembly/prod"
+#  <<: *supervisor-stop
+#  script:
+#    - "./test/integration/deploy.sh supervisor venv"
+#  rules:
+#    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+#      when: manual
+#    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-defiant-dev:
   extends: .defiant-deployment
