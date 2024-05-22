@@ -1,7 +1,7 @@
 export JAWS_INSTALL_BASEDIR="/ccsopen/home/bif150_auser/jaws-install"
 export JAWS_GLOBUS_EP=""
 export JAWS_GLOBUS_HOST_PATH="/ccsopen/home/bif150_auser/globus-ep"
-export JAWS_LOAD_PYTHON=""
+export JAWS_LOAD_PYTHON="module load cray-python/3.9.13.1"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="bif150"
 export JAWS_USERS_GROUP=""
