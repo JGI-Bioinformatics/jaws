@@ -17,7 +17,7 @@ variables:
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
 
-  JAWS_SITE_NAMES: "JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER DORI NMDC_TAHOMA"
+  JAWS_SITE_NAMES: "JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER DORI NMDC_TAHOMA DEFIANT"
   JAWS_SITE_VERSION: "2.2.0"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
@@ -65,7 +65,6 @@ variables:
   - curl -v https://jaws.jgi.doe.gov
   - curl -v https://jaws-rmq.jgi.doe.gov
   - curl -v https://jaws-ingest.jgi.doe.gov
-
 
 .aws-deployment: &aws-deploy
   stage: deploy-jaws
@@ -172,6 +171,9 @@ variables:
     - defiant
     - ornl
   variables:
+    no_proxy: "127.0.0.1, localhost, *.ornl.gov"    
+    HTTPS_PROXY: "http://proxy.ccs.ornl.gov:3128"
+    https_proxy: "http://proxy.ccs.ornl.gov:3128"
     JAWS_SITE_NAME: "DEFIANT"
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
