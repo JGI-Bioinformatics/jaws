@@ -1,5 +1,6 @@
 # Changelog
 # Inbound changes not assigned to version # yet
+- Add IGB VM connection checking (#1807)
 
 ### External Facing Changes
 
