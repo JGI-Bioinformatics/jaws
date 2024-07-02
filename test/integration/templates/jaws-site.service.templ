@@ -6,10 +6,8 @@ ConditionHost=ln010.jgi
 After=syslog.target network.target
 
 [Service]
-Type=forking
+Type=simple
 ExecStart=/bin/bash ${JAWS_BIN_DIR}/${SERVICE}
-ExecStop=/bin/apptainer instance stop jaws-${SERVICE}-${JAWS_DEPLOYMENT_NAME}
-PIDFile=${JAWS_LOGS_DIR}/jaws-${SERVICE}-${JAWS_DEPLOYMENT_NAME}.pid
 Restart=always
 
 [Install]
