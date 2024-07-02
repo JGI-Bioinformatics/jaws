@@ -162,7 +162,7 @@ variables:
   <<: *systemd-stop
   script:
     - *check-vm-connections
-    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME-instance $JAWS_SITE_VERSION"
+    - "./test/integration/deploy.sh systemd $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
     - "./test/integration/deploy_tools/systemd.sh status"
 
 .defiant-deployment: &defiant-deploy
