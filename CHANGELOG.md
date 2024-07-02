@@ -6,6 +6,7 @@
 
 ### Internal Facing Changes
 - Change rmq.lbl.gov to jaws-rmq.jgi.lbl.gov (#1814)
+- Fixing systemd/services on dori (#1820)
 
 # 2.2.0 Summary [05/21/2024 ]
 - Change DB VM from `jaws-db.jgi.lbl.gov` to `jaws-db.lbl.gov` (#1813)
