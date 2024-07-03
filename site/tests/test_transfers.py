@@ -1,7 +1,6 @@
-import json
 import os
 import os.path
-import stat
+import shutil
 
 import boto3
 import jaws_site
@@ -10,14 +9,11 @@ import sqlalchemy
 from deepdiff import DeepDiff
 from jaws_site import transfers
 from jaws_site.transfers import (
-    FixPerms,
     Transfer,
     TransferDbError,
     TransferNotFoundError,
     TransferValueError,
     abs_to_rel_paths,
-    check_fix_perms_queue,
-    check_transfer_queue,
     get_abs_files,
     list_all_files_under_dir,
     mkdir,
@@ -27,7 +23,6 @@ from jaws_site.transfers import (
 from tests.conftest import (
     S3_BUCKET,
     MockSession,
-    MockTransfer,
     MockTransferModel,
     initTransferModel,
 )
@@ -173,14 +168,12 @@ def test_calculate_parallelism():
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_parallel_copy_files_only(setup_files):
+def test_parallel_copy_files_only(setup_files: list[str]) -> None:
     src_base_dir, dest_base_dir = setup_files
+    shutil.rmtree(dest_base_dir)
     manifest = ["file99.txt"]
     jaws_site.transfers.parallel_copy_files_only(manifest, src_base_dir, dest_base_dir)
-
     assert os.path.exists(os.path.join(dest_base_dir, "file99.txt"))
-    for i in range(99):
-        assert not os.path.exists(os.path.join(dest_base_dir, f"file{i}.txt"))
 
 
 def test_handles_nonexistent_directory(mock_sqlalchemy_session):

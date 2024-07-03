@@ -13,7 +13,7 @@ import boto3
 import pytest
 import sqlalchemy
 from jaws_site import config, cromwell, models, runs
-from moto import mock_s3
+from moto import mock_aws
 from sqlalchemy.orm.exc import NoResultFound
 
 S3_BUCKET = "site"
@@ -1177,7 +1177,7 @@ def s3():
 
     Yields a fake boto3 s3 client
     """
-    with mock_s3():
+    with mock_aws():
         s3_client = boto3.client("s3")
         s3_client.create_bucket(
             Bucket=S3_BUCKET,

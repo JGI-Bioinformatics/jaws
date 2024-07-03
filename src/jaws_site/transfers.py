@@ -4,14 +4,18 @@ Items are stored in a relational database.
 """
 
 import concurrent.futures
+import filecmp
 import json
 import logging
 import os
+import shutil
 from datetime import datetime
+from multiprocessing.pool import ThreadPool
+from types import TracebackType
 
 import boto3
-from parallel_sync import rsync
 from sqlalchemy.exc import SQLAlchemyError
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 from jaws_site import config, models
 from jaws_site.database import Session
@@ -21,6 +25,87 @@ logger = logging.getLogger(__package__)
 
 FILES_PER_THREAD = 10000
 MAX_ERROR_STRING_LEN = 1024
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+def safe_copy(source: str, destination: str) -> bool:
+    """Copy a file from the source path to the destination path with retries on failure.
+
+    Parameters
+    ----------
+    source : str
+        The path to the source file.
+    destination : str
+        The path to the destination file.
+
+    Returns
+    -------
+    bool
+        True if the file was copied successfully, False otherwise.
+
+    Raises
+    ------
+    IOError
+        If an error occurs during file copy.
+    """
+    if os.path.isfile(destination) and filecmp.cmp(source, destination):
+        return True
+
+    try:
+        shutil.copy2(source, destination)
+        logger.info(f"File copied successfully: {source} -> {destination}")
+        return True
+    except IOError as e:
+        logger.error(f"Error copying file: {e}")
+        raise e
+    logger.info(f"Unable to copy {source} -> {destination}")
+    return False
+
+
+class MultithreadedCopier:
+    """Multithreaded file copying context manager.
+
+    Attributes
+    ----------
+    pool : ThreadPool
+        Thread pool for asynchronous copying.
+    """
+
+    def __init__(self, max_threads: int) -> None:
+        """Initialize the multithreaded copier."""
+        self.pool = ThreadPool(max_threads)
+
+    def copy(self, source: str, dest: str) -> None:
+        """Copy data from one location to another.
+
+        Parameters
+        ----------
+        source : str
+            Path to the source data.
+        dest : str
+            Path to the destination data.
+
+        Returns
+        -------
+        None
+        """
+        self.pool.apply_async(safe_copy, args=(source, dest))
+        return None
+
+    def __enter__(self) -> "MultithreadedCopier":
+        """Enter the context manager."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: BaseException | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit the context manager."""
+        self.pool.close()
+        self.pool.join()
+        return None
 
 
 def mkdir(path, mode=None):
@@ -424,24 +509,27 @@ def calculate_parallelism(num_files):
     return max(parallelism, min_threads)
 
 
-def parallel_copy_files_only(manifest: list, src: str, dest: str, **kwargs):
+def parallel_copy_files_only(
+    manifest: list[str], src: str, dest: str, **kwargs: int
+) -> None:
     """
-    Given list of files, copy them in parallel using parallel_sync.  Copies regular files only, skips others.
+    Given list of files, copy them in parallel using parallel_sync.
+    Copies regular files only, skips others.
     :param manifest: list of file relative paths
-    :ptype manifest: list
+    :ptype manifest: list[str]
     :param src: source root directory
     :ptype src: str
     :param dest: destination root directory
     :ptype dest: str
     """
-    parallelism = kwargs.get("parallelism", 1000)
-    paths = []
-    for rel_path in manifest:
-        s = os.path.join(src, rel_path)
-        if os.path.exists(s) and os.path.isfile(s):
-            d = os.path.join(dest, rel_path)
-            paths.append((s, d))
-    rsync.local_copy(paths, parallelism=parallelism, extract=False, validate=False)
+    try:
+        with MultithreadedCopier(max_threads=kwargs.get("parallelism", 1000)) as copier:
+            shutil.copytree(src, dest, copy_function=copier.copy, dirs_exist_ok=True)
+    except Exception as e:
+        logger.error(f"Error copying {src} to {dest}: {e}")
+        raise e
+    finally:
+        return None
 
 
 def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):

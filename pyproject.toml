@@ -3,47 +3,56 @@ requires = ["setuptools_scm>=6.2", "wheel", "setuptools>=45"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jaws_site"
-requires-python = ">3.8"
+name = "jaws-site"
+requires-python = "<3.12,>=3.10"
 dynamic = ["version"]
-description = "JAWS Site Server"
+description = "Default template for PDM package"
 authors = [
-{name = "Edward Kirton", email = "ekirton@lbl.gov"},
-{name = "Mario Melara", email = "mamelara@lbl.gov"},
-{name = "Georg Rath", email = "grath@lbl.gov"},
-{name = "Seung-Jin Sul", email = "ssul@lbl.gov"},
-{name = "Stephan Trong", email = "strong@lbl.gov"},
-{name = "Kelly Rowland", email = "kellyrowland@lbl.gov"},
-{name = "Nick Tyler", email = "tylern@lbl.gov"},
-{name = "Jeff Froula", email = "jlfroula@lbl.gov"},
-{name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
-{name = "Elais Player", email = "elais@lbl.gov"}]
+    {name = "Edward Kirton", email = "ekirton@lbl.gov"},
+    {name = "Mario Melara", email = "mamelara@lbl.gov"},
+    {name = "Georg Rath", email = "grath@lbl.gov"},
+    {name = "Seung-Jin Sul", email = "ssul@lbl.gov"},
+    {name = "Stephan Trong", email = "strong@lbl.gov"},
+    {name = "Kelly Rowland", email = "kellyrowland@lbl.gov"},
+    {name = "Nick Tyler", email = "tylern@lbl.gov"},
+    {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
+    {name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
+    {name = "Elais Player", email = "elais@lbl.gov"},
+]
 
 dependencies = [
     "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git#egg=main",
-    "AMQPStorm",
-    "boto3",
-    "click",
-    "deepdiff",
-    "mysql-connector-python",
-    "requests",
-    "schedule",
-    "shortuuid",
-    "SQLAlchemy",
-    "typing_extensions",
-    "zipp",
-    "numpy",
-    "pandas",
-    "pika",
-    "moto==4.2.14",
-    "matplotlib",
-    "psutil",
-    "parallel-sync==1.16",
-    "tenacity"
+    "amqpstorm>=2.10.7",
+    "click>=8.1.7",
+    "deepdiff>=7.0.1",
+    "mysql-connector-python>=9.0.0",
+    "requests>=2.32.3",
+    "schedule>=1.2.2",
+    "shortuuid>=1.0.13",
+    "SQLAlchemy>=2.0.31",
+    "zipp>=3.19.2",
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "pika>=1.3.2",
+    "matplotlib>=3.9.1",
+    "psutil>=6.0.0",
+    "tenacity>=8.5.0",
+    "boto3>=1.34.141",
 ]
 
+readme = "README.md"
+license = {text = "MIT"}
+
 [project.optional-dependencies]
-dev = ["pytest", "requests-mock", "pytest-cov", "flake8", "deepdiff", "typing_extensions"]
+dev = [
+    "pytest>=8.2.2",
+    "requests-mock>=1.12.1",
+    "pytest-cov>=5.0.0",
+    "flake8>=7.1.0",
+    "deepdiff>=7.0.1",
+    "typing-extensions>=4.12.2",
+    "moto[all]>=5.0.10",
+]
 
 [project.scripts]
 jaws-site = "jaws_site.cli:jaws"
@@ -56,3 +65,15 @@ documentation = "https://jaws-docs.readthedocs.io/en/latest/"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.ruff.lint]
+select = ["NPY201"]
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.version]
+source = "scm"
+
+[tool.pdm.build]
+package-dir = "src"

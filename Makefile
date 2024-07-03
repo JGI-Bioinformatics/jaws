@@ -2,14 +2,14 @@ VERSION := $(shell git describe --always --tags --abbrev=0)
 Q := $(if $V,,@)
 
 init:
-	pip install --no-cache-dir -r requirements.txt
-	pip install --no-cache-dir -e .
+	pip install -r requirements.txt
+	pip install -e .
 
 init-dev: init
 	pip install .[dev]
 
 update-deps:
-	pip install --upgrade pip-tools pip setuptools
+	pip install --no-cache --upgrade pip-tools pip setuptools
 	pip-compile --upgrade --build-isolation \
 		--allow-unsafe --resolver=backtracking --strip-extras \
 		--output-file requirements.txt \

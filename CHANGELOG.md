@@ -4,6 +4,7 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- Remove dependency on `parallel-sync(#1819)`
 - Update Run_log table with cromwell ID for the failed task to use the id for the cromwell ID map (#1823)
 
 # 2.2.1 Summary [07/08/2024 - Staging ]
@@ -113,8 +114,8 @@
 - Added job in gitlab-ci.yml to deploy to dori in addition to cori (triggered by MR is created)
 
 ## 1.0.13b Summary [03/01/2023]
-- AMS CI/CD 
-- A merge request will trigger the end-to-end pytest in jaws-tests 
+- AMS CI/CD
+- A merge request will trigger the end-to-end pytest in jaws-tests
 
 ## 1.0.13 Summary [02/24/2023 --> Staging]
 - Update max_cpu check
