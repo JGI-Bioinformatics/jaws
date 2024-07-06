@@ -1,10 +1,14 @@
 # Changelog
 # Inbound changes not assigned to version # yet
-- Add IGB VM connection checking (#1807)
 
 ### External Facing Changes
 
 ### Internal Facing Changes
+
+# 2.2.1 Summary [07/08/2024 - Staging ]
+
+### Internal Facing Changes
+- Add IGB VM connection checking (#1807)
 - Change rmq.lbl.gov to jaws-rmq.jgi.lbl.gov (#1814)
 - Fixing systemd/services on dori (#1820)
 
