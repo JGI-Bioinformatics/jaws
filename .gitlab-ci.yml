@@ -287,15 +287,15 @@ build-apptainer-site:
       artifacts: true
 
 ## integration tests - only run on merge request
-deploy-jaws-aws-dev:
-  extends: .aws-deployment
-  variables:
-    JAWS_DEPLOYMENT_NAME: "dev"
-    JAWS_SITE_VERSION: "dev"
-  environment:
-    name: "aws/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
+#deploy-jaws-aws-dev:
+#  extends: .aws-deployment
+#  variables:
+#    JAWS_DEPLOYMENT_NAME: "dev"
+#    JAWS_SITE_VERSION: "dev"
+#  environment:
+#    name: "aws/dev"
+#  rules:
+#    - if: '$CI_COMMIT_TAG == "dev"'
 
 #deploy-jaws-aws-prod:
 #  extends: .aws-deployment
