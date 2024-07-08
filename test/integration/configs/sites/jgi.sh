@@ -1,7 +1,7 @@
 export JAWS_INSTALL_BASEDIR="/global/home/groups-sw/lr_jgicloud/jaws-install"
 export JAWS_GLOBUS_EP="e8b18c38-36cd-11eb-b54c-02d9497ca481"
 export JAWS_GLOBUS_HOST_PATH="/global/scratch/users/jaws"
-export JAWS_LOAD_PYTHON="module load python/3.9.12"
+export JAWS_LOAD_PYTHON="module load python/3.11.6-gcc-11.4.0"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="jaws"
 export JAWS_USERS_GROUP="jgi"
