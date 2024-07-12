@@ -741,7 +741,9 @@ class Run:
                             err_detail.append(item["message"])
                     if len(err_detail):
                         err_msg = f"{err_msg}: " + "; ".join(err_detail)
-            self.update_run_status("failed", err_msg, cromwell_run_id=self.data.cromwell_run_id)
+            self.update_run_status(
+                "failed", err_msg, cromwell_run_id=self.data.cromwell_run_id
+            )
         elif cromwell_status == "Succeeded":
             # no skips allowed, so there may be more than one transition
             if self.data.status == "submitted":
