@@ -4,6 +4,7 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- Update Run_log table with cromwell ID for the failed task to use the id for the cromwell ID map (#1823)
 
 # 2.2.1 Summary [07/08/2024 - Staging ]
 
