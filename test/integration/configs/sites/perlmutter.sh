@@ -1,7 +1,7 @@
 export JAWS_INSTALL_BASEDIR="/global/cfs/cdirs/jaws/jaws-install"
 export JAWS_GLOBUS_EP="5b869795-a6f8-4a87-9272-7c1851c25033"
 export JAWS_GLOBUS_HOST_PATH="/"
-export JAWS_LOAD_PYTHON="module load python/3.11"
+export JAWS_LOAD_PYTHON="module load cray-python/3.11.5"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="jaws"
 export JAWS_USERS_GROUP="genome"
