@@ -4,10 +4,11 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
-- Remove dependency on `parallel-sync(#1819)`
-- Update Run_log table with cromwell ID for the failed task to use the id for the cromwell ID map (#1823)
 
 # 2.2.1 Summary [07/08/2024 - Staging ]
+
+### External Facing Changes
+- Update the fair share policy for Dori: we allow 30 runs per use on Dori. (#1826)
 
 ### Internal Facing Changes
 - Add IGB VM connection checking (#1807)
@@ -16,6 +17,8 @@
 - Add IGB VM connection checking (#1807)
 - Update Python version for JGI site (#1821)
 - Update Python version for NERSC (#1822)
+- Remove dependency on `parallel-sync(#1819)`
+- Update Run_log table with cromwell ID for the failed task to use the id for the cromwell ID map (#1823)
 
 # 2.2.0 Summary [05/21/2024 ]
 - Change DB VM from `jaws-db.jgi.lbl.gov` to `jaws-db.lbl.gov` (#1813)
