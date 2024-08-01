@@ -95,7 +95,7 @@ id = eagle
 deployment = test
 inputs_dir = /global/scratch/jaws/jaws-dev/inputs
 max_user_active_runs = 1
-max_transfer_threads = 10
+max_transfer_threads = 32
 file_permissions = 666
 folder_permissions = 777
 
