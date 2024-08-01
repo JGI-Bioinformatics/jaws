@@ -4,6 +4,7 @@ Items are stored in a relational database.
 """
 
 import concurrent.futures
+import filecmp
 import json
 import logging
 import os
