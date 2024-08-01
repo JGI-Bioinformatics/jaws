@@ -161,8 +161,8 @@ def test_transfer_files(monkeypatch):
 
 def test_calculate_parallelism():
     max_threads = 10
-    assert 1 == transfers.calculate_parallelism(10000)
-    assert 5 == transfers.calculate_parallelism(50000)
+    assert 10 == transfers.calculate_parallelism(10000)
+    assert 10 == transfers.calculate_parallelism(50000)
     assert max_threads == transfers.calculate_parallelism(100000)
     assert max_threads == transfers.calculate_parallelism(10000000)
     assert max_threads == transfers.calculate_parallelism(335313)
