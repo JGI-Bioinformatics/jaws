@@ -15,7 +15,6 @@ from types import TracebackType
 
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
-from tenacity import retry, stop_after_attempt, wait_fixed
 
 from jaws_site import config, models
 from jaws_site.database import Session
@@ -27,7 +26,6 @@ FILES_PER_THREAD = 500
 MAX_ERROR_STRING_LEN = 1024
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))  # type: ignore
 def safe_copy(source: str, destination: str) -> bool:
     """Copy a file from the source path to the destination path with retries on failure.
 
@@ -491,7 +489,7 @@ def calculate_parallelism(num_files: int) -> int:
     if num_files < 0:
         raise ValueError("num_files cannot be negative")
 
-    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 101))
+    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 32))
 
     if max_threads < 0:
         raise ValueError("max_threads must be greater than zero")
