@@ -48,17 +48,14 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-    if os.path.exists(destination):
+    if os.path.exists(destination) or filecmp.cmp(source, destination):
         return True
 
     try:
         shutil.copy(source, destination)
-        logger.info(f"File copied successfully: {source} -> {destination}")
         return True
     except IOError as e:
-        logger.error(f"Error copying file: {e}")
         raise e
-    logger.info(f"Unable to copy {source} -> {destination}")
     return False
 
 
