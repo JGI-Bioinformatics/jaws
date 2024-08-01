@@ -491,7 +491,7 @@ def calculate_parallelism(num_files: int) -> int:
     if num_files < 0:
         raise ValueError("num_files cannot be negative")
 
-    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 10))
+    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 101))
 
     if max_threads < 0:
         raise ValueError("max_threads must be greater than zero")
