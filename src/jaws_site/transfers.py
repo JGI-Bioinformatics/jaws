@@ -27,7 +27,7 @@ FILES_PER_THREAD = 10000
 MAX_ERROR_STRING_LEN = 1024
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))  # type: ignore
 def safe_copy(source: str, destination: str) -> bool:
     """Copy a file from the source path to the destination path with retries on failure.
 
@@ -48,17 +48,14 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-    if os.path.isfile(destination) and filecmp.cmp(source, destination):
+    if os.path.exists(destination) or filecmp.cmp(source, destination):
         return True
 
     try:
-        shutil.copy2(source, destination)
-        logger.info(f"File copied successfully: {source} -> {destination}")
+        shutil.copy(source, destination)
         return True
     except IOError as e:
-        logger.error(f"Error copying file: {e}")
         raise e
-    logger.info(f"Unable to copy {source} -> {destination}")
     return False
 
 
@@ -386,7 +383,6 @@ class Transfer:
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
-        mkdir(dest)
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
@@ -487,7 +483,7 @@ def abs_to_rel_paths(root: str, paths: list) -> list:
     return rel_paths
 
 
-def calculate_parallelism(num_files):
+def calculate_parallelism(num_files: int) -> int:
     """
     Calculate the amount of parallelism needed by the parallel_sync process.
     Each 10k files will require 1 thread with a max number of threads limited at 7.
@@ -495,7 +491,7 @@ def calculate_parallelism(num_files):
     if num_files < 0:
         raise ValueError("num_files cannot be negative")
 
-    max_threads = int(config.conf.get("SITE", "max_transfer_threads"))
+    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 10))
 
     if max_threads < 0:
         raise ValueError("max_threads must be greater than zero")
@@ -505,7 +501,7 @@ def calculate_parallelism(num_files):
 
     if num_files >= upper_limit_files:
         return max_threads
-    parallelism = num_files // FILES_PER_THREAD
+    parallelism = int(num_files // FILES_PER_THREAD)
     return max(parallelism, min_threads)
 
 
@@ -523,7 +519,7 @@ def parallel_copy_files_only(
     :ptype dest: str
     """
     try:
-        with MultithreadedCopier(max_threads=kwargs.get("parallelism", 1000)) as copier:
+        with MultithreadedCopier(max_threads=kwargs.get("parallelism", 10)) as copier:
             shutil.copytree(src, dest, copy_function=copier.copy, dirs_exist_ok=True)
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
