@@ -23,7 +23,7 @@ from jaws_site.database import Session
 logger = logging.getLogger(__package__)
 
 
-FILES_PER_THREAD = 10000
+FILES_PER_THREAD = 500
 MAX_ERROR_STRING_LEN = 1024
 
 
