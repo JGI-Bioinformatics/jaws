@@ -1,6 +1,6 @@
 import os
 import os.path
-import shutil
+from unittest.mock import mock_open, patch
 
 import boto3
 import jaws_site
@@ -170,10 +170,17 @@ def test_calculate_parallelism():
 
 def test_parallel_copy_files_only(setup_files: list[str]) -> None:
     src_base_dir, dest_base_dir = setup_files
-    shutil.rmtree(dest_base_dir)
+    open_mock = mock_open()
     manifest = ["file99.txt"]
-    jaws_site.transfers.parallel_copy_files_only(manifest, src_base_dir, dest_base_dir)
-    assert os.path.exists(dest_base_dir)
+    with patch("jaws_site.transfers.safe_copy", open_mock, create=True):
+        jaws_site.transfers.parallel_copy_files_only(
+            manifest, src_base_dir, dest_base_dir
+        )
+
+    open_mock.assert_called_with(
+        os.path.join(src_base_dir, "file99.txt"),
+        os.path.join(dest_base_dir, "file99.txt"),
+    )
 
 
 def test_handles_nonexistent_directory(mock_sqlalchemy_session):
