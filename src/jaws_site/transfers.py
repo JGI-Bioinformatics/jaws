@@ -385,7 +385,7 @@ class Transfer:
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-        mkdir(dest) # type: ignore
+        mkdir(dest)
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
