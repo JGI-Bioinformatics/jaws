@@ -50,7 +50,7 @@ def safe_copy(source: str, destination: str) -> bool:
         return True
 
     try:
-        shutil.copy(source, destination)
+        shutil.copy2(source, destination)
         return True
     except IOError as e:
         raise e
@@ -385,6 +385,7 @@ class Transfer:
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
+        mkdir(dest) # type: ignore
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
