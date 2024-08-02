@@ -516,9 +516,19 @@ def parallel_copy_files_only(
     :param dest: destination root directory
     :ptype dest: str
     """
+    paths = []
+    for rel_path in manifest:
+        s = os.path.join(src, rel_path)
+        if not os.path.exists(s):
+            raise FileNotFoundError(f"Cannot copy {s}. File does not exist")
+        if os.path.isdir(s):
+            raise IsADirectoryError("parallel_copy_files_only does not support folders")
+        d = os.path.join(dest, rel_path)
+        paths.append((s, d))
     try:
         with MultithreadedCopier(max_threads=kwargs.get("parallelism", 10)) as copier:
-            shutil.copytree(src, dest, copy_function=copier.copy, dirs_exist_ok=True)
+            for path in paths:
+                copier.copy(path[0], path[1])
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
