@@ -525,6 +525,8 @@ def parallel_copy_files_only(
         if os.path.isdir(s):
             raise IsADirectoryError("parallel_copy_files_only does not support folders")
         d = os.path.join(dest, rel_path)
+        dir_name, _ = os.path.split(d)
+        os.makedirs(dir_name + '/', exist_ok=True)
         paths.append((s, d))
     try:
         with MultithreadedCopier(max_threads=kwargs.get("parallelism", 10)) as copier:
