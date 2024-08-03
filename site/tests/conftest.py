@@ -15,10 +15,26 @@ import sqlalchemy
 from jaws_site import config, cromwell, models, runs
 from moto import mock_aws
 from sqlalchemy.orm.exc import NoResultFound
+from pytest import fixture
 
 S3_BUCKET = "site"
 this_date = datetime.today()
 
+
+class MockPoolApplyResult:
+    def __init__(self, func, args):
+        self._func = func
+        self._args = args
+
+    def get(self, timeout=0):
+        return self._func(*self._args)
+
+
+@fixture(autouse=True)
+def mock_pool_apply_async(monkeypatch):
+    monkeypatch.setattr("multiprocessing.pool.Pool.apply_async",
+                        lambda self, func, args=(), kwds={}, callback=None, error_callback=None:
+                        MockPoolApplyResult(func, args))
 
 @pytest.fixture()
 def configuration(config_file):

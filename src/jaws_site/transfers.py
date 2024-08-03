@@ -10,8 +10,7 @@ import logging
 import os
 import shutil
 from datetime import datetime
-from multiprocessing.pool import ThreadPool
-from types import TracebackType
+from multiprocessing.pool import Pool
 
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
@@ -55,52 +54,6 @@ def safe_copy(source: str, destination: str) -> bool:
     except IOError as e:
         raise e
     return False
-
-
-class MultithreadedCopier:
-    """Multithreaded file copying context manager.
-
-    Attributes
-    ----------
-    pool : ThreadPool
-        Thread pool for asynchronous copying.
-    """
-
-    def __init__(self, max_threads: int) -> None:
-        """Initialize the multithreaded copier."""
-        self.pool = ThreadPool(max_threads)
-
-    def copy(self, source: str, dest: str) -> None:
-        """Copy data from one location to another.
-
-        Parameters
-        ----------
-        source : str
-            Path to the source data.
-        dest : str
-            Path to the destination data.
-
-        Returns
-        -------
-        None
-        """
-        self.pool.apply_async(safe_copy, args=(source, dest))
-        return None
-
-    def __enter__(self) -> "MultithreadedCopier":
-        """Enter the context manager."""
-        return self
-
-    def __exit__(
-        self,
-        exc_type: BaseException | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        """Exit the context manager."""
-        self.pool.close()
-        self.pool.join()
-        return None
 
 
 def mkdir(path, mode=None):
@@ -506,7 +459,7 @@ def calculate_parallelism(num_files: int) -> int:
 
 def parallel_copy_files_only(
     manifest: list[str], src: str, dest: str, **kwargs: int
-) -> None:
+) -> bool:
     """
     Given list of files, copy them in parallel using parallel_sync.
     Copies regular files only, skips others.
@@ -517,26 +470,34 @@ def parallel_copy_files_only(
     :param dest: destination root directory
     :ptype dest: str
     """
-    paths = []
-    for rel_path in manifest:
-        s = os.path.join(src, rel_path)
-        if not os.path.exists(s):
-            raise FileNotFoundError(f"Cannot copy {s}. File does not exist")
-        if os.path.isdir(s):
-            raise IsADirectoryError("parallel_copy_files_only does not support folders")
-        d = os.path.join(dest, rel_path)
-        dir_name, _ = os.path.split(d)
-        os.makedirs(dir_name + '/', exist_ok=True)
-        paths.append((s, d))
     try:
-        with MultithreadedCopier(max_threads=kwargs.get("parallelism", 10)) as copier:
+        paths = []
+        for rel_path in manifest:
+            s = os.path.join(src, rel_path)
+            if not os.path.exists(s):
+                raise FileNotFoundError(f"Cannot copy {s}. File does not exist")
+            if os.path.isdir(s):
+                raise IsADirectoryError(
+                    "parallel_copy_files_only does not support folders"
+                )
+            d = os.path.join(dest, rel_path)
+            dir_name, _ = os.path.split(d)
+            os.makedirs(dir_name + "/", exist_ok=True)
+            paths.append((s, d))
+        with Pool(kwargs.get("parallelism", 1)) as pool:
+            results = []
             for path in paths:
-                copier.copy(path[0], path[1])
+                task = pool.apply_async(safe_copy, args=(path[0], path[1]))
+                results.append(task)
+            pool.close()
+            pool.join()
+            for result in results:
+                result.get()
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
     finally:
-        return None
+        return True
 
 
 def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):

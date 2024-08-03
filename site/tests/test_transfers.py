@@ -168,16 +168,14 @@ def test_calculate_parallelism():
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_parallel_copy_files_only(setup_files: list[str]) -> None:
+@patch("jaws_site.transfers.safe_copy")
+def test_parallel_copy_files_only(mock_copy: object, setup_files: list[str]) -> None:
     src_base_dir, dest_base_dir = setup_files
-    open_mock = mock_open()
     manifest = ["file99.txt"]
-    with patch("jaws_site.transfers.safe_copy", open_mock, create=True):
-        jaws_site.transfers.parallel_copy_files_only(
-            manifest, src_base_dir, dest_base_dir
-        )
-
-    open_mock.assert_called_with(
+    jaws_site.transfers.parallel_copy_files_only(
+        manifest, src_base_dir, dest_base_dir
+    )
+    mock_copy.assert_called_with(
         os.path.join(src_base_dir, "file99.txt"),
         os.path.join(dest_base_dir, "file99.txt"),
     )
