@@ -21,6 +21,7 @@
 - Update Run_log table with cromwell ID for the failed task to use the id for the cromwell ID map (#1823)
 
 # 2.2.0 Summary [05/21/2024 ]
+
 - Change DB VM from `jaws-db.jgi.lbl.gov` to `jaws-db.lbl.gov` (#1813)
 - deploy to Defiant
 
