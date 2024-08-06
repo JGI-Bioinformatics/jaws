@@ -22,6 +22,7 @@
 - Raise exception for task_logger - Task xx not found!(#1828)
 
 # 2.2.0 Summary [05/21/2024 ]
+
 - Change DB VM from `jaws-db.jgi.lbl.gov` to `jaws-db.lbl.gov` (#1813)
 - deploy to Defiant
 
