@@ -10,7 +10,7 @@ import logging
 import os
 import shutil
 from datetime import datetime
-from multiprocessing.pool import Pool
+from multiprocessing.pool import ThreadPool
 
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
@@ -484,7 +484,7 @@ def parallel_copy_files_only(
             dir_name, _ = os.path.split(d)
             os.makedirs(dir_name + "/", exist_ok=True)
             paths.append((s, d))
-        with Pool(kwargs.get("parallelism", 1)) as pool:
+        with ThreadPool(kwargs.get("parallelism", 1)) as pool:
             results = []
             for path in paths:
                 task = pool.apply_async(safe_copy, args=(path[0], path[1]))
