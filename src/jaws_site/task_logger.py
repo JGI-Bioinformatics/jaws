@@ -110,25 +110,26 @@ class TaskLogger:
         if row is None:
             # this can only happen if the queued message was lost
             self.logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
-
-        try:
-            if status == "running":
-                row.run_start = timestamp
-                row.status = "running"
-                row.queue_minutes = self.delta_minutes(row.queue_start, row.run_start)
-            else:
-                row.run_end = timestamp
-                row.status = "done"
-                row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
-            self.session.commit()
-        except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            self.session.rollback()
-            self.logger.error(f"Unable to connect to db: {error}")
-            raise JawsDbUnavailableError(str(error))
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            self.logger.exception(
-                f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
-            )
-            raise
+            raise 
+        else:
+            try:
+                if status == "running":
+                    row.run_start = timestamp
+                    row.status = "running"
+                    row.queue_minutes = self.delta_minutes(row.queue_start, row.run_start)
+                else:
+                    row.run_end = timestamp
+                    row.status = "done"
+                    row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
+                self.session.commit()
+            except OperationalError as error:
+                # this is the only case in which we would not want to ack the message
+                self.session.rollback()
+                self.logger.error(f"Unable to connect to db: {error}")
+                raise JawsDbUnavailableError(str(error))
+            except SQLAlchemyError as error:
+                self.session.rollback()
+                self.logger.exception(
+                    f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
+                )
+                raise
