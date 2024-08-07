@@ -50,7 +50,7 @@ def safe_copy(source: str, destination: str) -> bool:
 
     try:
         shutil.copy2(source, destination)
-        logger.info(f"Files copied: {source} -> {destination}")
+        logger.info(f"File copied: {source} -> {destination}")
         return True
     except IOError as e:
         raise e
@@ -488,7 +488,7 @@ def parallel_copy_files_only(
         with ThreadPool(kwargs.get("parallelism", 1)) as pool:
             results = []
             for path in paths:
-                task = pool.apply_async(safe_copy, args=(path[0], path[1]))
+                task = pool.apply_async(safe_copy, path)
                 results.append(task)
             for result in results:
                 _ = result.get()
