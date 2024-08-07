@@ -46,7 +46,7 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-    if os.path.exists(destination) or filecmp.cmp(source, destination):
+    if os.path.exists(destination):
         return True
 
     try:
