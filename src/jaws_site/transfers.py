@@ -3,14 +3,13 @@ Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc
 Items are stored in a relational database.
 """
 
-import concurrent.futures
-import filecmp
+import concurrent
 import json
 import logging
 import os
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from multiprocessing.pool import ThreadPool
 from pathlib import Path
 
 import boto3
@@ -46,10 +45,13 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-    if os.path.exists(destination) or filecmp.cmp(source, destination):
+
+    if os.path.exists(destination):
         return True
 
     try:
+        dir_name, _ = os.path.split(destination)
+        Path(dir_name).mkdir(parents=True, exist_ok=True)
         shutil.copy(source, destination)
         logger.info(f"File copied: {source} -> {destination}")
         return True
@@ -482,18 +484,10 @@ def parallel_copy_files_only(
                     "parallel_copy_files_only does not support folders"
                 )
             d = os.path.join(dest, rel_path)
-            dir_name, _ = os.path.split(d)
-            Path(dir_name).mkdir(parents=True, exist_ok=True)
             paths.append((s, d))
-        with ThreadPool(kwargs.get("parallelism", 1)) as pool:
-            results = []
+        with ThreadPoolExecutor(kwargs.get("parallelism", 1)) as executor:
             for path in paths:
-                task = pool.apply_async(safe_copy, path)
-                results.append(task)
-            for result in results:
-                _ = result.get()
-            pool.close()
-            pool.join()
+                executor.submit(safe_copy, path[0], path[1])
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
