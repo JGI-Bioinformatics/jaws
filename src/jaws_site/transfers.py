@@ -11,6 +11,7 @@ import os
 import shutil
 from datetime import datetime
 from multiprocessing.pool import ThreadPool
+from pathlib import Path
 
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
@@ -49,7 +50,7 @@ def safe_copy(source: str, destination: str) -> bool:
         return True
 
     try:
-        shutil.copy2(source, destination)
+        shutil.copy(source, destination)
         logger.info(f"File copied: {source} -> {destination}")
         return True
     except IOError as e:
@@ -339,7 +340,6 @@ class Transfer:
 
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
-        mkdir(dest)
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
@@ -483,7 +483,7 @@ def parallel_copy_files_only(
                 )
             d = os.path.join(dest, rel_path)
             dir_name, _ = os.path.split(d)
-            os.makedirs(dir_name + "/", exist_ok=True)
+            Path(dir_name).mkdir(parents=True, exist_ok=True)
             paths.append((s, d))
         with ThreadPool(kwargs.get("parallelism", 1)) as pool:
             results = []
