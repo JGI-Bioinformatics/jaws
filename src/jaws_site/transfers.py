@@ -4,13 +4,15 @@ Items are stored in a relational database.
 """
 
 import concurrent
+import filecmp
 import json
 import logging
 import os
+import pathlib
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from pathlib import Path
+from multiprocessing import cpu_count
 
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
@@ -45,18 +47,24 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-
-    if os.path.exists(destination):
+    tries = 0
+    dest_path = pathlib.Path(destination)
+    if all((dest_path.exists(), filecmp.cmp(source, destination))):
         return True
 
-    try:
-        dir_name, _ = os.path.split(destination)
-        Path(dir_name).mkdir(parents=True, exist_ok=True)
-        shutil.copy(source, destination)
-        logger.info(f"File copied: {source} -> {destination}")
-        return True
-    except IOError as e:
-        raise e
+    while 3 > tries:
+        try:
+            if not dest_path.parent.exists():
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(source, destination)
+            return True
+        except IOError as e:
+            tries += 1
+            logger.error(
+                f" Error occurred on attempt {tries}/3 of copying {source} -> "
+                f"{destination}: {e}"
+            )
+            continue
     return False
 
 
@@ -485,7 +493,9 @@ def parallel_copy_files_only(
                 )
             d = os.path.join(dest, rel_path)
             paths.append((s, d))
-        with ThreadPoolExecutor(kwargs.get("parallelism", 1)) as executor:
+        with ThreadPoolExecutor(
+            min(kwargs.get("parallelism", 1), cpu_count() + 1)
+        ) as executor:
             for path in paths:
                 executor.submit(safe_copy, path[0], path[1])
     except Exception as e:
