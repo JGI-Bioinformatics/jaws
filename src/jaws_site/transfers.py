@@ -490,10 +490,10 @@ def parallel_copy_files_only(
             for path in paths:
                 task = pool.apply_async(safe_copy, args=(path[0], path[1]))
                 results.append(task)
+            for result in results:
+                _ = result.get()
             pool.close()
             pool.join()
-            for result in results:
-                result.get()
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
