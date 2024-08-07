@@ -50,6 +50,7 @@ def safe_copy(source: str, destination: str) -> bool:
 
     try:
         shutil.copy2(source, destination)
+        logger.info(f"Files copied: {source} -> {destination}")
         return True
     except IOError as e:
         raise e
