@@ -171,9 +171,6 @@ variables:
     - defiant
     - ornl
   variables:
-    no_proxy: "127.0.0.1, localhost, *.ornl.gov"    
-    HTTPS_PROXY: "http://proxy.ccs.ornl.gov:3128"
-    https_proxy: "http://proxy.ccs.ornl.gov:3128"
     JAWS_SITE_NAME: "DEFIANT"
     CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
@@ -333,8 +330,6 @@ deploy-jaws-defiant-dev:
     JAWS_SITE_VERSION: "dev"
   environment:
     name: "defiant/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-defiant-staging:
   extends: .defiant-deployment
