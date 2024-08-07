@@ -3,19 +3,19 @@ Transfer is a collection of files/folders to transfer (e.g. via Globus, FTP, etc
 Items are stored in a relational database.
 """
 
-import concurrent.futures
+import concurrent
 import filecmp
 import json
 import logging
 import os
+import pathlib
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from multiprocessing.pool import ThreadPool
-from types import TracebackType
+from multiprocessing import cpu_count
 
 import boto3
 from sqlalchemy.exc import SQLAlchemyError
-from tenacity import retry, stop_after_attempt, wait_fixed
 
 from jaws_site import config, models
 from jaws_site.database import Session
@@ -23,11 +23,10 @@ from jaws_site.database import Session
 logger = logging.getLogger(__package__)
 
 
-FILES_PER_THREAD = 10000
+FILES_PER_THREAD = 500
 MAX_ERROR_STRING_LEN = 1024
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 def safe_copy(source: str, destination: str) -> bool:
     """Copy a file from the source path to the destination path with retries on failure.
 
@@ -48,64 +47,25 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-    if os.path.isfile(destination) and filecmp.cmp(source, destination):
+    tries = 0
+    dest_path = pathlib.Path(destination)
+    if all((dest_path.exists(), filecmp.cmp(source, destination))):
         return True
 
-    try:
-        shutil.copy2(source, destination)
-        logger.info(f"File copied successfully: {source} -> {destination}")
-        return True
-    except IOError as e:
-        logger.error(f"Error copying file: {e}")
-        raise e
-    logger.info(f"Unable to copy {source} -> {destination}")
+    while 3 > tries:
+        try:
+            if not dest_path.parent.exists():
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(source, destination)
+            return True
+        except IOError as e:
+            tries += 1
+            logger.error(
+                f" Error occurred on attempt {tries}/3 of copying {source} -> "
+                f"{destination}: {e}"
+            )
+            continue
     return False
-
-
-class MultithreadedCopier:
-    """Multithreaded file copying context manager.
-
-    Attributes
-    ----------
-    pool : ThreadPool
-        Thread pool for asynchronous copying.
-    """
-
-    def __init__(self, max_threads: int) -> None:
-        """Initialize the multithreaded copier."""
-        self.pool = ThreadPool(max_threads)
-
-    def copy(self, source: str, dest: str) -> None:
-        """Copy data from one location to another.
-
-        Parameters
-        ----------
-        source : str
-            Path to the source data.
-        dest : str
-            Path to the destination data.
-
-        Returns
-        -------
-        None
-        """
-        self.pool.apply_async(safe_copy, args=(source, dest))
-        return None
-
-    def __enter__(self) -> "MultithreadedCopier":
-        """Enter the context manager."""
-        return self
-
-    def __exit__(
-        self,
-        exc_type: BaseException | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        """Exit the context manager."""
-        self.pool.close()
-        self.pool.join()
-        return None
 
 
 def mkdir(path, mode=None):
@@ -386,7 +346,6 @@ class Transfer:
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
         dest = f"{self.data.dest_base_dir}/"
-        mkdir(dest)
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
@@ -487,7 +446,7 @@ def abs_to_rel_paths(root: str, paths: list) -> list:
     return rel_paths
 
 
-def calculate_parallelism(num_files):
+def calculate_parallelism(num_files: int) -> int:
     """
     Calculate the amount of parallelism needed by the parallel_sync process.
     Each 10k files will require 1 thread with a max number of threads limited at 7.
@@ -495,7 +454,7 @@ def calculate_parallelism(num_files):
     if num_files < 0:
         raise ValueError("num_files cannot be negative")
 
-    max_threads = int(config.conf.get("SITE", "max_transfer_threads"))
+    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 32))
 
     if max_threads < 0:
         raise ValueError("max_threads must be greater than zero")
@@ -505,13 +464,13 @@ def calculate_parallelism(num_files):
 
     if num_files >= upper_limit_files:
         return max_threads
-    parallelism = num_files // FILES_PER_THREAD
+    parallelism = int(num_files // FILES_PER_THREAD)
     return max(parallelism, min_threads)
 
 
 def parallel_copy_files_only(
     manifest: list[str], src: str, dest: str, **kwargs: int
-) -> None:
+) -> bool:
     """
     Given list of files, copy them in parallel using parallel_sync.
     Copies regular files only, skips others.
@@ -523,13 +482,27 @@ def parallel_copy_files_only(
     :ptype dest: str
     """
     try:
-        with MultithreadedCopier(max_threads=kwargs.get("parallelism", 1000)) as copier:
-            shutil.copytree(src, dest, copy_function=copier.copy, dirs_exist_ok=True)
+        paths = []
+        for rel_path in manifest:
+            s = os.path.join(src, rel_path)
+            if not os.path.exists(s):
+                raise FileNotFoundError(f"Cannot copy {s}. File does not exist")
+            if os.path.isdir(s):
+                raise IsADirectoryError(
+                    "parallel_copy_files_only does not support folders"
+                )
+            d = os.path.join(dest, rel_path)
+            paths.append((s, d))
+        with ThreadPoolExecutor(
+            min(kwargs.get("parallelism", 1), cpu_count() + 1)
+        ) as executor:
+            for path in paths:
+                executor.submit(safe_copy, path[0], path[1])
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
     finally:
-        return None
+        return True
 
 
 def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):

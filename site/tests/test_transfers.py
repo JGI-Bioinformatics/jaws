@@ -1,6 +1,6 @@
 import os
 import os.path
-import shutil
+from unittest.mock import mock_open, patch
 
 import boto3
 import jaws_site
@@ -160,20 +160,25 @@ def test_transfer_files(monkeypatch):
 
 
 def test_calculate_parallelism():
-    max_threads = 10
-    assert 1 == transfers.calculate_parallelism(10000)
-    assert 5 == transfers.calculate_parallelism(50000)
+    max_threads = 32
+    assert 20 == transfers.calculate_parallelism(10000)
+    assert 32 == transfers.calculate_parallelism(50000)
     assert max_threads == transfers.calculate_parallelism(100000)
     assert max_threads == transfers.calculate_parallelism(10000000)
     assert max_threads == transfers.calculate_parallelism(335313)
 
 
-def test_parallel_copy_files_only(setup_files: list[str]) -> None:
+@patch("jaws_site.transfers.safe_copy")
+def test_parallel_copy_files_only(mock_copy: object, setup_files: list[str]) -> None:
     src_base_dir, dest_base_dir = setup_files
-    shutil.rmtree(dest_base_dir)
     manifest = ["file99.txt"]
-    jaws_site.transfers.parallel_copy_files_only(manifest, src_base_dir, dest_base_dir)
-    assert os.path.exists(os.path.join(dest_base_dir, "file99.txt"))
+    jaws_site.transfers.parallel_copy_files_only(
+        manifest, src_base_dir, dest_base_dir
+    )
+    mock_copy.assert_called_with(
+        os.path.join(src_base_dir, "file99.txt"),
+        os.path.join(dest_base_dir, "file99.txt"),
+    )
 
 
 def test_handles_nonexistent_directory(mock_sqlalchemy_session):
