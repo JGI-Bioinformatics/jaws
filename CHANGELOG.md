@@ -20,6 +20,7 @@
 - Remove dependency on `parallel-sync(#1819)`
 - Update Run_log table with cromwell ID for the failed task to use the id for the cromwell ID map (#1823)
 - Raise exception for task_logger - Task xx not found!(#1828)
+- Fixing ORNL Deployment - removing proxy variables (#1830)
 
 # 2.2.0 Summary [05/21/2024 ]
 
