@@ -9,6 +9,7 @@
 
 ### External Facing Changes
 - Update the fair share policy for Dori: we allow 30 runs per use on Dori. (#1826)
+- adding globus endpoint for Defiant (#1827)
 
 ### Internal Facing Changes
 - Add IGB VM connection checking (#1807)
