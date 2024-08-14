@@ -8,17 +8,16 @@ requires-python = "<3.12,>=3.10"
 dynamic = ["version"]
 description = "Default template for PDM package"
 authors = [
-    {name = "Daniela Cassol", email = "dcassol@lbl.gov"},
-    {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
-    {name = "Elais Player Jackson", email = "elais@lbl.gov"}
     {name = "Edward Kirton", email = "ekirton@lbl.gov"},
-    {name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
     {name = "Mario Melara", email = "mamelara@lbl.gov"},
+    {name = "Georg Rath", email = "grath@lbl.gov"},
     {name = "Seung-Jin Sul", email = "ssul@lbl.gov"},
     {name = "Stephan Trong", email = "strong@lbl.gov"},
-    {name = "Nick Tyler", email = "tylern@lbl.gov"},
-    {name = "Georg Rath", email = "grath@lbl.gov"},
     {name = "Kelly Rowland", email = "kellyrowland@lbl.gov"},
+    {name = "Nick Tyler", email = "tylern@lbl.gov"},
+    {name = "Jeff Froula", email = "jlfroula@lbl.gov"},
+    {name = "Ramani Kothadia", email = "ramanik@lbl.gov"},
+    {name = "Elais Player", email = "elais@lbl.gov"},
 ]
 
 dependencies = [
