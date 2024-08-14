@@ -116,7 +116,9 @@ class TaskLogger:
                 if status == "running":
                     row.run_start = timestamp
                     row.status = "running"
-                    row.queue_minutes = self.delta_minutes(row.queue_start, row.run_start)
+                    row.queue_minutes = self.delta_minutes(
+                        row.queue_start, row.run_start
+                    )
                 else:
                     row.run_end = timestamp
                     row.status = "done"

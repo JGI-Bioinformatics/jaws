@@ -285,7 +285,7 @@ class TaskLog:
                 elif status == "Failed":
                     status = "failed"
                 elif status == "Aborted":
-                    status = "cancelled"                
+                    status = "cancelled"
                 req_cpu = self.int_or_none(info.get("requested_cpu", DEFAULT_CPU))
                 req_mem_gb = self.memory_gb(
                     info.get("requested_memory", DEFAULT_MEM_GB)
