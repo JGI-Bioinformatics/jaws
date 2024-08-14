@@ -97,6 +97,7 @@ class Tasks(Base):
     req_cpu = Column(SmallInteger, nullable=True)
     req_mem_gb = Column(SmallInteger, nullable=True)
     req_minutes = Column(SmallInteger, nullable=True)
+    return_code = Column(SmallInteger, nullable=True)
 
 
 class Transfer(Base):

@@ -87,6 +87,7 @@ class TaskLogger:
         task_dir = kwargs.get("task_dir")
         status = kwargs.get("status")
         timestamp = kwargs.get("timestamp")
+        return_code = kwargs.get("return_code")
 
         # select row for this task
         try:
@@ -120,6 +121,7 @@ class TaskLogger:
                     row.run_end = timestamp
                     row.status = "done"
                     row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
+                    row.return_code = return_code
                 self.session.commit()
             except OperationalError as error:
                 # this is the only case in which we would not want to ack the message

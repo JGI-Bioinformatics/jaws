@@ -80,6 +80,7 @@ class TaskLog:
                     row.req_cpu,
                     row.req_mem_gb,
                     row.req_minutes,
+                    row.return_code,
                 ]
             )
         self.data = table
@@ -148,6 +149,7 @@ class TaskLog:
                 req_cpu,
                 req_mem_gb,
                 req_minutes,
+                return_code,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -171,6 +173,7 @@ class TaskLog:
                     req_mem_gb,
                     req_minutes,
                     cpu_hours,
+                    return_code,
                 ]
             )
         result = {
@@ -189,6 +192,7 @@ class TaskLog:
                 "REQ_GB",
                 "REQ_MIN",
                 "CPU_HRS",
+                "RETURN_CODE",
             ],
             "data": new_table,
         }
@@ -281,7 +285,7 @@ class TaskLog:
                 elif status == "Failed":
                     status = "failed"
                 elif status == "Aborted":
-                    status = "cancelled"
+                    status = "cancelled"                
                 req_cpu = self.int_or_none(info.get("requested_cpu", DEFAULT_CPU))
                 req_mem_gb = self.memory_gb(
                     info.get("requested_memory", DEFAULT_MEM_GB)
@@ -289,6 +293,7 @@ class TaskLog:
                 req_minutes = self.int_or_none(
                     info.get("requested_runime_minutes", None)
                 )
+                return_code = info.get("return_code", None)
                 log_entry = models.Tasks(
                     task_dir=task_dir,
                     name=info["name"],
@@ -298,6 +303,7 @@ class TaskLog:
                     req_cpu=req_cpu,
                     req_mem_gb=req_mem_gb,
                     req_minutes=req_minutes,
+                    return_code=return_code,
                 )
                 self.session.add(log_entry)
 
@@ -323,6 +329,7 @@ class TaskLog:
                 req_cpu,
                 req_mem_gb,
                 req_minutes,
+                return_code,
             ) = row
             if task_dir not in summary:
                 continue
@@ -341,6 +348,7 @@ class TaskLog:
                 summary[task_dir].get("requested_runtime_minutes", None)
             )
             job_id = summary[task_dir].get("job_id", None)
+            return_code = summary[task_dir].get("return_code", None)
             update = {
                 "id": row_id,
                 "job_id": job_id,
@@ -350,6 +358,7 @@ class TaskLog:
                 "req_cpu": req_cpu,
                 "req_mem_gb": req_mem_gb,
                 "req_minutes": req_minutes,
+                "return_code": return_code,
             }
             updates.append(update)
         return updates
