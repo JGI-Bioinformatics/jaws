@@ -2,6 +2,7 @@
 # Inbound changes not assigned to version # yet
 
 ### External Facing Changes
+- Users can now delete their own folders (specifically the run-id folder) after a globus download. (jaws-support:#238)
 
 ### Internal Facing Changes
 
