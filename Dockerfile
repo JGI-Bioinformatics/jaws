@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bookworm as builder
+FROM python:3.11-slim-bookworm as builder
 
 ARG JAWS_UID=75388
 ARG JAWS_GID=75388
