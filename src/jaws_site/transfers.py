@@ -47,24 +47,16 @@ def safe_copy(source: str, destination: str) -> bool:
     IOError
         If an error occurs during file copy.
     """
-    tries = 0
-    dest_path = pathlib.Path(destination)
-    if all((dest_path.exists(), filecmp.cmp(source, destination))):
+    dest_path = pathlib.Path(destination).resolve()
+    if dest_path.exists() and filecmp.cmp(source, destination):
         return True
 
-    while 3 > tries:
-        try:
-            if not dest_path.parent.exists():
-                dest_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(source, destination)
-            return True
-        except IOError as e:
-            tries += 1
-            logger.error(
-                f" Error occurred on attempt {tries}/3 of copying {source} -> "
-                f"{destination}: {e}"
-            )
-            continue
+    try:
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, str(dest_path))
+        return True
+    except IOError as e:
+        raise e
     return False
 
 
@@ -345,7 +337,7 @@ class Transfer:
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
-        dest = f"{self.data.dest_base_dir}/"
+        dest = str(pathlib.Path(f"{self.data.dest_base_dir}/").resolve())
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
         num_files = len(rel_paths)
@@ -454,10 +446,11 @@ def calculate_parallelism(num_files: int) -> int:
     if num_files < 0:
         raise ValueError("num_files cannot be negative")
 
-    max_threads: int = int(config.conf.get("SITE", "max_transfer_threads", 32))
-
-    if max_threads < 0:
-        raise ValueError("max_threads must be greater than zero")
+    max_threads: int = int(cpu_count() / 2)
+    if config.conf:
+        max_threads = int(
+            config.conf.get("SITE", "max_transfer_threads", max_threads)
+        )
 
     upper_limit_files = max_threads * FILES_PER_THREAD
     min_threads = 1
@@ -494,7 +487,7 @@ def parallel_copy_files_only(
             d = os.path.join(dest, rel_path)
             paths.append((s, d))
         with ThreadPoolExecutor(
-            min(kwargs.get("parallelism", 1), cpu_count() + 1)
+            min(kwargs.get("parallelism", cpu_count()), int(cpu_count() / 2))
         ) as executor:
             for path in paths:
                 executor.submit(safe_copy, path[0], path[1])
