@@ -49,6 +49,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 None,
+                None,
             ],
         ]
 
@@ -68,6 +69,7 @@ def test_table(monkeypatch):
             "REQ_GB",
             "REQ_MIN",
             "CPU_HRS",
+            "RETURN_CODE",
         ],
         "data": [
             [
@@ -79,6 +81,7 @@ def test_table(monkeypatch):
                 "2023-04-24 11:03:00",
                 1,
                 2,
+                None,
                 None,
                 None,
                 None,
