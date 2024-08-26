@@ -50,7 +50,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 None,
-                None,
+                0,
             ],
         ]
 
@@ -88,7 +88,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 None,
-                None,
+                0,
             ]
         ],
     }
