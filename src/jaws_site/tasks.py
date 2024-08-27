@@ -192,6 +192,7 @@ class TaskLog:
                 "REQ_GB",
                 "REQ_MIN",
                 "CPU_HRS",
+                "RETURN_CODE",
             ],
             "data": new_table,
         }
