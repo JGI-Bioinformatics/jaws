@@ -348,10 +348,12 @@ class TaskLog:
                 summary[task_dir].get("requested_runtime_minutes", None)
             )
             job_id = summary[task_dir].get("job_id", None)
-            self.logger.debug(f"{summary[task_dir]=}")
-            return_code_meta = summary[task_dir].get("return_code", None)
-            self.logger.debug(f"return_code from metadata = {return_code_meta}")
-            self.logger.debug(f"return_code from task log table = {return_code}")
+
+            # metadata's return_code is None mostly as expandSubWorkflows=0
+            # return_code_meta = summary[task_dir].get("return_code", None)
+            # tasks table's return_code is updated whenever a task is completed
+            # from the rc file
+
             update = {
                 "id": row_id,
                 "job_id": job_id,
@@ -374,7 +376,7 @@ class TaskLog:
         savepoint = self.session.begin_nested()
         self._insert_cached_tasks(summary)
         updates = self.prepare_metadata(summary)
-        self.logger.debug(f"UPDATES: {updates}")
+        self.logger.debug(f"Metadata to update tasks table: {updates}")
         try:
             self.session.commit()
             self.session.execute(update(models.Tasks), updates)
