@@ -349,7 +349,9 @@ class TaskLog:
             )
             job_id = summary[task_dir].get("job_id", None)
             self.logger.debug(f"{summary[task_dir]=}")
-            return_code = summary[task_dir].get("return_code", None)
+            return_code_meta = summary[task_dir].get("return_code", None)
+            self.logger.debug(f"return_code from metadata = {return_code_meta}")
+            self.logger.debug(f"return_code from task log table = {return_code}")
             update = {
                 "id": row_id,
                 "job_id": job_id,
