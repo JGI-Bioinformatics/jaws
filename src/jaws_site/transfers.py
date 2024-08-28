@@ -448,9 +448,7 @@ def calculate_parallelism(num_files: int) -> int:
 
     max_threads: int = int(cpu_count() / 2)
     if config.conf:
-        max_threads = int(
-            config.conf.get("SITE", "max_transfer_threads", max_threads)
-        )
+        max_threads = int(config.conf.get("SITE", "max_transfer_threads", max_threads))
 
     upper_limit_files = max_threads * FILES_PER_THREAD
     min_threads = 1
