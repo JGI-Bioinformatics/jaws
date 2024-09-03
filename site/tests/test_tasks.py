@@ -1,4 +1,5 @@
-from datetime import datetime
+import pytest
+from datetime import datetime, timezone
 
 from jaws_site.tasks import TaskLog
 
@@ -166,3 +167,51 @@ def test_int_or_none():
 
     actual = task_log.int_or_none(3.1)
     assert type(actual) is int and actual == 3
+
+
+@pytest.fixture
+def task_log():
+    return TaskLog(session=None, cromwell_run_id="test_id")
+
+
+@pytest.mark.parametrize(
+    "input_time,expected_output",
+    [
+        (datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc), "2023-01-01 04:00:00"),
+        (datetime(2023, 6, 1, 12, 0, 0, tzinfo=timezone.utc), "2023-06-01 05:00:00"),
+        ("2023-04-24 08:00:00", "2023-04-24 01:00:00"),
+        (None, None),
+    ],
+)
+def test_utc_to_local_str(task_log, input_time, expected_output):
+    result = task_log._utc_to_local_str(input_time)
+    assert result == expected_output
+
+
+def test_utc_to_local_str_custom_timezone(task_log):
+    task_log.set_local_tz("Europe/London")
+    input_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    expected_output = "2023-01-01 12:00:00"
+    result = task_log._utc_to_local_str(input_time)
+    assert result == expected_output
+
+
+def test_utc_to_local_str_invalid_string():
+    task_log = TaskLog(session=None, cromwell_run_id="test_id")
+    with pytest.raises(ValueError):
+        task_log._utc_to_local_str("invalid datetime string")
+
+
+def test_utc_to_local_str_invalid_type():
+    task_log = TaskLog(session=None, cromwell_run_id="test_id")
+    with pytest.raises(AttributeError):
+        task_log._utc_to_local_str(123)  # Integer instead of datetime or string
+
+
+def test_utc_to_local_str_daylight_savings():
+    task_log = TaskLog(session=None, cromwell_run_id="test_id")
+    task_log.set_local_tz("America/New_York")
+    winter_time = datetime(2023, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    summer_time = datetime(2023, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+    assert task_log._utc_to_local_str(winter_time) == "2023-01-01 07:00:00"
+    assert task_log._utc_to_local_str(summer_time) == "2023-07-01 08:00:00"

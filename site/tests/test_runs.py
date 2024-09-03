@@ -2,7 +2,7 @@ import io
 import json
 import os
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import jaws_site
 import pytest
@@ -17,6 +17,7 @@ from jaws_site.runs import (
     RunLog,
     RunNotFoundError,
     send_run_status_logs,
+    set_atime_now,
 )
 
 from tests.conftest import MockRunModel, MockSession, initRunModel
@@ -74,7 +75,7 @@ def test_check_operations_table(status):
 def test_mark_to_cancel(monkeypatch):
     def mock_update_run_status(self, new_status):
         assert new_status is not None
-        assert type(new_status) == str
+        assert isinstance(new_status, str)
         assert new_status != self.data.status
         self.data.status = new_status
 
@@ -126,7 +127,7 @@ def test_cancel(monkeypatch):
 
     def mock_update_run_status(self, new_status):
         assert new_status is not None
-        assert type(new_status) == str
+        assert isinstance(new_status, str)
         assert new_status != self.data.status
         self.data.status = new_status
 
@@ -287,7 +288,7 @@ def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
 
     # test failed submission:
     def mock_cromwell_submit(self, fhs, options):
-        raise jaws_site.cromwell.CromwellRunError("Invalid input file")
+        raise CromwellRunError("Invalid input file")
 
     mock_data = MockRunModel(status="upload complete")
     run = Run(mock_sqlalchemy_session, mock_data)
@@ -882,3 +883,62 @@ def test_rel_to_abs(mock_sqlalchemy_session, monkeypatch):
     run = Run(mock_sqlalchemy_session, initRunModel())
     actual = run.rel_to_abs(test_inputs, test_site_inputs_dir)
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+@pytest.fixture
+def mock_file(tmp_path):
+    file_path = tmp_path / "test_file.txt"
+    file_path.write_text("Test content")
+    return str(file_path)
+
+
+def test_set_atime_now_success(mock_file):
+    before = os.path.getatime(mock_file)
+    set_atime_now(mock_file)
+    after = os.path.getatime(mock_file)
+    assert after > before
+
+
+def test_set_atime_now_file_not_found():
+    with pytest.raises(FileNotFoundError):
+        set_atime_now("/path/to/nonexistent/file")
+
+
+@patch("os.utime")
+def test_set_atime_now_permission_error(mock_utime, mock_file):
+    mock_utime.side_effect = PermissionError("Permission denied")
+    with pytest.raises(PermissionError):
+        set_atime_now(mock_file)
+
+
+@patch("os.utime")
+def test_set_atime_now_os_error(mock_utime, mock_file):
+    mock_utime.side_effect = OSError("OS error")
+    with pytest.raises(OSError):
+        set_atime_now(mock_file)
+
+
+@patch("logging.getLogger")
+def test_set_atime_now_logging(mock_get_logger, mock_file):
+    mock_logger = Mock()
+    mock_get_logger.return_value = mock_logger
+
+    set_atime_now(mock_file)
+
+    mock_logger.debug.assert_called_once()
+    assert "Updated access time for" in mock_logger.debug.call_args[0][0]
+
+
+@patch("datetime.now")
+def test_set_atime_now_uses_current_time(mock_now, mock_file):
+    mock_time = datetime(2023, 1, 1, 12, 0, 0)
+    mock_now.return_value = mock_time
+
+    set_atime_now(mock_file)
+
+    actual_atime = os.path.getatime(mock_file)
+    expected_atime = mock_time.timestamp()
+
+    assert (
+        abs(actual_atime - expected_atime) < 0.1
+    )  # Allow small difference due to execution time

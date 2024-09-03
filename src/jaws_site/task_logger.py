@@ -23,24 +23,40 @@ class TaskLogger:
             self.logger = logging.getLogger(__package__)
 
     def save(self, params: dict) -> bool:
-        timestamp = params.get("timestamp")
-        params["timestamp"] = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-        status = params.get("status")
-        if status not in ["queued", "running", "done"]:
-            raise ValueError(f"Invalid status: {status}")
+        """
+        Save or update task information based on the provided parameters.
 
-        if status == "queued":
-            self._insert(**params)
-        else:
-            self._update(**params)
+        :param params: Dictionary containing task information
+        :return: True if the operation was successful, False otherwise
+        :raises ValueError: If the status is invalid
+        """
+        try:
+            timestamp = params.get("timestamp")
+            params["timestamp"] = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+            
+            status = params.get("status")
+            if status not in ["queued", "running", "done"]:
+                raise ValueError(f"Invalid status: {status}")
+
+            if status == "queued":
+                return self._insert(**params)
+            else:
+                return self._update(**params)
+        except ValueError as e:
+            self.logger.error(f"Invalid input: {e}")
+            raise
+        except Exception as e:
+            self.logger.exception(f"Unexpected error in save method: {e}")
+            return False
 
     def _insert(self, **kwargs) -> bool:
         """
-        Insert new row.
+        Insert new row into the Tasks table.
         """
         cromwell_run_id = kwargs.get("cromwell_run_id")
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
+
         try:
             log_entry = models.Tasks(
                 cromwell_run_id=cromwell_run_id,
@@ -50,37 +66,38 @@ class TaskLogger:
             )
             self.session.add(log_entry)
             self.session.commit()
+            self.logger.info(f"Successfully inserted task log for {cromwell_run_id} {task_dir}")
+            return True
         except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            self.logger.error(f"Unable to connect to db: {error}")
-            raise JawsDbUnavailableError(str(error))
+            self.logger.error(f"Database connection error: {error}")
+            raise JawsDbUnavailableError(f"Unable to connect to database: {error}") from error
         except IntegrityError as error:
             self.session.rollback()
-            self.logger.error(f"Invalid task-log message, {kwargs}: {error}")
-            raise
+            self.logger.error(f"Integrity error for task-log message {kwargs}: {error}")
+            return False
         except SQLAlchemyError as error:
             self.session.rollback()
-            self.logger.exception(
-                f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
-            )
-            raise
+            self.logger.exception(f"Failed to insert task log for {cromwell_run_id} {task_dir}: {error}")
+            return False
+        except Exception as error:
+            self.session.rollback()
+            self.logger.exception(f"Unexpected error inserting task log for {cromwell_run_id} {task_dir}: {error}")
+            return False
 
     @staticmethod
-    def delta_minutes(start, end) -> int:
+    def delta_minutes(start: datetime, end: datetime) -> int | None:
         """
-        Return the difference between two timestamps, rounded to the nearest minute.
-        :param start: start time
-        :ptype: datetime.datetime
-        :param end: end time
-        :ptype end: datetime.datetime
-        :return: difference in minutes (rounded)
-        :rtype: int
+        Calculate the difference between two timestamps, rounded to the nearest minute.
+
+        :param start: Start time
+        :param end: End time
+        :return: Difference in minutes (rounded) or None if either input is None
         """
-        if start and end:
-            duration = end - start
-            return round(duration.total_seconds() / 60, 0)
-        else:
+        if start is None or end is None:
             return None
+        
+        duration = end - start
+        return round(duration.total_seconds() / 60)
 
     def _update(self, **kwargs) -> bool:
         cromwell_run_id = kwargs.get("cromwell_run_id")
