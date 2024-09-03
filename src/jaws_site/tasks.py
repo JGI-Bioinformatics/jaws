@@ -38,19 +38,9 @@ class TaskLog:
         self.set_local_tz(kwargs.get("local_tz", DEFAULT_TZ))
         self.data = None
 
-    def set_local_tz(self, local_tz: str = DEFAULT_TZ) -> None:
-        """
-        Set the local timezone for the TaskLog instance.
-
-        :param local_tz: Timezone string (e.g. 'America/Los_Angeles'), defaults to DEFAULT_TZ
-        :raises pytz.exceptions.UnknownTimeZoneError: If the timezone string is invalid
-        """
-        try:
-            self.local_tz = local_tz
-            self.local_tz_obj = pytz.timezone(local_tz)
-        except pytz.exceptions.UnknownTimeZoneError as e:
-            self.logger.error(f"Invalid timezone: {local_tz}")
-            raise pytz.exceptions.UnknownTimeZoneError(f"Invalid timezone: {local_tz}") from e
+    def set_local_tz(self, local_tz=DEFAULT_TZ):
+        self.local_tz = local_tz
+        self.local_tz_obj = pytz.timezone(local_tz)
 
     def select(self):
         """

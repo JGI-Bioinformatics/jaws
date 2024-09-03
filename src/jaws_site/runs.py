@@ -62,27 +62,12 @@ JAWS_GET_METADATA_WAIT_SEC = int(
 
 def set_atime_now(path: str) -> None:
     """
-    Set the file's access time to the current time.
-
-    :param path: Path to the file
-    :raises FileNotFoundError: If the file does not exist
-    :raises PermissionError: If the user doesn't have permission to modify the file
+    Set the file's access time to now.
     """
-    try:
-        if not os.path.isfile(path):
-            raise FileNotFoundError(f"File not found: {path}")
-
-        current_time = datetime.now().timestamp()
-        stat = os.stat(path)
-        os.utime(path, times=(current_time, stat.st_mtime))
-
-        logger.debug(f"Updated access time for {path}")
-    except PermissionError as e:
-        logger.error(f"Permission denied when updating access time for {path}: {e}")
-        raise
-    except OSError as e:
-        logger.error(f"OS error when updating access time for {path}: {e}")
-        raise
+    if not os.path.isfile(path):
+        raise IOError(f"File not found: {path}")
+    stat = os.stat(path)
+    os.utime(path, times=(datetime.now().timestamp(), stat.st_mtime))
 
 
 class RunDbError(Exception):
@@ -679,11 +664,11 @@ class Run:
         logger.debug(f"Run {self.data.id}: Check Cromwell Run metadata")
         try:
             metadata = self.get_metadata()
-        except CromwellGetMetadataError as error:
-            logger.warning(f"Can't find a metadata for {self.data.id}: {error}.")
+        except CromwellGetMetadataError as e:
+            logger.warning(f"Can't find a metadata for {self.data.id}: {e}.")
             raise
-        except Exception as error:
-            logger.critical(f"Cromwell raises an exception {error}.")
+        except Exception as e:
+            logger.critical(f"Cromwell raises an exception {e}.")
 
         if metadata is not None:
             workflow_name = metadata.get("workflowName")
