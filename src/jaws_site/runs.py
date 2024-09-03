@@ -71,11 +71,11 @@ def set_atime_now(path: str) -> None:
     try:
         if not os.path.isfile(path):
             raise FileNotFoundError(f"File not found: {path}")
-        
+
         current_time = datetime.now().timestamp()
         stat = os.stat(path)
         os.utime(path, times=(current_time, stat.st_mtime))
-        
+
         logger.debug(f"Updated access time for {path}")
     except PermissionError as e:
         logger.error(f"Permission denied when updating access time for {path}: {e}")

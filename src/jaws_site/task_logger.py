@@ -33,7 +33,7 @@ class TaskLogger:
         try:
             timestamp = params.get("timestamp")
             params["timestamp"] = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-            
+
             status = params.get("status")
             if status not in ["queued", "running", "done"]:
                 raise ValueError(f"Invalid status: {status}")
@@ -66,22 +66,30 @@ class TaskLogger:
             )
             self.session.add(log_entry)
             self.session.commit()
-            self.logger.info(f"Successfully inserted task log for {cromwell_run_id} {task_dir}")
+            self.logger.info(
+                f"Successfully inserted task log for {cromwell_run_id} {task_dir}"
+            )
             return True
         except OperationalError as error:
             self.logger.error(f"Database connection error: {error}")
-            raise JawsDbUnavailableError(f"Unable to connect to database: {error}") from error
+            raise JawsDbUnavailableError(
+                f"Unable to connect to database: {error}"
+            ) from error
         except IntegrityError as error:
             self.session.rollback()
             self.logger.error(f"Integrity error for task-log message {kwargs}: {error}")
             return False
         except SQLAlchemyError as error:
             self.session.rollback()
-            self.logger.exception(f"Failed to insert task log for {cromwell_run_id} {task_dir}: {error}")
+            self.logger.exception(
+                f"Failed to insert task log for {cromwell_run_id} {task_dir}: {error}"
+            )
             return False
         except Exception as error:
             self.session.rollback()
-            self.logger.exception(f"Unexpected error inserting task log for {cromwell_run_id} {task_dir}: {error}")
+            self.logger.exception(
+                f"Unexpected error inserting task log for {cromwell_run_id} {task_dir}: {error}"
+            )
             return False
 
     @staticmethod
@@ -95,7 +103,7 @@ class TaskLogger:
         """
         if start is None or end is None:
             return None
-        
+
         duration = end - start
         return round(duration.total_seconds() / 60)
 
