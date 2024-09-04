@@ -49,6 +49,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 None,
+                0,
             ],
         ]
 
@@ -68,6 +69,7 @@ def test_table(monkeypatch):
             "REQ_GB",
             "REQ_MIN",
             "CPU_HRS",
+            "RETURN_CODE",
         ],
         "data": [
             [
@@ -85,6 +87,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 None,
+                0,
             ]
         ],
     }
