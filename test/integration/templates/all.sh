@@ -22,9 +22,6 @@ export JAWS_PERFORMANCE_METRICS_DIR="${JAWS_SCRATCH_DIR}/monitoring-runs"
 # Cromwell-related dirs
 export JAWS_CROMWELL_EXECUTIONS_DIR="$JAWS_SCRATCH_DIR/cromwell-executions"
 
-# Performance metrics
-export JAWS_PERFORMANCE_METRICS_SCRIPT="$JAWS_INSTALL_DIR/site/bin/pagurus"
-
 # Globus has some rules about how paths are interpreted, depending on how the endpoint is configured.
 [[ ${JAWS_GLOBUS_HOST_PATH:-1} == "/" ]] || JAWS_GLOBUS_HOST_PATH="$JAWS_GLOBUS_HOST_PATH/"
 export JAWS_GLOBUS_HOST_PATH

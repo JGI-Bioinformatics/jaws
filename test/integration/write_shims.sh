@@ -2,7 +2,7 @@
 
 DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "message-consumer")
+SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "message-consumer")
 
 function write_apptainer_shims {
   local template="$1"
@@ -15,12 +15,11 @@ function write_apptainer_shims {
 }
 
 function write_venv_shims {
-    services=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "message-consumer")
+    services=("rpc-server" "run-daemon" "transfer-daemon" "message-consumer")
     envsubst < "$DIR/templates/rpc-server.sh" > "$JAWS_BIN_DIR/rpc-server"
     envsubst < "$DIR/templates/message-consumer.sh" > "$JAWS_BIN_DIR/message-consumer"
     envsubst < "$DIR/templates/runs.sh" > "$JAWS_BIN_DIR/run-daemon"
     envsubst < "$DIR/templates/transfers.sh" > "$JAWS_BIN_DIR/transfer-daemon"
-    envsubst < "$DIR/templates/perf-metrics.sh" > "$JAWS_BIN_DIR/perf-metrics-daemon"
     for service in "${services[@]}"; do
       chmod +x "$JAWS_BIN_DIR/$service"
     done
