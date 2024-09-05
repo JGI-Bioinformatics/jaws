@@ -5,6 +5,7 @@
 
 
 ### Internal Facing Changes
+- Removed perf metrics files and vars (#1837)
 
 # 2.2.1 Summary [07/08/2024 - Staging ]
 
