@@ -2,8 +2,7 @@
 # Inbound changes not assigned to version # yet
 
 ### External Facing Changes
-- Users can now delete their own folders (specifically the run-id folder) after a globus download. (jaws-support:#238)
-- Added rc to tasks command (#1832)
+
 
 ### Internal Facing Changes
 
@@ -13,6 +12,8 @@
 - Update the fair share policy for Dori: we allow 30 runs per use on Dori. (#1826)
 - Users can now delete their own folders (specifically the run-id folder) after a globus download. (jaws-support:#238)
 - reduce JAWS_MAX_TIME variable by few minutes (15 minutes) (#1836)
+- Users can now delete their own folders (specifically the run-id folder) after a globus download. ( https://code.jgi.doe.gov/advanced-analysis/jaws-support/-/issues/238)
+- Added rc to tasks command (#1832)
 
 ### Internal Facing Changes
 - Add IGB VM connection checking (#1807)
