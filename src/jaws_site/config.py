@@ -38,12 +38,6 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
         },
     }
     required_params = {
-        "PERFORMANCE_METRICS": [
-            "done_dir",
-            "processed_dir",
-            "running_dir",
-            "cleanup_time",
-        ],
         "GLOBUS": [
             "endpoint_id",
             "host_path",

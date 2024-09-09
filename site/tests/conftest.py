@@ -83,12 +83,6 @@ password = password
 num_threads = 5
 max_retries = 3
 
-[PERFORMANCE_METRICS]
-done_dir = /tmp/done_dir
-processed_dir = /tmp/processed_dir
-running_dir = /tmp/running_dir
-cleanup_time = 10
-
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
@@ -135,11 +129,6 @@ host = https://rmq.nersc.gov
 vhost = jaws_test
 user = bugs_bunny
 password = xqweasdasa
-[PERFORMANCE_METRICS]
-done_dir =
-processed_dir =
-running_dir =
-cleanup_time =
 [GLOBUS]
 client_id = AAAA
 client_secret = BBBB
