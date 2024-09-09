@@ -30,7 +30,7 @@ function write_supervisor_configs {
 
 function write_systemd_configs {
   echo "Writting systemd service files"
-  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "perf-metrics-daemon" "message-consumer")
+  SERVICES=("rpc-server" "run-daemon" "transfer-daemon" "message-consumer")
   service_dir="${HOME}/.config/systemd/user"
   for service in "${SERVICES[@]}"; do
     export SERVICE="$service"
