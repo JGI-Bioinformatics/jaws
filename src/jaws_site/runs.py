@@ -958,9 +958,8 @@ class Run:
             self.update_run_status("complete", "Failed to generate output manifest")
             return
 
-        manifest = [
+        manifest_A = [
             *infiles,
-            *outfiles,
             *failed_folders,
             "metadata.json",
             "errors.json",
@@ -969,26 +968,44 @@ class Run:
             "summary.json",
             "tasks.json",
         ]
-        manifest_file = os.path.join(root, "output_manifest.json")
-        logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
-        write_json_file(manifest_file, manifest)
+        manifest_file_A = os.path.join(root, "output_manifest_A.json")
+        logger.debug(f"Run {self.data.id}: Writing {manifest_file_A}")
+        write_json_file(manifest_file_A, manifest_A)
+
+        manifest_B = outfiles
+        manifest_file_B = os.path.join(root, "output_manifest_B.json")
+        logger.debug(f"Run {self.data.id}: Writing {manifest_file_B}")
+        write_json_file(manifest_file_B, manifest_B)
+
         self.update_run_status("complete")
 
     def output_manifest(self) -> list:
         """
         Return a list of the output files for a completed run, as paths relative to the workflow_root.
         """
-        manifest_file = f"{self.data.workflow_root}/output_manifest.json"
+        # read manifest part A
+        manifest_file_A = f"{self.data.workflow_root}/output_manifest_A.json"
+        manifest_A = []
         if not os.path.isfile(manifest_file):
-            logger.error(f"Run {self.data.id}: Output manifest does not exist")
-            return []
+            logger.error(f"Run {self.data.id}: Output manifest A does not exist")
         try:
-            manifest = read_json(manifest_file)
+            manifest_A = read_json(manifest_file_A)
         except RunFileNotFoundError as error:
             logger.error(f"Run {self.data.id}: Failed to read output manifest: {error}")
-            return []
-        else:
-            return manifest
+
+        # read manifest part B
+        manifest_file_B = f"{self.data.workflow_root}/output_manifest_B.json"
+        manifest_B = []
+        if not os.path.isfile(manifest_file):
+            logger.error(f"Run {self.data.id}: Output manifest B does not exist")
+        try:
+            manifest_B = read_json(manifest_file_B)
+        except RunFileNotFoundError as error:
+            logger.error(f"Run {self.data.id}: Failed to read output manifest: {error}")
+        
+        # return both parts of manifest
+        return (manifest_A, manifest_B)
+            
 
     def publish_report(self):
         """
@@ -1096,7 +1113,7 @@ def send_run_status_logs(session, central_rpc_client) -> None:
             data["workflow_root"] = run.data.workflow_root
             data["workflow_name"] = run.data.workflow_name
         if log.status_to == "complete":
-            data["output_manifest"] = run.output_manifest()
+            (data["output_manifest_A"], data["output_manifest_B"]) = run.output_manifest()
             data["cpu_hours"] = run.data.cpu_hours
         elif log.status_to in ("succeeded", "failed", "cancelled"):
             data["result"] = run.data.result
