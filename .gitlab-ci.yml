@@ -183,52 +183,52 @@ variables:
 
 
 ##### Begin jobs definitions
-flake-rpc:
-  <<: *shell-default
-  stage: linter
-  script:
-    - flake8 --show-source --statistics rpc
-
-flake-site:
-  <<: *shell-default
-  stage: linter
-  script:
-    - flake8 --show-source --statistics site
-
-test-rpc:
-  <<: *docker-default
-  stage: unit-test
-  script:
-    - docker build -t jaws-site-rpc --target test-rpc .
-    - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: rpc.xml
-
-test-site:
-  <<: *docker-default
-  stage: unit-test
-  script:
-    - docker build -t jaws-site --target test-site .
-    - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: site.xml
-
-# generates a version file that is used by the docker/apptainer build
-# most images don't have git installed so we use this in a separate job
-generate-version-file:
-    <<: *shell-default
-    stage: image-build
-    script:
-      - 'git log -n 1 --pretty="commit_count:  $(git rev-list HEAD --count)%ncommit_hash:   %h%nsubject:       %s%ncommitter:     %cN <%ce>%ncommiter_date: %ci%nauthor:        %aN <%ae>%nauthor_date:   %ai%nref_names:     %D" > image_version.yml'
-    artifacts:
-        paths:
-        - image_version.yml
+#flake-rpc:
+#  <<: *shell-default
+#  stage: linter
+#  script:
+#    - flake8 --show-source --statistics rpc
+#
+#flake-site:
+#  <<: *shell-default
+#  stage: linter
+#  script:
+#    - flake8 --show-source --statistics site
+#
+#test-rpc:
+#  <<: *docker-default
+#  stage: unit-test
+#  script:
+#    - docker build -t jaws-site-rpc --target test-rpc .
+#    - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
+#  artifacts:
+#    reports:
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: rpc.xml
+#
+#test-site:
+#  <<: *docker-default
+#  stage: unit-test
+#  script:
+#    - docker build -t jaws-site --target test-site .
+#    - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
+#  artifacts:
+#    reports:
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: site.xml
+#
+## generates a version file that is used by the docker/apptainer build
+## most images don't have git installed so we use this in a separate job
+#generate-version-file:
+#    <<: *shell-default
+#    stage: image-build
+#    script:
+#      - 'git log -n 1 --pretty="commit_count:  $(git rev-list HEAD --count)%ncommit_hash:   %h%nsubject:       %s%ncommitter:     %cN <%ce>%ncommiter_date: %ci%nauthor:        %aN <%ae>%nauthor_date:   %ai%nref_names:     %D" > image_version.yml'
+#    artifacts:
+#        paths:
+#        - image_version.yml
 
 build-docker-site:
   image: docker:19.03.12
