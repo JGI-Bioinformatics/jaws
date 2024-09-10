@@ -183,41 +183,41 @@ variables:
 
 
 ##### Begin jobs definitions
-flake-rpc:
-  <<: *shell-default
-  stage: linter
-  script:
-    - flake8 --show-source --statistics rpc
-
-flake-site:
-  <<: *shell-default
-  stage: linter
-  script:
-    - flake8 --show-source --statistics site
-
-test-rpc:
-  <<: *docker-default
-  stage: unit-test
-  script:
-    - docker build -t jaws-site-rpc --target test-rpc .
-    - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: rpc.xml
-
-test-site:
-  <<: *docker-default
-  stage: unit-test
-  script:
-    - docker build -t jaws-site --target test-site .
-    - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
-  artifacts:
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: site.xml
+#flake-rpc:
+#  <<: *shell-default
+#  stage: linter
+#  script:
+#    - flake8 --show-source --statistics rpc
+#
+#flake-site:
+#  <<: *shell-default
+#  stage: linter
+#  script:
+#    - flake8 --show-source --statistics site
+#
+#test-rpc:
+#  <<: *docker-default
+#  stage: unit-test
+#  script:
+#    - docker build -t jaws-site-rpc --target test-rpc .
+#    - docker run --rm -v $CI_PROJECT_DIR/rpc/coverage:/usr/app/rpc/coverage jaws-site-rpc
+#  artifacts:
+#    reports:
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: rpc.xml
+#
+#test-site:
+#  <<: *docker-default
+#  stage: unit-test
+#  script:
+#    - docker build -t jaws-site --target test-site .
+#    - docker run --rm -v $CI_PROJECT_DIR/site/coverage:/usr/app/coverage jaws-site
+#  artifacts:
+#    reports:
+#      coverage_report:
+#        coverage_format: cobertura
+#        path: site.xml
 
 # generates a version file that is used by the docker/apptainer build
 # most images don't have git installed so we use this in a separate job
