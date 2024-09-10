@@ -964,7 +964,8 @@ class Run:
             "metadata.json",
             "errors.json",
             "outputs.json",
-            "output_manifest.json",
+            "output_manifest_A.json",
+            "output_manifest_B.json",
             "summary.json",
             "tasks.json",
         ]
@@ -986,7 +987,7 @@ class Run:
         # read manifest part A
         manifest_file_A = f"{self.data.workflow_root}/output_manifest_A.json"
         manifest_A = []
-        if not os.path.isfile(manifest_file):
+        if not os.path.isfile(manifest_file_A):
             logger.error(f"Run {self.data.id}: Output manifest A does not exist")
         try:
             manifest_A = read_json(manifest_file_A)
