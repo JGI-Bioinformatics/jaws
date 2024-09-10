@@ -6,7 +6,7 @@
 
 ### Internal Facing Changes
 
-# 2.2.1 Summary [07/08/2024 - Staging ]
+# 2.2.1 Summary [07/08/2024 - Staging // 09/10/2024 -- PROD]
 
 ### External Facing Changes
 - Update the fair share policy for Dori: we allow 30 runs per use on Dori. (#1826)
