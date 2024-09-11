@@ -6,6 +6,7 @@
 
 ### Internal Facing Changes
 - Removed perf metrics files and vars (#1837)
+- Updated to handle input dir size (#1838)
 
 # 2.2.1 Summary [07/08/2024 - Staging ]
 

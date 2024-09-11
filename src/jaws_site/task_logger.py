@@ -47,6 +47,7 @@ class TaskLogger:
                 task_dir=task_dir,
                 status="queued",
                 queue_start=timestamp,
+                input_dir_size=kwargs.get("input_dir_size"),
             )
             self.session.add(log_entry)
             self.session.commit()

@@ -1,10 +1,11 @@
 """
 SQLAlchemy models for persistent data structures.
 """
-
-from datetime import datetime
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -15,6 +16,8 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from datetime import datetime
+from typing import Optional
 
 from jaws_site.database import Base
 
@@ -82,22 +85,54 @@ class Run_Log(Base):
 
 class Tasks(Base):
     __tablename__ = "tasks"
-    id = Column(Integer, primary_key=True)  # auto-increment
-    cromwell_run_id = Column(String(36), nullable=False)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    cromwell_run_id = Column(
+        String(36), ForeignKey("runs.cromwell_run_id"), nullable=False, index=True
+    )
     job_id = Column(String(36), nullable=True)
     task_dir = Column(String(256), nullable=False)
     status = Column(String(32), nullable=False)
+
     queue_start = Column(DateTime, nullable=True)
     run_start = Column(DateTime, nullable=True)
     run_end = Column(DateTime, nullable=True)
+
     queue_minutes = Column(SmallInteger, nullable=True)
     run_minutes = Column(SmallInteger, nullable=True)
+
     cached = Column(Boolean, nullable=True)
     name = Column(String(256), nullable=True)
+
     req_cpu = Column(SmallInteger, nullable=True)
     req_mem_gb = Column(SmallInteger, nullable=True)
     req_minutes = Column(SmallInteger, nullable=True)
+
     return_code = Column(SmallInteger, nullable=True)
+    input_dir_size = Column(BigInteger, nullable=True)
+
+    # Relationship with the Run model
+    run = relationship("Run", back_populates="tasks")
+
+    def __repr__(self):
+        return f"<Task(id={self.id}, name={self.name}, status={self.status.value})>"
+
+    @hybrid_property
+    def duration(self) -> Optional[int]:
+        """Calculate the total duration of the task in minutes."""
+        if self.run_start and self.run_end:
+            return int((self.run_end - self.run_start).total_seconds() / 60)
+        return None
+
+    @hybrid_property
+    def is_successful(self) -> bool:
+        """Check if the task completed successfully."""
+        return self.status == "" and self.return_code == 0
+
+    @classmethod
+    def get_tasks_by_status(cls, session, status: str):
+        """Get all tasks with a specific status."""
+        return session.query(cls).filter(cls.status == status).all()
 
 
 class Transfer(Base):
