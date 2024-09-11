@@ -81,6 +81,7 @@ class TaskLog:
                     row.req_mem_gb,
                     row.req_minutes,
                     row.return_code,
+                    row.input_dir_size,
                 ]
             )
         self.data = table
@@ -150,6 +151,7 @@ class TaskLog:
                 req_mem_gb,
                 req_minutes,
                 return_code,
+                input_dir_size,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -174,6 +176,7 @@ class TaskLog:
                     req_minutes,
                     cpu_hours,
                     return_code,
+                    input_dir_size,
                 ]
             )
         result = {
@@ -193,6 +196,7 @@ class TaskLog:
                 "REQ_MIN",
                 "CPU_HRS",
                 "RETURN_CODE",
+                "INPUT_DIR_SIZE",
             ],
             "data": new_table,
         }

@@ -1,9 +1,6 @@
 """
 SQLAlchemy models for persistent data structures.
 """
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.hybrid import hybrid_property
-
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -87,9 +84,7 @@ class Tasks(Base):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    cromwell_run_id = Column(
-        String(36), ForeignKey("runs.cromwell_run_id"), nullable=False, index=True
-    )
+    cromwell_run_id = Column(String(36), nullable=False)
     job_id = Column(String(36), nullable=True)
     task_dir = Column(String(256), nullable=False)
     status = Column(String(32), nullable=False)
@@ -110,29 +105,6 @@ class Tasks(Base):
 
     return_code = Column(SmallInteger, nullable=True)
     input_dir_size = Column(BigInteger, nullable=True)
-
-    # Relationship with the Run model
-    run = relationship("Run", back_populates="tasks")
-
-    def __repr__(self):
-        return f"<Task(id={self.id}, name={self.name}, status={self.status.value})>"
-
-    @hybrid_property
-    def duration(self) -> Optional[int]:
-        """Calculate the total duration of the task in minutes."""
-        if self.run_start and self.run_end:
-            return int((self.run_end - self.run_start).total_seconds() / 60)
-        return None
-
-    @hybrid_property
-    def is_successful(self) -> bool:
-        """Check if the task completed successfully."""
-        return self.status == "" and self.return_code == 0
-
-    @classmethod
-    def get_tasks_by_status(cls, session, status: str):
-        """Get all tasks with a specific status."""
-        return session.query(cls).filter(cls.status == status).all()
 
 
 class Transfer(Base):
