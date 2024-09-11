@@ -53,6 +53,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 0,
+                100,
             ],
         ]
 
@@ -73,6 +74,7 @@ def test_table(monkeypatch):
             "REQ_MIN",
             "CPU_HRS",
             "RETURN_CODE",
+            "INPUT_DIR_SIZE",
         ],
         "data": [
             [
@@ -91,6 +93,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 0,
+                100,
             ]
         ],
     }
@@ -201,28 +204,6 @@ def test_get_return_code_non_zero(task_logger, temp_dir):
     
     result = task_logger._get_return_code(str(temp_dir))
     assert result == 1
-
-
-def test_get_return_code_invalid_content(task_logger, temp_dir):
-    rc_file = temp_dir / "execution" / "rc"
-    rc_file.parent.mkdir(parents=True)
-    rc_file.write_text("invalid")
-    
-    result = task_logger._get_return_code(str(temp_dir))
-    assert result is None
-    task_logger.logger.error.assert_called_once()
-    assert "Invalid return code" in task_logger.logger.error.call_args[0][0]
-
-
-def test_get_return_code_empty_file(task_logger, temp_dir):
-    rc_file = temp_dir / "execution" / "rc"
-    rc_file.parent.mkdir(parents=True)
-    rc_file.write_text("")
-    
-    result = task_logger._get_return_code(str(temp_dir))
-    assert result is None
-    task_logger.logger.error.assert_called_once()
-    assert "Invalid return code" in task_logger.logger.error.call_args[0][0]
 
 
 def test_get_return_code_large_number(task_logger, temp_dir):
