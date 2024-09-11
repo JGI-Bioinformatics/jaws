@@ -14,7 +14,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from datetime import datetime
-from typing import Optional
 
 from jaws_site.database import Base
 
