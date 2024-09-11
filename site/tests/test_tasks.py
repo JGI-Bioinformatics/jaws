@@ -1,4 +1,7 @@
+import pytest
 from datetime import datetime
+from unittest.mock import Mock, patch
+from pathlib import Path
 
 from jaws_site.tasks import TaskLog
 
@@ -166,3 +169,75 @@ def test_int_or_none():
 
     actual = task_log.int_or_none(3.1)
     assert type(actual) is int and actual == 3
+
+
+# Test for _get_return_code
+@pytest.fixture
+def task_logger():
+    mock_session = Mock()
+    mock_cromwell_run_id = "test_run_id"
+    mock_logger = Mock()
+    return TaskLog(mock_session, mock_cromwell_run_id, logger=mock_logger)
+
+
+@pytest.fixture
+def temp_dir(tmp_path):
+    return tmp_path
+
+
+def test_get_return_code_valid(task_logger, temp_dir):
+    rc_file = temp_dir / "execution" / "rc"
+    rc_file.parent.mkdir(parents=True)
+    rc_file.write_text("0")
+    
+    result = task_logger._get_return_code(str(temp_dir))
+    assert result == 0
+
+
+def test_get_return_code_non_zero(task_logger, temp_dir):
+    rc_file = temp_dir / "execution" / "rc"
+    rc_file.parent.mkdir(parents=True)
+    rc_file.write_text("1")
+    
+    result = task_logger._get_return_code(str(temp_dir))
+    assert result == 1
+
+
+def test_get_return_code_invalid_content(task_logger, temp_dir):
+    rc_file = temp_dir / "execution" / "rc"
+    rc_file.parent.mkdir(parents=True)
+    rc_file.write_text("invalid")
+    
+    result = task_logger._get_return_code(str(temp_dir))
+    assert result is None
+    task_logger.logger.error.assert_called_once()
+    assert "Invalid return code" in task_logger.logger.error.call_args[0][0]
+
+
+def test_get_return_code_empty_file(task_logger, temp_dir):
+    rc_file = temp_dir / "execution" / "rc"
+    rc_file.parent.mkdir(parents=True)
+    rc_file.write_text("")
+    
+    result = task_logger._get_return_code(str(temp_dir))
+    assert result is None
+    task_logger.logger.error.assert_called_once()
+    assert "Invalid return code" in task_logger.logger.error.call_args[0][0]
+
+
+def test_get_return_code_large_number(task_logger, temp_dir):
+    rc_file = temp_dir / "execution" / "rc"
+    rc_file.parent.mkdir(parents=True)
+    rc_file.write_text("1000000")  # A large number that should still be valid
+    
+    result = task_logger._get_return_code(str(temp_dir))
+    assert result == 1000000
+
+
+def test_get_return_code_negative_number(task_logger, temp_dir):
+    rc_file = temp_dir / "execution" / "rc"
+    rc_file.parent.mkdir(parents=True)
+    rc_file.write_text("-1")
+    
+    result = task_logger._get_return_code(str(temp_dir))
+    assert result == -1
