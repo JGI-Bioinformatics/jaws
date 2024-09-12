@@ -1,3 +1,5 @@
+import os
+import shutil
 import logging
 
 from jaws_rpc.responses import failure, success
@@ -172,6 +174,23 @@ def fix_perms_status(params, session):
         return success(result)
 
 
+def purge(params, session):
+    """Purge a run"""
+    path = params['workflow_path']
+    logger.info(f"User {path}: Purge Run {params['run_id']}")
+    try:
+        # remove workflow_path
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        else:
+            print(f"The directory {path} does not exist.")
+    except Exception as error:
+        logger.error(f"Failed to purge run {params['run_id']}: {error}")
+        return failure(error)
+    else:
+        result = {"workflow_path": path, "status": "removed"}
+        return success(result)
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -226,5 +245,11 @@ operations = {
     "fix_perms_status": {
         "function": fix_perms_status,
         "required_params": ["fix_perms_id"],
+    },
+    "purge": {
+        "function": purge,
+        "required_params": [
+            "workflow_path",
+        ],
     },
 }
