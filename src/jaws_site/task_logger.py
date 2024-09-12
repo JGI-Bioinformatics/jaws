@@ -110,8 +110,7 @@ class TaskLogger:
             raise
 
         if row is None:
-            # this can only happen if the queued message was lost
-            self.logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
+            self.logger.warning(f"Task {cromwell_run_id} {task_dir} not found!")
         else:
             try:
                 if status == "running":

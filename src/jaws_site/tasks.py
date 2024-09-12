@@ -353,6 +353,7 @@ class TaskLog:
                 req_mem_gb,
                 req_minutes,
                 return_code,
+                input_dir_size,
             ) = row
             if task_dir not in summary:
                 continue
