@@ -176,10 +176,11 @@ def fix_perms_status(params, session):
 
 def purge(params, session):
     """Purge a run"""
-    path = params['workflow_path']
+    path = params['workflow_root']
+    site = params['compute_site']
     logger.info(f"User {path}: Purge Run {params['run_id']}")
     try:
-        # remove workflow_path
+        # remove workflow_root
         if os.path.exists(path):
             shutil.rmtree(path)
         else:
@@ -188,7 +189,7 @@ def purge(params, session):
         logger.error(f"Failed to purge run {params['run_id']}: {error}")
         return failure(error)
     else:
-        result = {"workflow_path": path, "status": "removed"}
+        result = {"workflow_root": path, "status": "removed"}
         return success(result)
 
 
