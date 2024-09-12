@@ -177,7 +177,6 @@ def fix_perms_status(params, session):
 def purge(params, session):
     """Purge a run"""
     path = params['workflow_root']
-    site = params['compute_site']
     logger.info(f"User {path}: Purge Run {params['run_id']}")
     try:
         # remove workflow_root
