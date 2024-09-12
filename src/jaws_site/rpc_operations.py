@@ -191,6 +191,7 @@ def purge(params, session):
         result = {"workflow_path": path, "status": "removed"}
         return success(result)
 
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -248,8 +249,6 @@ operations = {
     },
     "purge": {
         "function": purge,
-        "required_params": [
-            "workflow_path",
-        ],
+        "required_params": ["workflow_root"],
     },
 }
