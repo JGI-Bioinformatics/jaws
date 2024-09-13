@@ -47,7 +47,6 @@ class TaskLogger:
                 task_dir=task_dir,
                 status="queued",
                 queue_start=timestamp,
-                input_dir_size=kwargs.get("input_dir_size"),
             )
             self.session.add(log_entry)
             self.session.commit()
@@ -89,6 +88,7 @@ class TaskLogger:
         status = kwargs.get("status")
         timestamp = kwargs.get("timestamp")
         return_code = kwargs.get("return_code")
+        input_dir_size = kwargs.get("input_dir_size")
 
         # select row for this task
         try:
@@ -124,6 +124,7 @@ class TaskLogger:
                     row.status = "done"
                     row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
                     row.return_code = return_code
+                    row.input_dir_size = input_dir_size
                 self.session.commit()
             except OperationalError as error:
                 # this is the only case in which we would not want to ack the message
