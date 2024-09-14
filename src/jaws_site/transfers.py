@@ -52,7 +52,7 @@ def safe_copy(source: str, destination: str) -> bool:
         return True
 
     try:
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        dest_path.parent.mkdir(parents=True, exist_ok=True, mode=777)
         shutil.copy2(source, str(dest_path))
         return True
     except IOError as e:
