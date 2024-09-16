@@ -190,7 +190,7 @@ def purge(params, session):
         return failure(error)
     else:
         result = {"workflow_root": path, "status": "removed"}
-        return success(params)
+        return success(result)
 
 
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
