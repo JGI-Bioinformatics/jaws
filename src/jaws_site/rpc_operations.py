@@ -178,18 +178,19 @@ def purge(params, session):
 
     """Delete a cromwell execution-directory folder for a specific run"""
     path = params['workflow_root']
-    logger.info(f"User {params['user_id']}: removing {path} for Run {params['run_id']}")
+    run_id = params['run_id']
+    logger.info(f"User {params['user_id']}: removing {path} for Run {run_id}")
     try:
         # remove workflow_root
         if os.path.exists(path):
             shutil.rmtree(path)
         else:
-            print(f"The directory {path} does not exist.")
+            logger.error(f"Cannot purge because the directory {path} does not exist.")
     except Exception as error:
-        logger.error(f"Failed to purge run {params['run_id']}: {error}")
+        logger.error(f"Failed to purge run {run_id}: {error}")
         return failure(error)
     else:
-        result = {"workflow_root": path, "status": "removed"}
+        result = {"run_id": run_id, "workflow_root": path, "status": "removed"}
         return success(result)
 
 
