@@ -299,7 +299,6 @@ class TaskLog:
                     info.get("requested_runime_minutes", None)
                 )
 
-                # return_code = info.get("return_code", None)
                 return_code = self._get_return_code(
                     os.path.join(task_dir, "execution", "rc")
                 )
