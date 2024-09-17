@@ -54,6 +54,7 @@ def test_table(monkeypatch):
                 None,
                 0,
                 100,
+                100,
             ],
         ]
 
@@ -75,6 +76,7 @@ def test_table(monkeypatch):
             "CPU_HRS",
             "RETURN_CODE",
             "INPUT_SIZE",
+            "OUTPUT_SIZE",
         ],
         "data": [
             [
@@ -93,6 +95,7 @@ def test_table(monkeypatch):
                 None,
                 None,
                 0,
+                100,
                 100,
             ]
         ],
