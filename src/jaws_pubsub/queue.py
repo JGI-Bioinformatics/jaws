@@ -194,4 +194,4 @@ class PikaConsumer(PikaMessageReceiver):
         properties: BasicProperties,
         body: bytes,
     ) -> None:
-        decoded_body = self.decode_message(body=body)
+        self.decode_message(body=body)

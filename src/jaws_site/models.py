@@ -1,6 +1,7 @@
 """
 SQLAlchemy models for persistent data structures.
 """
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -104,6 +105,7 @@ class Tasks(Base):
 
     return_code = Column(SmallInteger, nullable=True)
     input_dir_size = Column(BigInteger, nullable=True)
+    output_dir_size = Column(BigInteger, nullable=True)
 
 
 class Transfer(Base):
