@@ -194,6 +194,15 @@ def purge(params, session):
         return success(result)
 
 
+def refdata_sync(params, session):
+    """
+    Sync refdata
+    """
+    refdata_path = params['refdata_path']
+    logger.info(f"Sync refdata {refdata_path}")
+    return success({"status": "ok"})
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -252,5 +261,9 @@ operations = {
     "purge": {
         "function": purge,
         "required_params": ["user_id", "run_id", "workflow_root"],
+    },
+    "sync": {
+        "function": refdata_sync,
+        "required_params": ["refdata_path"],
     },
 }
