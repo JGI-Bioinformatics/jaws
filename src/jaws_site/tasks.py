@@ -1,7 +1,7 @@
 import logging
 import re
 from datetime import datetime, timezone
-
+import os
 import pytz
 from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
@@ -81,6 +81,7 @@ class TaskLog:
                     row.req_mem_gb,
                     row.req_minutes,
                     row.return_code,
+                    row.input_dir_size,
                 ]
             )
         self.data = table
@@ -150,6 +151,7 @@ class TaskLog:
                 req_mem_gb,
                 req_minutes,
                 return_code,
+                input_dir_size,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -174,6 +176,7 @@ class TaskLog:
                     req_minutes,
                     cpu_hours,
                     return_code,
+                    input_dir_size,
                 ]
             )
         result = {
@@ -193,6 +196,7 @@ class TaskLog:
                 "REQ_MIN",
                 "CPU_HRS",
                 "RETURN_CODE",
+                "INPUT_SIZE",
             ],
             "data": new_table,
         }
@@ -277,6 +281,7 @@ class TaskLog:
         :param summary: list of task metadata, produced by JAWS Cromwell class
         :ptype summary: list
         """
+        self.logger.debug(f"Summary for cached task: {summary}")
         for task_dir, info in summary.items():
             if info["cached"] is True:
                 status = info["execution_status"]
@@ -293,7 +298,13 @@ class TaskLog:
                 req_minutes = self.int_or_none(
                     info.get("requested_runime_minutes", None)
                 )
-                return_code = info.get("return_code", None)
+
+                return_code = self._get_return_code(
+                    os.path.join(task_dir, "execution", "rc")
+                )
+                self.logger.debug(f"Task dir: {task_dir}")
+                self.logger.debug(f"Return code from rc file: {return_code}")
+
                 log_entry = models.Tasks(
                     task_dir=task_dir,
                     name=info["name"],
@@ -306,6 +317,17 @@ class TaskLog:
                     return_code=return_code,
                 )
                 self.session.add(log_entry)
+
+    def _get_return_code(self, task_dir: str) -> int:
+        """
+        Get the return code from the rc file in the task directory.
+        """
+        rc_file = os.path.join(task_dir, "execution", "rc")
+        if not os.path.exists(rc_file):
+            self.logger.error(f"Return code file not found: {rc_file}")
+            return None
+        with open(rc_file, "r") as f:
+            return int(f.read().strip())
 
     def prepare_metadata(self, summary: dict) -> list:
         """
@@ -330,6 +352,7 @@ class TaskLog:
                 req_mem_gb,
                 req_minutes,
                 return_code,
+                input_dir_size,
             ) = row
             if task_dir not in summary:
                 continue

@@ -88,6 +88,7 @@ class TaskLogger:
         status = kwargs.get("status")
         timestamp = kwargs.get("timestamp")
         return_code = kwargs.get("return_code")
+        input_dir_size = kwargs.get("input_dir_size")
 
         # select row for this task
         try:
@@ -109,8 +110,7 @@ class TaskLogger:
             raise
 
         if row is None:
-            # this can only happen if the queued message was lost
-            self.logger.error(f"Task {cromwell_run_id} {task_dir} not found!")
+            self.logger.warning(f"Task {cromwell_run_id} {task_dir} not found!")
         else:
             try:
                 if status == "running":
@@ -124,6 +124,7 @@ class TaskLogger:
                     row.status = "done"
                     row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
                     row.return_code = return_code
+                    row.input_dir_size = input_dir_size
                 self.session.commit()
             except OperationalError as error:
                 # this is the only case in which we would not want to ack the message
