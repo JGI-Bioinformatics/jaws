@@ -1,3 +1,5 @@
+import os
+import shutil
 import logging
 
 from jaws_rpc.responses import failure, success
@@ -172,6 +174,26 @@ def fix_perms_status(params, session):
         return success(result)
 
 
+def purge(params, session):
+
+    """Delete a cromwell execution-directory folder for a specific run"""
+    path = params['workflow_root']
+    run_id = params['run_id']
+    logger.info(f"User {params['user_id']}: removing {path} for Run {run_id}")
+    try:
+        # remove workflow_root
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        else:
+            logger.error(f"Cannot purge because the directory {path} does not exist.")
+    except Exception as error:
+        logger.error(f"Failed to purge run {run_id}: {error}")
+        return failure(error)
+    else:
+        result = {"run_id": run_id, "workflow_root": path, "status": "removed"}
+        return success(result)
+
+
 # THIS DISPATCH TABLE IS USED BY jaws_rpc.rpc_server AND REFERENCES FUNCTIONS ABOVE
 operations = {
     "server_status": {"function": server_status},
@@ -226,5 +248,9 @@ operations = {
     "fix_perms_status": {
         "function": fix_perms_status,
         "required_params": ["fix_perms_id"],
+    },
+    "purge": {
+        "function": purge,
+        "required_params": ["user_id", "run_id", "workflow_root"],
     },
 }
