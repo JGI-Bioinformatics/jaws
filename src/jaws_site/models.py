@@ -1,10 +1,8 @@
 """
 SQLAlchemy models for persistent data structures.
 """
-
-from datetime import datetime
-
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -15,6 +13,7 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from datetime import datetime
 
 from jaws_site.database import Base
 
@@ -82,22 +81,29 @@ class Run_Log(Base):
 
 class Tasks(Base):
     __tablename__ = "tasks"
-    id = Column(Integer, primary_key=True)  # auto-increment
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
     cromwell_run_id = Column(String(36), nullable=False)
     job_id = Column(String(36), nullable=True)
     task_dir = Column(String(256), nullable=False)
     status = Column(String(32), nullable=False)
+
     queue_start = Column(DateTime, nullable=True)
     run_start = Column(DateTime, nullable=True)
     run_end = Column(DateTime, nullable=True)
+
     queue_minutes = Column(SmallInteger, nullable=True)
     run_minutes = Column(SmallInteger, nullable=True)
+
     cached = Column(Boolean, nullable=True)
     name = Column(String(256), nullable=True)
+
     req_cpu = Column(SmallInteger, nullable=True)
     req_mem_gb = Column(SmallInteger, nullable=True)
     req_minutes = Column(SmallInteger, nullable=True)
+
     return_code = Column(SmallInteger, nullable=True)
+    input_dir_size = Column(BigInteger, nullable=True)
 
 
 class Transfer(Base):

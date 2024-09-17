@@ -110,15 +110,6 @@ def transfer_daemon() -> None:
 
 
 @cli.command()
-def perf_metrics_daemon() -> None:
-    """Start performance metrics daemon"""
-    from jaws_site.perf_metrics_daemon import PerformanceMetricsDaemon
-
-    perfd = PerformanceMetricsDaemon()
-    perfd.start_daemon()
-
-
-@cli.command()
 def pool_manager_daemon() -> None:
     """Start pool_manager daemon."""
     from jaws_site.pool_manager_daemon import PoolManagerDaemon
