@@ -5,7 +5,7 @@
 
 
 ### Internal Facing Changes
-
+- Added getting and storing output dir (#1841)
 
 # 2.2.2 Summary [09/16/2024 - Staging ]
 - Removed perf metrics files and vars (#1837)
