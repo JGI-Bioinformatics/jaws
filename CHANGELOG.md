@@ -5,7 +5,7 @@
 
 
 ### Internal Facing Changes
-
+- added jaws purge command functions so users can delete their own, and same team member's, cromwell-execution folders for a run (#1839)
 
 # 2.2.2 Summary [09/16/2024 - Staging ]
 - Removed perf metrics files and vars (#1837)
