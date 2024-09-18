@@ -51,7 +51,7 @@ dev = [
     "flake8>=7.1.0",
     "deepdiff>=7.0.1",
     "typing-extensions>=4.12.2",
-    "moto[all]>=5.0.10",
+    "moto[all]>=5.0.14",
 ]
 
 [project.scripts]

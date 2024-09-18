@@ -27,7 +27,7 @@ FILES_PER_THREAD = 500
 MAX_ERROR_STRING_LEN = 1024
 
 
-def safe_copy(source: str, destination: str) -> bool:
+def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> bool:
     """Copy a file from the source path to the destination path with retries on failure.
 
     Parameters
@@ -52,9 +52,10 @@ def safe_copy(source: str, destination: str) -> bool:
         return True
 
     try:
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        os.chmod(dest_path.parent, 0o777)
-        shutil.copy2(source, str(dest_path))
+        if not dest_path.parent.exists():
+            dest_path.parent.mkdir(parents=True, exist_ok=True, mode=dir_mode)
+        shutil.copy(source, str(dest_path))
+        dest_path.chmod(file_mode)
         return True
     except IOError as e:
         raise e
@@ -334,31 +335,42 @@ class Transfer:
         Copy files and folders (recursively).
         """
         logger.debug(f"Transfer {self.data.id}: Begin local copy")
+        dir_mode: int = int(config.conf.get("SITE", "folder_permissions", "777"), 8)
+        file_mode: int = int(config.conf.get("SITE", "file_permissions", "666"), 8)
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
-        dest = str(pathlib.Path(f"{self.data.dest_base_dir}/").resolve())
+        dest = pathlib.Path(f"{self.data.dest_base_dir}/").resolve()
+        logger.debug(f"created dest: {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
+        dest.mkdir(mode=dir_mode, parents=True, exist_ok=True)
+        dest.parent.chmod(dir_mode)
+        dest.parent.parent.chmod(dir_mode)
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
-        parallel_copy_files_only(rel_paths, src, dest, parallelism=parallelism)
-
+        parallel_copy_files_only(
+            rel_paths,
+            src,
+            str(dest),
+            parallelism=parallelism,
+            dir_mode=dir_mode,
+            file_mode=file_mode,
+        )
         logger.debug(f"Transfer {self.data.id}: Chmod files")
-        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
-        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-        parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
 def check_transfer_queue() -> None:
     """
-    Check the transfer queue and start the oldest transfer task, if any.
-    Only one transfer is done because a) a chmod is necessary to complete the task and
-    b) transfers may take a long time and the task may have been cancelled in the meanwhile.
+    Check the transfer queue and start the oldest transfer task.
+
+    Only one transfer is done because a) a chmod is necessary to
+    complete the task and b) transfers may take a long time and the
+    task may have been cancelled in the meanwhile.
     """
     with Session() as session:
         try:
@@ -475,6 +487,8 @@ def parallel_copy_files_only(
     """
     try:
         paths = []
+        dir_mode = kwargs.get("dir_mode")
+        file_mode = kwargs.get("file_mode")
         for rel_path in manifest:
             s = os.path.join(src, rel_path)
             if not os.path.exists(s):
@@ -489,7 +503,13 @@ def parallel_copy_files_only(
             min(kwargs.get("parallelism", cpu_count()), int(cpu_count() / 2))
         ) as executor:
             for path in paths:
-                executor.submit(safe_copy, path[0], path[1])
+                executor.submit(
+                    safe_copy,
+                    path[0],
+                    path[1],
+                    dir_mode,
+                    file_mode,
+                )
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
@@ -629,8 +649,8 @@ class FixPerms:
         """
         Recursively change the permissions of folders and files.
         """
-        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
-        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+        file_mode = int(config.conf.get("SITE", "file_permissions", "666"), base=8)
+        folder_mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
         try:
             parallel_chmod(self.data.base_dir, file_mode, folder_mode, parallelism)
         except Exception as error:
@@ -657,7 +677,7 @@ class FixPerms:
             logger.exception(f"Unable to update Fix Perms {self.data.id}: {error}")
 
 
-def check_fix_perms_queue() -> None:
+def check_fix_perms_queue() -> list[str]:
     """
     Do all chmod tasks for Globus transfers.
     """
