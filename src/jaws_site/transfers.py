@@ -52,8 +52,8 @@ def safe_copy(source: str, destination: str) -> bool:
         return True
 
     try:
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        os.chmod(dest_path.parent, 0o777)
+        dest_path.parent.mkdir(parents=True, exist_ok=True, mode=0o777)
+        # os.chmod(dest_path.parent, 0o777)
         shutil.copy2(source, str(dest_path))
         return True
     except IOError as e:
@@ -349,9 +349,9 @@ class Transfer:
         parallel_copy_files_only(rel_paths, src, dest, parallelism=parallelism)
 
         logger.debug(f"Transfer {self.data.id}: Chmod files")
-        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
-        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
-        parallel_chmod(dest, file_mode, folder_mode, parallelism)
+        # file_mode = oct(config.conf.get("SITE", "file_permissions"), base=8)
+        # folder_mode = oct(config.conf.get("SITE", "folder_permissions"), base=8)
+        # parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
 def check_transfer_queue() -> None:
