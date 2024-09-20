@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime
+from typing import Optional
 
 from jaws_common.exceptions import JawsDbUnavailableError
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
-
 from jaws_site import models
 
 
@@ -23,21 +23,42 @@ class TaskLogger:
             self.logger = logging.getLogger(__package__)
 
     def save(self, params: dict) -> bool:
-        timestamp = params.get("timestamp")
-        params["timestamp"] = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-        status = params.get("status")
-        if status not in ["queued", "running", "done"]:
-            raise ValueError(f"Invalid status: {status}")
-
-        if status == "queued":
-            self._insert(**params)
-        else:
-            self._update(**params)
-
-    def _insert(self, **kwargs) -> bool:
         """
-        Insert new row.
+        Save a task log message to the database.
+        :param params: Task log message parameters
+        :ptype params: dict
+        :return: True if the message was saved successfully, False otherwise
+        :rtype: bool
         """
+        try:
+            timestamp = params.get("timestamp")
+            params["timestamp"] = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+            status = params.get("status")
+            if status not in ["queued", "running", "done"]:
+                raise ValueError(f"Invalid status: {status}")
+
+            if status == "queued":
+                self._insert(**params)
+            else:
+                self._update(**params)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving task log message: {e}")
+            return False
+
+    def _insert(self, **kwargs) -> None:
+        """
+        Insert a new task log entry.
+
+        :param kwargs: Task log entry data
+        :type kwargs: dict
+        """
+        required_keys = ["cromwell_run_id", "task_dir", "status"]
+        if not all(key in kwargs for key in required_keys):
+            raise ValueError(
+                "Missing required keys: {}".format(", ".join(required_keys))
+            )
+
         cromwell_run_id = kwargs.get("cromwell_run_id")
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
@@ -66,7 +87,7 @@ class TaskLogger:
             raise
 
     @staticmethod
-    def delta_minutes(start, end) -> int:
+    def delta_minutes(start, end) -> Optional[int]:
         """
         Return the difference between two timestamps, rounded to the nearest minute.
         :param start: start time
@@ -82,13 +103,20 @@ class TaskLogger:
         else:
             return None
 
-    def _update(self, **kwargs) -> bool:
+    def _update(self, **kwargs) -> None:
+        required_keys = ["cromwell_run_id", "task_dir", "status"]
+        if not all(key in kwargs for key in required_keys):
+            raise ValueError(
+                "Missing required keys: {}".format(", ".join(required_keys))
+            )
+
         cromwell_run_id = kwargs.get("cromwell_run_id")
         task_dir = kwargs.get("task_dir")
         status = kwargs.get("status")
         timestamp = kwargs.get("timestamp")
         return_code = kwargs.get("return_code")
         input_dir_size = kwargs.get("input_dir_size")
+        output_dir_size = kwargs.get("output_dir_size")
 
         # select row for this task
         try:
@@ -125,6 +153,7 @@ class TaskLogger:
                     row.run_minutes = self.delta_minutes(row.run_start, row.run_end)
                     row.return_code = return_code
                     row.input_dir_size = input_dir_size
+                    row.output_dir_size = output_dir_size
                 self.session.commit()
             except OperationalError as error:
                 # this is the only case in which we would not want to ack the message
