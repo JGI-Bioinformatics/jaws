@@ -82,6 +82,7 @@ class TaskLog:
                     row.req_minutes,
                     row.return_code,
                     row.input_dir_size,
+                    row.output_dir_size,
                 ]
             )
         self.data = table
@@ -152,6 +153,7 @@ class TaskLog:
                 req_minutes,
                 return_code,
                 input_dir_size,
+                output_dir_size,
             ) = row
             queued_str = self._utc_to_local_str(queue_start)
             run_start_str = self._utc_to_local_str(run_start)
@@ -177,6 +179,7 @@ class TaskLog:
                     cpu_hours,
                     return_code,
                     input_dir_size,
+                    output_dir_size,
                 ]
             )
         result = {
@@ -197,6 +200,7 @@ class TaskLog:
                 "CPU_HRS",
                 "RETURN_CODE",
                 "INPUT_SIZE",
+                "OUTPUT_SIZE",
             ],
             "data": new_table,
         }
@@ -353,6 +357,7 @@ class TaskLog:
                 req_minutes,
                 return_code,
                 input_dir_size,
+                output_dir_size,
             ) = row
             if task_dir not in summary:
                 continue

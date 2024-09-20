@@ -1,13 +1,8 @@
-import asyncio
 import logging
 from collections.abc import Callable
-from functools import wraps
-from typing import Any
 
 from .queue import PikaMessageReceiver, PikaMessageSender
 from .spec import DecoratedCallable, MessageReceiver, MessageSender
-
-
 
 
 class JawsPubsub:

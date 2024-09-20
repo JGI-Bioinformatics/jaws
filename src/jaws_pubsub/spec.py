@@ -7,6 +7,7 @@ from typing import Any, TypeVar
 
 DecoratedCallable = TypeVar("DecoratedCallable", bound=Callable[..., Any])
 
+
 class Priority(Enum):
     LOW = 1
     NORMAL = 5
@@ -29,7 +30,7 @@ class MessageClient(ABC):
 
     def __init__(
         self,
-        configuration: dict[str,str],
+        configuration: dict[str, str],
         logger: Logger,
     ) -> None:
         """Create a message client and connect to a broker.
@@ -74,11 +75,11 @@ class MessageClient(ABC):
         meaning messages in this queue cannot have higher priority
         than normal.
 
-        :param queue_name: The name of the queue 
+        :param queue_name: The name of the queue
         :type queue_name: str
         :param exclusive: Whether the queue will be exclusive to a receiver or not
         :type exclusive: bool
-        :param max_priority: Priority given to messages in the queue 
+        :param max_priority: Priority given to messages in the queue
         :type max_priority: int
 
         :raises NotImplementedError: if this method does not handle
@@ -115,12 +116,12 @@ class MessageSender(MessageClient):
     @abstractmethod
     def encode_message(self, body: object, encoding_type: str) -> str:
         """Encodes message into format recognized by the exchange.
-        :param body: object to be encoded for the exchange 
+        :param body: object to be encoded for the exchange
         :type body: object
         :param encoding_type: the type of the encoding
         :type encoding_type: str
 
-        :raises NotImplementedError: if declared encoding_type is not implemented 
+        :raises NotImplementedError: if declared encoding_type is not implemented
         """
         raise NotImplementedError
 
@@ -136,7 +137,6 @@ class MessageSender(MessageClient):
 
 
 class MessageReceiver(MessageClient):
-
     @abstractmethod
     def decode_message(self, body: bytes | str) -> dict[str, str]:
         """Decodes message from exchange into a python dictionary.
