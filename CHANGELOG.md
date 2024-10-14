@@ -5,6 +5,9 @@
 
 
 ### Internal Facing Changes
+
+# 2.3.0 Summary [10/14/2024 - Staging ]
+### Internal Facing Changes
 - Added getting and storing output dir (#1841)
 - added jaws purge command functions so users can delete their own, and same team member's, cromwell-execution folders for a run (#1839)
 
