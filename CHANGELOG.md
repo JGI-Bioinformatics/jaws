@@ -2,7 +2,7 @@
 # Inbound changes not assigned to version # yet
 
 ### External Facing Changes
-
+- Changed the jaws tasks command column names (#1844)
 
 ### Internal Facing Changes
 
