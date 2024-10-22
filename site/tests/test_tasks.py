@@ -75,8 +75,8 @@ def test_table(monkeypatch):
             "REQ_MIN",
             "CPU_HRS",
             "RETURN_CODE",
-            "INPUT_SIZE",
-            "OUTPUT_SIZE",
+            "INPUT_SIZE_B",
+            "OUTPUT_SIZE_B",
         ],
         "data": [
             [
