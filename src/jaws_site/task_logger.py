@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from typing import Optional
+from sqlalchemy import exists
 
 from jaws_common.exceptions import JawsDbUnavailableError
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
@@ -62,29 +63,39 @@ class TaskLogger:
         cromwell_run_id = kwargs.get("cromwell_run_id")
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
-        try:
-            log_entry = models.Tasks(
-                cromwell_run_id=cromwell_run_id,
-                task_dir=task_dir,
-                status="queued",
-                queue_start=timestamp,
+
+        pre_check_query = self.session.query(
+            exists().where(
+                models.Tasks.cromwell_run_id == cromwell_run_id,
+                models.Tasks.task_dir == task_dir,
             )
-            self.session.add(log_entry)
-            self.session.commit()
-        except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            self.logger.error(f"Unable to connect to db: {error}")
-            raise JawsDbUnavailableError(str(error))
-        except IntegrityError as error:
-            self.session.rollback()
-            self.logger.error(f"Invalid task-log message, {kwargs}: {error}")
-            raise
-        except SQLAlchemyError as error:
-            self.session.rollback()
-            self.logger.exception(
-                f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
-            )
-            raise
+        )
+        already_exists = self.session.query(pre_check_query).scalar()
+
+        if not already_exists:
+            try:
+                log_entry = models.Tasks(
+                    cromwell_run_id=cromwell_run_id,
+                    task_dir=task_dir,
+                    status="queued",
+                    queue_start=timestamp,
+                )
+                self.session.add(log_entry)
+                self.session.commit()
+            except OperationalError as error:
+                # this is the only case in which we would not want to ack the message
+                self.logger.error(f"Unable to connect to db: {error}")
+                raise JawsDbUnavailableError(str(error))
+            except IntegrityError as error:
+                self.session.rollback()
+                self.logger.error(f"Invalid task-log message, {kwargs}: {error}")
+                raise
+            except SQLAlchemyError as error:
+                self.session.rollback()
+                self.logger.exception(
+                    f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
+                )
+                raise
 
     @staticmethod
     def delta_minutes(start, end) -> Optional[int]:
@@ -126,7 +137,8 @@ class TaskLogger:
                     models.Tasks.cromwell_run_id == cromwell_run_id,
                     models.Tasks.task_dir == task_dir,
                 )
-                .one_or_none()
+                .order_by(models.Tasks.id.desc())
+                .first()
             )
         except OperationalError as error:
             # this is the only case in which we would not want to ack the message
