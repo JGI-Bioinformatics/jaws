@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import exists
 
 from jaws_common.exceptions import JawsDbUnavailableError
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
@@ -39,8 +38,12 @@ class TaskLogger:
                 raise ValueError(f"Invalid status: {status}")
 
             if status == "queued":
+                self.logger.debug(
+                    f"Inserting a new task log with queueud status: {str(params)}"
+                )
                 self._insert(**params)
             else:
+                self.logger.debug(f"Updating a tasks's status: {str(params)}")
                 self._update(**params)
             return True
         except Exception as e:
@@ -96,13 +99,11 @@ class TaskLogger:
         :param task_dir: Task directory
         :return: True if the task exists, False otherwise
         """
-        pre_check_query = self.session.query(
-            exists().where(
-                models.Tasks.cromwell_run_id == cromwell_run_id,
-                models.Tasks.task_dir == task_dir,
-            )
+        q = self.session.query(models.Tasks).filter(
+            models.Tasks.cromwell_run_id == cromwell_run_id,
+            models.Tasks.task_dir == task_dir,
         )
-        return self.session.query(pre_check_query).scalar()
+        return self.session.query(q.exists()).scalar()
 
     @staticmethod
     def delta_minutes(start, end) -> Optional[int]:
