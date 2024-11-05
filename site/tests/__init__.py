@@ -4,4 +4,4 @@ import os
 
 abspath = os.path.abspath(__file__)
 dirpath = os.path.dirname(abspath)
-conf = config.Configuration(os.path.join(dirpath, "..", "jaws-site.ini"))
+conf = jaws_site.config.Configuration(os.path.join(dirpath, "..", "jaws-site.ini"))

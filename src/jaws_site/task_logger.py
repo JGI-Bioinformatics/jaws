@@ -188,7 +188,8 @@ class TaskLogger:
                 .first()
             )
         except OperationalError as error:
-            self._handle_db_error(error, "Unable to connect to db")
+            self.logger.error(f"Unable to connect to db: {error}")
+            raise JawsDbUnavailableError(str(error))
         except Exception as error:
             self.logger.error(
                 f"Unexpected error; unable to select task log {cromwell_run_id} {task_dir}: {error}"
