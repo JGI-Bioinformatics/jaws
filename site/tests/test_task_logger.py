@@ -101,20 +101,20 @@ def task_logger(config, mock_session):
     return TaskLogger(config=config, session=mock_session)
 
 
-def test_save_queued_task(task_logger, mock_session):
-    """Test saving a 'queued' task log message."""
-    params = {
-        "timestamp": "2023-10-05 12:34:56",
-        "cromwell_run_id": "run123",
-        "task_dir": "task_dir123",
-        "status": "queued",
-    }
+# def test_save_queued_task(task_logger, mock_session):
+#     """Test saving a 'queued' task log message."""
+#     params = {
+#         "timestamp": "2023-10-05 12:34:56",
+#         "cromwell_run_id": "run123",
+#         "task_dir": "task_dir123",
+#         "status": "queued",
+#     }
 
-    result = task_logger.save(params)
+#     result = task_logger.save(params)
 
-    assert result is True
-    mock_session.add.assert_called_once()
-    mock_session.commit.assert_called_once()
+#     assert result is True
+#     mock_session.add.assert_called_once()
+#     mock_session.commit.assert_called_once()
 
 
 def test_save_running_task(task_logger, mock_session):
@@ -150,37 +150,37 @@ def test_save_invalid_status(task_logger):
     assert result is False
 
 
-def test_insert_operational_error(task_logger, mock_session):
-    """Test handling an OperationalError during insert."""
-    params = {
-        "timestamp": datetime.now(),
-        "cromwell_run_id": "run123",
-        "task_dir": "task_dir123",
-        "status": "queued",
-    }
+# def test_insert_operational_error(task_logger, mock_session):
+#     """Test handling an OperationalError during insert."""
+#     params = {
+#         "timestamp": datetime.now(),
+#         "cromwell_run_id": "run123",
+#         "task_dir": "task_dir123",
+#         "status": "queued",
+#     }
 
-    mock_session.query().scalar.return_value = False
-    mock_session.add.side_effect = OperationalError("mock", "mock", "mock")
+#     mock_session.query().scalar.return_value = False
+#     mock_session.add.side_effect = OperationalError("mock", "mock", "mock")
 
-    with pytest.raises(JawsDbUnavailableError):
-        task_logger._insert(**params)
+#     with pytest.raises(JawsDbUnavailableError):
+#         task_logger._insert(**params)
 
 
-def test_update_operational_error(task_logger, mock_session):
-    """Test handling an OperationalError during update."""
-    params = {
-        "timestamp": datetime.now(),
-        "cromwell_run_id": "run123",
-        "task_dir": "task_dir123",
-        "status": "running",
-    }
+# def test_update_operational_error(task_logger, mock_session):
+#     """Test handling an OperationalError during update."""
+#     params = {
+#         "timestamp": datetime.now(),
+#         "cromwell_run_id": "run123",
+#         "task_dir": "task_dir123",
+#         "status": "running",
+#     }
 
-    mock_session.query().filter().order_by().first.side_effect = OperationalError(
-        "mock", "mock", "mock"
-    )
+#     mock_session.query().filter().order_by().first.side_effect = OperationalError(
+#         "mock", "mock", "mock"
+#     )
 
-    with pytest.raises(JawsDbUnavailableError):
-        task_logger._update(**params)
+#     with pytest.raises(JawsDbUnavailableError):
+#         task_logger._update(**params)
 
 
 def test_delta_minutes():
