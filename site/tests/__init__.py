@@ -1,6 +1,6 @@
 import os
 
-from jaws_site import config
+# from jaws_site import config
 
 abspath = os.path.abspath(__file__)
 dirpath = os.path.dirname(abspath)

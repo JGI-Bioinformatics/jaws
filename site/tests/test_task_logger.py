@@ -1,6 +1,6 @@
 from datetime import datetime
-
 import pytest
+
 from jaws_site.task_logger import TaskLogger
 
 ACTION = None

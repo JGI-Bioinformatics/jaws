@@ -64,15 +64,7 @@ class TaskLogger:
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
 
-        pre_check_query = self.session.query(
-            exists().where(
-                models.Tasks.cromwell_run_id == cromwell_run_id,
-                models.Tasks.task_dir == task_dir,
-            )
-        )
-        already_exists = self.session.query(pre_check_query).scalar()
-
-        if not already_exists:
+        if not self._task_exists(cromwell_run_id, task_dir):
             try:
                 log_entry = models.Tasks(
                     cromwell_run_id=cromwell_run_id,
@@ -96,6 +88,21 @@ class TaskLogger:
                     f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
                 )
                 raise
+
+    def _task_exists(self, cromwell_run_id: str, task_dir: str) -> bool:
+        """
+        Check if a task already exists in the database.
+        :param cromwell_run_id: Cromwell run ID
+        :param task_dir: Task directory
+        :return: True if the task exists, False otherwise
+        """
+        pre_check_query = self.session.query(
+            exists().where(
+                models.Tasks.cromwell_run_id == cromwell_run_id,
+                models.Tasks.task_dir == task_dir,
+            )
+        )
+        return self.session.query(pre_check_query).scalar()
 
     @staticmethod
     def delta_minutes(start, end) -> Optional[int]:
@@ -129,25 +136,7 @@ class TaskLogger:
         input_dir_size = kwargs.get("input_dir_size")
         output_dir_size = kwargs.get("output_dir_size")
 
-        # select row for this task
-        try:
-            row = (
-                self.session.query(models.Tasks)
-                .filter(
-                    models.Tasks.cromwell_run_id == cromwell_run_id,
-                    models.Tasks.task_dir == task_dir,
-                )
-                .order_by(models.Tasks.id.desc())
-                .first()
-            )
-        except OperationalError as error:
-            # this is the only case in which we would not want to ack the message
-            self.logger.error(f"Unable to connect to db: {error}")
-            raise JawsDbUnavailableError(str(error))
-        except Exception as error:
-            err_msg = f"Unexpected error; unable to select task log {cromwell_run_id} {task_dir}: {error}"
-            self.logger.error(err_msg)
-            raise
+        row = self._get_task_row(cromwell_run_id, task_dir)
 
         if row is None:
             self.logger.warning(f"Task {cromwell_run_id} {task_dir} not found!")
@@ -178,3 +167,30 @@ class TaskLogger:
                     f"Unable to update Tasks {cromwell_run_id} {task_dir}: {error}"
                 )
                 raise
+
+    def _get_task_row(
+        self, cromwell_run_id: str, task_dir: str
+    ) -> Optional[models.Tasks]:
+        """
+        Retrieve the task row for the given cromwell_run_id and task_dir.
+        :param cromwell_run_id: Cromwell run ID
+        :param task_dir: Task directory
+        :return: The task row if found, None otherwise
+        """
+        try:
+            return (
+                self.session.query(models.Tasks)
+                .filter(
+                    models.Tasks.cromwell_run_id == cromwell_run_id,
+                    models.Tasks.task_dir == task_dir,
+                )
+                .order_by(models.Tasks.id.desc())
+                .first()
+            )
+        except OperationalError as error:
+            self._handle_db_error(error, "Unable to connect to db")
+        except Exception as error:
+            self.logger.error(
+                f"Unexpected error; unable to select task log {cromwell_run_id} {task_dir}: {error}"
+            )
+            raise
