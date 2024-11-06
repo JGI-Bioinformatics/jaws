@@ -39,7 +39,7 @@ class TaskLogger:
 
             if status == "queued":
                 self.logger.debug(
-                    f"Inserting a new task log with queueud status: {str(params)}"
+                    f"Inserting a new task log with queued status: {str(params)}"
                 )
                 self._insert(**params)
             else:
