@@ -30,9 +30,8 @@ An AMQP service (e.g. RabbitMQ) and relational database (e.g. MySQL) are require
 Requires one user "jaws" that is used for all deployments (e.g. dev/staging/prod).  Deployments are given separate namespaces by defining distinct vhosts:
 
   - jaws_(DEPLOYMENT_NAME)
-  - jtm_(DEPLOYMENT_NAME)
 
-e.g jaws_dev, jtm_dev, jaws_staging, jtm_staging, jaws_prod, jtm_prod
+e.g jaws_dev, jaws_staging, jaws_prod
 
 Queues are automatically defined by the deployment scripts and don't need to be created in the RMQ admin pages.  Only the user and vhosts needs to be created outside of the JAWS CI/CD.
 
@@ -43,9 +42,8 @@ Requires one user "jaws" that is used for all deployments (e.g. dev/staging/prod
 
   - cromwell_(SITE_NAME)_(DEPLOYMENT_NAME)
   - jaws_(SITE_NAME)_(DEPLOYMENT_NAME)
-  - jtm_(SITE_NAME)_(DEPLOYMENT_NAME)
 
-e.g. jaws_cori_dev, cromwell_cori_dev, jtm_cori_dev, ...
+e.g. jaws_cori_dev, cromwell_cori_dev, ...
 
 Additional, jaws-central requires:
 

@@ -175,10 +175,9 @@ def fix_perms_status(params, session):
 
 
 def purge(params, session):
-
     """Delete a cromwell execution-directory folder for a specific run"""
-    path = params['workflow_root']
-    run_id = params['run_id']
+    path = params["workflow_root"]
+    run_id = params["run_id"]
     logger.info(f"User {params['user_id']}: removing {path} for Run {run_id}")
     try:
         # remove workflow_root
