@@ -13,7 +13,6 @@ class ConfigurationError(Exception):
 
 
 class Configuration(metaclass=jaws_site.utils.Singleton):
-
     """Configuration singleton class"""
 
     defaults = {
