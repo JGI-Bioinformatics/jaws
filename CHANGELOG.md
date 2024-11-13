@@ -2,9 +2,11 @@
 # Inbound changes not assigned to version # yet
 
 ### External Facing Changes
-- Increase num of active runs to 200
 
 ### Internal Facing Changes
+
+# 2.3.0 Summary [PROD 11/13/2024 ]
+- Increase num of active runs to 200
 
 # 2.3.0 Summary [10/14/2024 - staging // PROD 11/12/2024 ]
 ### Internal Facing Changes

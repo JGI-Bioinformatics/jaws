@@ -18,7 +18,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
   JAWS_SITE_NAMES: "JGI TAHOMA AWS ASSEMBLY NMDC PERLMUTTER DORI NMDC_TAHOMA DEFIANT KBASE"
-  JAWS_SITE_VERSION: "2.3.0"
+  JAWS_SITE_VERSION: "2.3.1"
 
 # this needs to be commented out in the jobs definitions, for the jobs to
 # run in any case and not only when pushing a merge request.
