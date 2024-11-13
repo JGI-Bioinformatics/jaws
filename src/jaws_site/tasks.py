@@ -361,26 +361,39 @@ class TaskLog:
             ) = row
             if task_dir not in summary:
                 continue
+            self.logger.debug(f"summary: {summary[task_dir]}")
             status = "cancelled"
+            self.logger.debug(f"Task status: {summary[task_dir]['execution_status']}")
             if summary[task_dir]["execution_status"] == "Done":
                 status = "succeeded"
             elif summary[task_dir]["execution_status"] == "Failed":
                 status = "failed"
-            req_cpu = self.int_or_none(
-                summary[task_dir].get("requested_cpu", DEFAULT_CPU)
-            )
-            req_mem_gb = self.memory_gb(
-                summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)
-            )
-            req_minutes = self.int_or_none(
-                summary[task_dir].get("requested_runtime_minutes", None)
-            )
+            try:
+                req_cpu = self.int_or_none(
+                    summary[task_dir].get("requested_cpu", DEFAULT_CPU)
+                )
+            except Exception as error:
+                self.logger.debug(f"Error getting requested_cpu for {task_dir}: {error}")
+            try:
+                req_mem_gb = self.memory_gb(
+                    summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)
+                )
+            except Exception as error:
+                self.logger.debug(f"Error getting requested_memory for {task_dir}: {error}")
+            try:
+                req_minutes = self.int_or_none(
+                    summary[task_dir].get("requested_runtime_minutes", None)
+                )
+            except Exception as error:
+                self.logger.debug(f"Error getting requested_runtime_minutes for {task_dir}: {error}")
             job_id = summary[task_dir].get("job_id", None)
 
             # metadata's return_code is None mostly as expandSubWorkflows=0
             # return_code_meta = summary[task_dir].get("return_code", None)
             # tasks table's return_code is updated whenever a task is completed
             # from the rc file
+
+            self.logger.debug(f"Task id: {row_id}, status: {status}")
 
             update = {
                 "id": row_id,

@@ -67,7 +67,9 @@ class TaskLogger:
         task_dir = kwargs.get("task_dir")
         timestamp = kwargs.get("timestamp")
 
-        if not self._task_exists(cromwell_run_id, task_dir):
+        task_exists = self._task_exists(cromwell_run_id, task_dir)
+        self.logger.debug(f"Task {cromwell_run_id} {task_dir} exists: {task_exists}")
+        if not task_exists:
             try:
                 log_entry = models.Tasks(
                     cromwell_run_id=cromwell_run_id,
@@ -89,6 +91,11 @@ class TaskLogger:
                 self.session.rollback()
                 self.logger.exception(
                     f"Failed to insert task log for Task {cromwell_run_id} {task_dir}: {error}"
+                )
+                raise
+            except Exception as error:
+                self.logger.exception(
+                    f"Unexpected error; unable to insert task log {cromwell_run_id} {task_dir}: {error}"
                 )
                 raise
 
@@ -139,6 +146,7 @@ class TaskLogger:
 
         row = self._get_task_row(cromwell_run_id, task_dir)
 
+        # if we reach here then we lost the task log message
         if row is None:
             self.logger.warning(f"Task {cromwell_run_id} {task_dir} not found!")
         else:
