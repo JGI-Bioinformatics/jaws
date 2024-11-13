@@ -27,7 +27,7 @@ FILES_PER_THREAD = 500
 MAX_ERROR_STRING_LEN = 1024
 
 
-def safe_copy(source: str, destination: str) -> bool:
+def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> bool:
     """Copy a file from the source path to the destination path with retries on failure.
 
     Parameters
@@ -49,12 +49,20 @@ def safe_copy(source: str, destination: str) -> bool:
     """
     dest_path = pathlib.Path(destination).resolve()
     if dest_path.exists() and filecmp.cmp(source, destination):
+        dest_path.chmod(file_mode)
+        dest_path.parent.chmod(dir_mode)
         return True
 
     try:
-        dest_path.parent.mkdir(parents=True, exist_ok=True, mode=0o777)
-        # os.chmod(dest_path.parent, 0o777)
-        shutil.copy2(source, str(dest_path))
+        if not dest_path.parent.exists():
+            dest_path.parent.mkdir(parents=True, exist_ok=True, mode=dir_mode)
+            dest_path.parent.chmod(dir_mode)
+        if dest_path.is_dir():
+            dest_path.mkdir(exist_ok=True, mode=dir_mode)
+            dest_path.chmod(dir_mode)
+        else:
+            shutil.copy2(source, str(dest_path))
+            dest_path.chmod(file_mode)
         return True
     except IOError as e:
         raise e
@@ -212,7 +220,7 @@ class Transfer:
             logger.exception(f"Unable to update Transfer {self.data.id}: {error}")
             raise (error)
 
-    def transfer_files(self) -> None:
+    def transfer_files(self) -> tuple[str, str | None] | None:
         """
         Do the transfer and return when done -- the operation is blocking.
         """
@@ -334,31 +342,51 @@ class Transfer:
         Copy files and folders (recursively).
         """
         logger.debug(f"Transfer {self.data.id}: Begin local copy")
+        dir_mode: int = int(
+            config.conf.get("SITE", "folder_permissions", "777"), base=8
+        )
+        file_mode: int = int(config.conf.get("SITE", "file_permissions", "666"), base=8)
         manifest = self.manifest()
         src = f"{self.data.src_base_dir}/"
         if not os.path.isdir(src):
             raise FileNotFoundError(f"Source directory not found: {src}")
-        dest = str(pathlib.Path(f"{self.data.dest_base_dir}/").resolve())
+        dest = pathlib.Path(f"{self.data.dest_base_dir}/").resolve()
+        logger.debug(f"created dest: {dest}")
         rel_paths = abs_to_rel_paths(src, get_abs_files(src, manifest))
 
+        dest.mkdir(parents=True, exist_ok=True)
+        dest.chmod(dir_mode)
+        dest.parent.chmod(dir_mode)
+        dest.parent.parent.chmod(dir_mode)
         num_files = len(rel_paths)
         parallelism = calculate_parallelism(num_files)
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
-        parallel_copy_files_only(rel_paths, src, dest, parallelism=parallelism)
-
+        parallel_copy_files_only(
+            rel_paths,
+            src,
+            str(dest),
+            parallelism=parallelism,
+            dir_mode=dir_mode,
+            file_mode=file_mode,
+        )
+        for sub in dest.rglob("*"):
+            if sub.is_dir():
+                sub.chmod(dir_mode)
+            else:
+                sub.chmod(file_mode)
+        # parallel_chmod(str(dest), file_mode, dir_mode, parallelism)
         logger.debug(f"Transfer {self.data.id}: Chmod files")
-        # file_mode = oct(config.conf.get("SITE", "file_permissions"), base=8)
-        # folder_mode = oct(config.conf.get("SITE", "folder_permissions"), base=8)
-        # parallel_chmod(dest, file_mode, folder_mode, parallelism)
 
 
 def check_transfer_queue() -> None:
     """
-    Check the transfer queue and start the oldest transfer task, if any.
-    Only one transfer is done because a) a chmod is necessary to complete the task and
-    b) transfers may take a long time and the task may have been cancelled in the meanwhile.
+    Check the transfer queue and start the oldest transfer task.
+
+    Only one transfer is done because a) a chmod is necessary to
+    complete the task and b) transfers may take a long time and the
+    task may have been cancelled in the meanwhile.
     """
     with Session() as session:
         try:
@@ -380,21 +408,23 @@ def check_transfer_queue() -> None:
         transfer = Transfer.from_id(session, transfer_id)
         result, err_msg = transfer.transfer_files()
 
-    # since the transfer may take a long time, the session could be stale, so get a new one
-    # before saving the result.
+    # since the transfer may take a long time, the session could be
+    # stale, so get a new one before saving the result.
     with Session() as session:
         transfer = Transfer.from_id(session, transfer_id)
         transfer.update_status(result, err_msg)
 
 
-def get_abs_files(root, rel_paths) -> list:
+def get_abs_files(root: str, rel_paths: list[str]) -> list[str]:
     """
     Create list of all source files by recursively expanding any folders.
+
     :param root: Folder under which all the paths in rel_paths exist
     :ptype root: str
     :param rel_paths: list of paths (files/folders) under root dir
     :ptype rel_paths:
-    :return: Any folders in the input list shall be replaced with all the files under the folder.
+    :return: Any folders in the input list shall be replaced with all
+        the files under the folder.
     :rtype: list
     """
     abs_files = set()
@@ -475,6 +505,8 @@ def parallel_copy_files_only(
     """
     try:
         paths = []
+        dir_mode = kwargs.get("dir_mode", int("777", base=8))
+        file_mode = kwargs.get("file_mode", int("666", base=8))
         for rel_path in manifest:
             s = os.path.join(src, rel_path)
             if not os.path.exists(s):
@@ -489,7 +521,13 @@ def parallel_copy_files_only(
             min(kwargs.get("parallelism", cpu_count()), int(cpu_count() / 2))
         ) as executor:
             for path in paths:
-                executor.submit(safe_copy, path[0], path[1])
+                executor.submit(
+                    safe_copy,
+                    path[0],
+                    path[1],
+                    dir_mode,
+                    file_mode,
+                )
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
         raise e
@@ -497,7 +535,13 @@ def parallel_copy_files_only(
         return True
 
 
-def parallel_chmod(path, file_mode, folder_mode, parallelism=3, **kwargs):
+def parallel_chmod(
+    path: str,
+    file_mode: int,
+    folder_mode: int,
+    parallelism: int = 3,
+    **kwargs: list[int],
+) -> None:
     """
     Recursively copy folder and set permissions.
     """
@@ -625,15 +669,27 @@ class FixPerms:
     def status(self) -> str:
         return self.data.status
 
-    def fix_perms(self, parallelism=3):
+    def fix_perms(self, parallelism: int = 3) -> tuple[str, str | None]:
         """
         Recursively change the permissions of folders and files.
         """
-        file_mode = int(config.conf.get("SITE", "file_permissions"), base=8)
-        folder_mode = int(config.conf.get("SITE", "folder_permissions"), base=8)
+        file_mode = int(config.conf.get("SITE", "file_permissions", "666"), base=8)
+        folder_mode = int(config.conf.get("SITE", "folder_permissions", "777"), base=8)
         try:
-            parallel_chmod(self.data.base_dir, file_mode, folder_mode, parallelism)
+            dest = pathlib.Path(self.data.base_dir).resolve()
+            dest.mkdir(parents=True, exist_ok=True)
+            dest.chmod(folder_mode)
+            dest.parent.chmod(folder_mode)
+            dest.parent.parent.chmod(folder_mode)
+            for sub in dest.rglob("*"):
+                if sub.is_dir():
+                    sub.chmod(folder_mode)
+                else:
+                    sub.chmod(file_mode)
+
+            # parallel_chmod(self.data.dest_base_dir, file_mode, folder_mode, parallelism)
         except Exception as error:
+            logger.error(str(error))
             return "failed", str(error)
         else:
             return "succeeded", None
@@ -657,7 +713,7 @@ class FixPerms:
             logger.exception(f"Unable to update Fix Perms {self.data.id}: {error}")
 
 
-def check_fix_perms_queue() -> None:
+def check_fix_perms_queue() -> list[str]:
     """
     Do all chmod tasks for Globus transfers.
     """
