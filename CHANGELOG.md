@@ -2,6 +2,7 @@
 # Inbound changes not assigned to version # yet
 
 ### External Facing Changes
+- Add better error message when inputs are defined as "String" but start with path-like syntax "./sample.fastq" (#1853)
 
 ### Internal Facing Changes
 
