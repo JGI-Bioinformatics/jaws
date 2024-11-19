@@ -1,4 +1,4 @@
-466# Class representing Runs
+# Class representing Runs
 #
 # Description of Possible States:
 # - ready* : Initial state.  Infiles have been already been uploaded to this Site.
