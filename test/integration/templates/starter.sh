@@ -32,7 +32,7 @@ else
 fi
 
 
-sbatch_cmd+=" --qos workflow ${JAWS_BIN_DIR}/jaws-site-cronjob"
+sbatch_cmd+=" --qos workflow -C cron ${JAWS_BIN_DIR}/jaws-site-cronjob"
 unset ${!SLURM_@};
 echo "[$(date "+%m-%d-%Y-%H:%M:%S")] $sbatch_cmd"
 eval "$sbatch_cmd"
