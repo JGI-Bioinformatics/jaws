@@ -10,6 +10,7 @@ import logging
 import os
 import pathlib
 import shutil
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from multiprocessing import cpu_count
@@ -47,25 +48,33 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
     IOError
         If an error occurs during file copy.
     """
-    dest_path = pathlib.Path(destination).resolve()
-    if dest_path.exists() and filecmp.cmp(source, destination):
-        dest_path.chmod(file_mode)
-        dest_path.parent.chmod(dir_mode)
-        return True
 
-    try:
-        if not dest_path.parent.exists():
-            dest_path.parent.mkdir(parents=True, exist_ok=True, mode=dir_mode)
-            dest_path.parent.chmod(dir_mode)
-        if dest_path.is_dir():
-            dest_path.mkdir(exist_ok=True, mode=dir_mode)
-            dest_path.chmod(dir_mode)
-        else:
-            shutil.copy2(source, str(dest_path))
-            dest_path.chmod(file_mode)
-        return True
-    except IOError as e:
-        raise e
+    dest_path = pathlib.Path(destination).resolve()
+
+    attempts = 0
+    max_attempts = 3
+    while attempts < max_attempts:
+        try:
+            if dest_path.exists() and filecmp.cmp(source, destination):
+                dest_path.chmod(file_mode)
+                dest_path.parent.chmod(dir_mode)
+                return True
+            if not dest_path.parent.exists():
+                dest_path.parent.mkdir(parents=True, exist_ok=True, mode=dir_mode)
+                dest_path.parent.chmod(dir_mode)
+            if dest_path.is_dir():
+                dest_path.mkdir(exist_ok=True, mode=dir_mode)
+                dest_path.chmod(dir_mode)
+            else:
+                shutil.copy2(source, str(dest_path))
+                dest_path.chmod(file_mode)
+            return True
+        except Exception as e:
+            attempts += 1
+            logger.error(
+                f"Attempt {attempts}/{max_attempts} to copy {source} failed: {e}"
+            )
+            time.sleep(2)
     return False
 
 
