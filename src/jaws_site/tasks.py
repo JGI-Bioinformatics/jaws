@@ -320,6 +320,19 @@ class TaskLog:
                     req_minutes=req_minutes,
                     return_code=return_code,
                 )
+                # task_entry = models.Tasks(
+                #     queue_start=task.get("queue_start"),
+                #     run_start=task.get("run_start"),
+                #     run_end=task.get("run_end"),
+                #     queue_minutes=task.get("queue_minutes"),
+                #     run_minutes=task.get("run_minutes"),
+                #     name=task.get("name"),
+                #     input_dir_size=task.get("input_dir_size"),
+                #     output_dir_size=task.get("output_dir_size"),
+                #     cpu_hours
+                #     input_dir_size
+                #     output_dir_size
+                # )
                 self.session.add(log_entry)
 
     def _get_return_code(self, task_dir: str) -> int:
@@ -373,19 +386,25 @@ class TaskLog:
                     summary[task_dir].get("requested_cpu", DEFAULT_CPU)
                 )
             except Exception as error:
-                self.logger.debug(f"Error getting requested_cpu for {task_dir}: {error}")
+                self.logger.debug(
+                    f"Error getting requested_cpu for {task_dir}: {error}"
+                )
             try:
                 req_mem_gb = self.memory_gb(
                     summary[task_dir].get("requested_memory", DEFAULT_MEM_GB)
                 )
             except Exception as error:
-                self.logger.debug(f"Error getting requested_memory for {task_dir}: {error}")
+                self.logger.debug(
+                    f"Error getting requested_memory for {task_dir}: {error}"
+                )
             try:
                 req_minutes = self.int_or_none(
                     summary[task_dir].get("requested_runtime_minutes", None)
                 )
             except Exception as error:
-                self.logger.debug(f"Error getting requested_runtime_minutes for {task_dir}: {error}")
+                self.logger.debug(
+                    f"Error getting requested_runtime_minutes for {task_dir}: {error}"
+                )
             job_id = summary[task_dir].get("job_id", None)
 
             # metadata's return_code is None mostly as expandSubWorkflows=0
