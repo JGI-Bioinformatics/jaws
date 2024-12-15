@@ -192,7 +192,7 @@ def temp_dir(tmp_path):
 
 
 def test_get_return_code_valid(task_logger, temp_dir):
-    rc_file = temp_dir / "execution" / "rc"
+    rc_file = temp_dir / "cacheCopy" / "execution" / "rc"
     rc_file.parent.mkdir(parents=True)
     rc_file.write_text("0")
 
@@ -201,7 +201,7 @@ def test_get_return_code_valid(task_logger, temp_dir):
 
 
 def test_get_return_code_non_zero(task_logger, temp_dir):
-    rc_file = temp_dir / "execution" / "rc"
+    rc_file = temp_dir / "cacheCopy" / "execution" / "rc"
     rc_file.parent.mkdir(parents=True)
     rc_file.write_text("1")
 
@@ -210,7 +210,7 @@ def test_get_return_code_non_zero(task_logger, temp_dir):
 
 
 def test_get_return_code_large_number(task_logger, temp_dir):
-    rc_file = temp_dir / "execution" / "rc"
+    rc_file = temp_dir / "cacheCopy" / "execution" / "rc"
     rc_file.parent.mkdir(parents=True)
     rc_file.write_text("1000000")  # A large number that should still be valid
 
@@ -219,7 +219,7 @@ def test_get_return_code_large_number(task_logger, temp_dir):
 
 
 def test_get_return_code_negative_number(task_logger, temp_dir):
-    rc_file = temp_dir / "execution" / "rc"
+    rc_file = temp_dir / "cacheCopy" / "execution" / "rc"
     rc_file.parent.mkdir(parents=True)
     rc_file.write_text("-1")
 
