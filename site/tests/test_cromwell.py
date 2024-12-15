@@ -7,9 +7,13 @@ import requests
 import requests_mock
 from deepdiff import DeepDiff
 from jaws_site import cromwell
-from jaws_site.cromwell import (CallError, CromwellRunError,
-                                CromwellRunNotFoundError, CromwellServiceError,
-                                TaskError)
+from jaws_site.cromwell import (
+    CallError,
+    CromwellRunError,
+    CromwellRunNotFoundError,
+    CromwellServiceError,
+    TaskError,
+)
 
 tests_dir = os.path.dirname(os.path.abspath(__file__))
 

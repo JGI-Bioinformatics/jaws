@@ -3,8 +3,13 @@ import pytest
 from jaws_site import runs, transfers
 from jaws_site.runs import RunNotFoundError
 
-from tests.conftest import (MockCromwellException, MockRun,  # MockCromwell,
-                            MockSession, MockTransfer, MockTransferModel)
+from tests.conftest import (
+    MockCromwellException,
+    MockRun,  # MockCromwell,
+    MockSession,
+    MockTransfer,
+    MockTransferModel,
+)
 
 
 def test_server_status(monkeypatch):

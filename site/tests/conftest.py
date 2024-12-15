@@ -2,6 +2,7 @@
 File contains all the mock classes and fixtures that will be used during
 testing.
 """
+
 import json
 import os
 import shutil
@@ -32,9 +33,13 @@ class MockPoolApplyResult:
 
 @fixture(autouse=True)
 def mock_pool_apply_async(monkeypatch):
-    monkeypatch.setattr("multiprocessing.pool.Pool.apply_async",
-                        lambda self, func, args=(), kwds={}, callback=None, error_callback=None:
-                        MockPoolApplyResult(func, args))
+    monkeypatch.setattr(
+        "multiprocessing.pool.Pool.apply_async",
+        lambda self, func, args=(), kwds={}, callback=None, error_callback=None: MockPoolApplyResult(
+            func, args
+        ),
+    )
+
 
 @pytest.fixture()
 def configuration(config_file):

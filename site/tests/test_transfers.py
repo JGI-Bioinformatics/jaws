@@ -176,14 +176,14 @@ def test_parallel_copy_files_only(mock_copy: object, setup_files: list[str]) -> 
         manifest,
         src_base_dir,
         dest_base_dir,
-        dir_mode=int('777', 8),
-        file_mode=int('666', 8),
+        dir_mode=int("777", 8),
+        file_mode=int("666", 8),
     )
     mock_copy.assert_called_with(
         os.path.join(src_base_dir, "file99.txt"),
         os.path.join(dest_base_dir, "file99.txt"),
         0o777,
-        0o666
+        0o666,
     )
 
 
