@@ -461,7 +461,9 @@ class Run:
             if data.startswith("./"):
                 abspath = os.path.normpath(os.path.join(root, data))
                 if not os.path.isfile(abspath):
-                    raise RunFileNotFoundError(f"{data} looks like a file path but was not defined with \"File\" in the WDL. Either change to \"File\" or remove the leading \"./\".")
+                    raise RunFileNotFoundError(
+                        f'{data} looks like a file path but was not defined with "File" in the WDL. Either change to "File" or remove the leading "./".'
+                    )
                 try:
                     set_atime_now(abspath)
                 except PermissionError as error:

@@ -209,6 +209,7 @@ class Call:
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
+        self.cache_hit_cromwell_run_id = None
         self.return_code = data.get("returnCode", None)
         self.stdout = self.data.get("stdout", None)
         self.stderr = self.data.get("stderr", None)
@@ -242,6 +243,11 @@ class Call:
 
         if "callCaching" in self.data and "hit" in self.data["callCaching"]:
             self.cached = self.data["callCaching"]["hit"]
+            # if self.cached and "result" in self.data["callCaching"]:
+            #     assert len(self.data["callCaching"]["result"].split(":")) == 3
+            #     self.cache_hit_cromwell_run_id = self.data["callCaching"][
+            #         "result"
+            #     ].split(":")[0]
 
     def _get_file_path(self, file_id, relpath=False):
         """

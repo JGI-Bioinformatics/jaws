@@ -277,7 +277,7 @@ class TaskLog:
         else:
             return None
 
-    def _insert_cached_tasks(self, summary: dict) -> None:
+    def _insert_cached_tasks(self, wf_root: str, summary: dict) -> None:
         """
         Cached tasks don't appear in the call-log, so we'll copy them from the metadata for completeness.
         They shall not include cpu-hours data so won't affect resource calculations.
@@ -303,9 +303,7 @@ class TaskLog:
                     info.get("requested_runime_minutes", None)
                 )
 
-                return_code = self._get_return_code(
-                    os.path.join(task_dir, "execution", "rc")
-                )
+                return_code = self._get_return_code(os.path.join(wf_root, task_dir))
                 self.logger.debug(f"Task dir: {task_dir}")
                 self.logger.debug(f"Return code from rc file: {return_code}")
 
@@ -339,7 +337,7 @@ class TaskLog:
         """
         Get the return code from the rc file in the task directory.
         """
-        rc_file = os.path.join(task_dir, "execution", "rc")
+        rc_file = os.path.join(task_dir, "cacheCopy", "execution", "rc")
         if not os.path.exists(rc_file):
             self.logger.error(f"Return code file not found: {rc_file}")
             return None
@@ -428,13 +426,13 @@ class TaskLog:
             updates.append(update)
         return updates
 
-    def add_metadata(self, summary: dict):
+    def add_metadata(self, wf_root: str, summary: dict):
         """
         :param summary: JAWS Cromwell Metadata.task_log_summary() output
         :ptype summary: dict
         """
         savepoint = self.session.begin_nested()
-        self._insert_cached_tasks(summary)
+        self._insert_cached_tasks(wf_root, summary)
         updates = self.prepare_metadata(summary)
         self.logger.debug(f"Metadata to update tasks table: {updates}")
         try:
