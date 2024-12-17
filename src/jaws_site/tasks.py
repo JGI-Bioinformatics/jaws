@@ -42,7 +42,7 @@ class TaskLog:
         self.local_tz = local_tz
         self.local_tz_obj = pytz.timezone(local_tz)
 
-    def select(self, cromwelL_run_id=None):
+    def select(self, cromwelL_run_id=None, task_name=None):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
         :return: table
@@ -60,6 +60,8 @@ class TaskLog:
                 .filter(models.Tasks.cromwell_run_id == cromwell_run_id_to_search)
                 .order_by(models.Tasks.id)
             )
+            if task_name:
+                query = query.filter(models.Tasks.name == task_name)
         except NoResultFound:
             return []
         except SQLAlchemyError as error:
@@ -293,9 +295,13 @@ class TaskLog:
         for task_dir, info in summary.items():
             if info["cached"] is True:
                 cached_cromwell_run_id = info["cache_hit_cromwell_run_id"]
+                cached_task_name = info["name"]
                 rows = None
                 if cached_cromwell_run_id is not None:
-                    rows = self.select(cromwelL_run_id=cached_cromwell_run_id)
+                    rows = self.select(
+                        cromwel_run_id=cached_cromwell_run_id,
+                        task_name=cached_task_name,
+                    )
                 if rows:
                     self.logger.debug(
                         f"Cached task's info for cromwell id, {cached_cromwell_run_id}"
