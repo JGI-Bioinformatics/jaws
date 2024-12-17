@@ -42,7 +42,7 @@ class TaskLog:
         self.local_tz = local_tz
         self.local_tz_obj = pytz.timezone(local_tz)
 
-    def select(self):
+    def select(self, cromwelL_run_id=None):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
         :return: table
@@ -50,10 +50,14 @@ class TaskLog:
         """
         if self.data is not None:
             return self.data
+
+        cromwell_run_id_to_search = (
+            cromwelL_run_id if cromwelL_run_id else self.cromwell_run_id
+        )
         try:
             query = (
                 self.session.query(models.Tasks)
-                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .filter(models.Tasks.cromwell_run_id == cromwell_run_id_to_search)
                 .order_by(models.Tasks.id)
             )
         except NoResultFound:
@@ -288,6 +292,34 @@ class TaskLog:
         self.logger.debug(f"Summary for cached task: {summary}")
         for task_dir, info in summary.items():
             if info["cached"] is True:
+                cached_cromwell_run_id = info["cache_hit_cromwell_run_id"]
+                rows = None
+                if cached_cromwell_run_id is not None:
+                    rows = self.select(cromwelL_run_id=cached_cromwell_run_id)
+                if rows:
+                    self.logger.debug(
+                        f"Cached task's info for cromwell id, {cached_cromwell_run_id}"
+                    )
+                    self.logger.debug(f"{rows}")
+                    # Extract cached task info
+                    # task_entry = models.Tasks(
+                    #     queue_start=task.get("queue_start"),
+                    #     run_start=task.get("run_start"),
+                    #     run_end=task.get("run_end"),
+                    #     queue_minutes=task.get("queue_minutes"),
+                    #     run_minutes=task.get("run_minutes"),
+                    #     name=task.get("name"),
+                    #     input_dir_size=task.get("input_dir_size"),
+                    #     output_dir_size=task.get("output_dir_size"),
+                    #     cpu_hours
+                    #     input_dir_size
+                    #     output_dir_size
+                    # )
+                else:
+                    self.logger.warning(
+                        f"Can't find cached task's info for cromwell id, {cached_cromwell_run_id}"
+                    )
+
                 status = info["execution_status"]
                 if status == "Done":
                     status = "succeeded"
@@ -318,19 +350,7 @@ class TaskLog:
                     req_minutes=req_minutes,
                     return_code=return_code,
                 )
-                # task_entry = models.Tasks(
-                #     queue_start=task.get("queue_start"),
-                #     run_start=task.get("run_start"),
-                #     run_end=task.get("run_end"),
-                #     queue_minutes=task.get("queue_minutes"),
-                #     run_minutes=task.get("run_minutes"),
-                #     name=task.get("name"),
-                #     input_dir_size=task.get("input_dir_size"),
-                #     output_dir_size=task.get("output_dir_size"),
-                #     cpu_hours
-                #     input_dir_size
-                #     output_dir_size
-                # )
+
                 self.session.add(log_entry)
 
     def _get_return_code(self, task_dir: str) -> int:
