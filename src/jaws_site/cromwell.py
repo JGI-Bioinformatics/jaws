@@ -209,7 +209,7 @@ class Call:
         self.execution_status = data.get("executionStatus", None)
         self.result = None
         self.cached = False
-        self.cache_hit_cromwell_run_id = None
+        self.cache_hit_task_cromwell_run_id = None
         self.return_code = data.get("returnCode", None)
         self.stdout = self.data.get("stdout", None)
         self.stderr = self.data.get("stderr", None)
@@ -246,7 +246,7 @@ class Call:
             if self.cached and "result" in self.data["callCaching"]:
                 # ex) 'result': 'Cache Hit: 225f95ee-36bb-4851-8eb6-3e3848295c9d:fq_count.count_seqs:-1'
                 assert len(self.data["callCaching"]["result"].split(":")) == 4
-                self.cache_hit_cromwell_run_id = (
+                self.cache_hit_task_cromwell_run_id = (
                     self.data["callCaching"]["result"].split(":")[1].strip()
                 )
 
@@ -305,7 +305,7 @@ class Call:
             "shard_index": self.shard_index,
             "attempt": self.attempt,
             "cached": self.cached,
-            "cache_hit_cromwell_run_id": self.cache_hit_cromwell_run_id,
+            "cache_hit_task_cromwell_run_id": self.cache_hit_task_cromwell_run_id,
             "job_id": self.job_id,
             "execution_status": self.execution_status,
             "result": self.result,

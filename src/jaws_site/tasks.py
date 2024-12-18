@@ -6,6 +6,7 @@ import pytz
 from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
+from typing import Optional
 
 from jaws_site import models
 
@@ -42,7 +43,37 @@ class TaskLog:
         self.local_tz = local_tz
         self.local_tz_obj = pytz.timezone(local_tz)
 
-    def select(self, cromwelL_run_id=None, task_name=None):
+    def select_cached_task(
+        self, cache_hit_task_cromwell_run_id=None, task_name=None
+    ) -> Optional[str]:
+        """
+        Retrieve the original cromwell run id from cache hit task's cromwell
+        run id and the task name
+        ex) select * from tasks where task_dir like "%f4f00870-a9d3-47db-9edb-b5450efd09aa%"
+            and name = "bbmap_shard_wf.bbmap_indexing";
+        :return: None or str
+        :rtype: Optional[str]
+        """
+        assert cache_hit_task_cromwell_run_id is not None
+        assert task_name is not None
+        try:
+            query = (
+                self.session.query(models.Tasks)
+                .filter(
+                    models.Tasks.task_dir.like(f"%{cache_hit_task_cromwell_run_id}%")
+                )
+                .filter(models.Tasks.name == task_name)
+                .order_by(models.Tasks.id.desc())
+            )
+        except NoResultFound:
+            return None
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+
+        return query[0].cromwell_run_id
+
+    def select(self, cromwell_run_id=None, task_name=None):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
         :return: table
@@ -52,7 +83,7 @@ class TaskLog:
             return self.data
 
         cromwell_run_id_to_search = (
-            cromwelL_run_id if cromwelL_run_id else self.cromwell_run_id
+            cromwell_run_id if cromwell_run_id else self.cromwell_run_id
         )
         try:
             query = (
@@ -294,36 +325,54 @@ class TaskLog:
         self.logger.debug(f"Summary for cached task: {summary}")
         for task_dir, info in summary.items():
             if info["cached"] is True:
-                cached_cromwell_run_id = info["cache_hit_cromwell_run_id"]
+                # cromwell run id for the cache hit task
+                cache_hit_task_cromwell_run_id = info["cache_hit_task_cromwell_run_id"]
                 cached_task_name = info["name"]
-                rows = None
-                if cached_cromwell_run_id is not None:
-                    rows = self.select(
-                        cromwel_run_id=cached_cromwell_run_id,
-                        task_name=cached_task_name,
+                self.logger.debug(
+                    f"### {cache_hit_task_cromwell_run_id=} {cached_task_name=}"
+                )
+
+                if (
+                    cache_hit_task_cromwell_run_id is not None
+                    and cached_task_name is not None
+                ):
+                    # Get the previous cromwell run id for the cached task (this cached
+                    # task's cromwell run id is `cache_hit_task_cromwell_run_id`)
+                    prev_cromwell_run_id = self.select_cached_task(
+                        cache_hit_task_cromwell_run_id, cached_task_name
                     )
-                if rows:
-                    self.logger.debug(
-                        f"Cached task's info for cromwell id, {cached_cromwell_run_id}"
-                    )
-                    self.logger.debug(f"{rows}")
-                    # Extract cached task info
-                    # task_entry = models.Tasks(
-                    #     queue_start=task.get("queue_start"),
-                    #     run_start=task.get("run_start"),
-                    #     run_end=task.get("run_end"),
-                    #     queue_minutes=task.get("queue_minutes"),
-                    #     run_minutes=task.get("run_minutes"),
-                    #     name=task.get("name"),
-                    #     input_dir_size=task.get("input_dir_size"),
-                    #     output_dir_size=task.get("output_dir_size"),
-                    #     cpu_hours
-                    #     input_dir_size
-                    #     output_dir_size
-                    # )
+                    self.logger.debug(f"### {prev_cromwell_run_id=}")
+
+                    if prev_cromwell_run_id is not None:
+                        # Retieve table row with prev_cromwell_run_id and
+                        rows = None
+                        if prev_cromwell_run_id is not None:
+                            rows = self.select(
+                                cromwell_run_id=prev_cromwell_run_id,
+                                task_name=cached_task_name,
+                            )
+                        if rows:
+                            self.logger.debug(
+                                f"Cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
+                            )
+                            self.logger.debug(f"{rows}")
+                            # Extract cached task info
+                            # task_entry = models.Tasks(
+                            #     queue_start=task.get("queue_start"),
+                            #     run_start=task.get("run_start"),
+                            #     run_end=task.get("run_end"),
+                            #     queue_minutes=task.get("queue_minutes"),
+                            #     run_minutes=task.get("run_minutes"),
+                            #     name=task.get("name"),
+                            #     input_dir_size=task.get("input_dir_size"),
+                            #     output_dir_size=task.get("output_dir_size"),
+                            #     cpu_hours
+                            #     input_dir_size
+                            #     output_dir_size
+                            # )
                 else:
                     self.logger.warning(
-                        f"Can't find cached task's info for cromwell id, {cached_cromwell_run_id}"
+                        f"Can't find cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
                     )
 
                 status = info["execution_status"]
