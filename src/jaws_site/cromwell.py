@@ -604,6 +604,7 @@ class Metadata:
         :param data: cromwell metadata JSON record
         :type dict:
         """
+        logger = logging.getLogger(__package__)
         self.data = data
         self.url = url
         self.workflow_id = data["id"]
@@ -611,6 +612,7 @@ class Metadata:
         if "calls" in self.data:
             calls = self.data["calls"]
             for task_name, task_data in calls.items():
+                logger.debug(f"Workflow {self.workflow_id}: Init task {task_name}")
                 self.tasks[task_name] = Task(task_name, task_data, url=self.url)
 
     def get(self, param, default=None):

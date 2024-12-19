@@ -44,37 +44,7 @@ class TaskLog:
         self.local_tz = local_tz
         self.local_tz_obj = pytz.timezone(local_tz)
 
-    def select_cached_task(
-        self, cache_hit_task_cromwell_run_id=None, task_name=None
-    ) -> Optional[str]:
-        """
-        Retrieve the original cromwell run id from cache hit task's cromwell
-        run id and the task name
-        ex) select * from tasks where task_dir like "%f4f00870-a9d3-47db-9edb-b5450efd09aa%"
-            and name = "bbmap_shard_wf.bbmap_indexing";
-        :return: None or str
-        :rtype: Optional[str]
-        """
-        assert cache_hit_task_cromwell_run_id is not None
-        assert task_name is not None
-        try:
-            query = (
-                self.session.query(models.Tasks)
-                .filter(
-                    models.Tasks.task_dir.like(f"%{cache_hit_task_cromwell_run_id}%")
-                )
-                .filter(models.Tasks.name == task_name)
-                .order_by(models.Tasks.id.desc())
-            )
-        except NoResultFound:
-            return None
-        except SQLAlchemyError as error:
-            self.logger.error(f"Unable to select task_logs: {error}")
-            raise TaskDbError(error)
-
-        return query[0].cromwell_run_id
-
-    def select(self, cromwell_run_id=None, task_name=None):
+    def select(self):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.
         :return: table
@@ -83,17 +53,12 @@ class TaskLog:
         if self.data is not None:
             return self.data
 
-        cromwell_run_id_to_search = (
-            cromwell_run_id if cromwell_run_id else self.cromwell_run_id
-        )
         try:
             query = (
                 self.session.query(models.Tasks)
-                .filter(models.Tasks.cromwell_run_id == cromwell_run_id_to_search)
+                .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
                 .order_by(models.Tasks.id)
             )
-            if task_name:
-                query = query.filter(models.Tasks.name == task_name)
         except NoResultFound:
             return []
         except SQLAlchemyError as error:
@@ -123,7 +88,83 @@ class TaskLog:
                     row.output_dir_size,
                 ]
             )
+
         self.data = table
+        return table
+
+    def select_cached_task_cromwell_id(
+        self, cache_hit_task_cromwell_run_id=None, task_name=None
+    ) -> Optional[str]:
+        """
+        Retrieve the original cromwell run id from cache hit task's cromwell
+        run id and the task name
+        ex) select * from tasks where task_dir like "%f4f00870-a9d3-47db-9edb-b5450efd09aa%"
+            and name = "bbmap_shard_wf.bbmap_indexing";
+        :return: None or str
+        :rtype: Optional[str]
+        """
+        assert cache_hit_task_cromwell_run_id is not None
+        assert task_name is not None
+        try:
+            query = (
+                self.session.query(models.Tasks)
+                .filter(
+                    models.Tasks.task_dir.like(f"%{cache_hit_task_cromwell_run_id}%")
+                )
+                .filter(models.Tasks.name == task_name)
+                .order_by(models.Tasks.id.desc())
+            )
+        except NoResultFound:
+            return None
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+
+        return query[0].cromwell_run_id
+
+    def select_cached_task_info(self, cromwell_run_id, task_name):
+        """
+        Select all rows associated with the cached task.
+        :return: table
+        :rtype: list
+        """
+        try:
+            query = (
+                self.session.query(models.Tasks)
+                .filter(models.Tasks.cromwell_run_id == cromwell_run_id)
+                .filter(models.Tasks.name == task_name)
+                .order_by(models.Tasks.id)
+            )
+        except NoResultFound:
+            return []
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to select task_logs: {error}")
+            raise TaskDbError(error)
+
+        table = []
+        for row in query:
+            table.append(
+                [
+                    row.id,
+                    row.task_dir,
+                    row.job_id,
+                    row.status,
+                    row.queue_start,
+                    row.run_start,
+                    row.run_end,
+                    row.queue_minutes,
+                    row.run_minutes,
+                    row.cached,
+                    row.name,
+                    row.req_cpu,
+                    row.req_mem_gb,
+                    row.req_minutes,
+                    row.return_code,
+                    row.input_dir_size,
+                    row.output_dir_size,
+                ]
+            )
+
         return table
 
     def _select_all_cpu_minutes(self):
@@ -330,6 +371,9 @@ class TaskLog:
                 # cromwell run id for the cache hit task
                 cache_hit_task_cromwell_run_id = info["cache_hit_task_cromwell_run_id"]
                 cached_task_name = info["name"]
+                self.logger.debug(
+                    f"### {cache_hit_task_cromwell_run_id=} {cached_task_name=}"
+                )
                 rows = None
 
                 if (
@@ -338,21 +382,23 @@ class TaskLog:
                 ):
                     # Get the previous cromwell run id for the cached task (this cached
                     # task's cromwell run id is `cache_hit_task_cromwell_run_id`)
-                    prev_cromwell_run_id = self.select_cached_task(
+                    prev_cromwell_run_id = self.select_cached_task_cromwell_id(
                         cache_hit_task_cromwell_run_id, cached_task_name
                     )
+                    self.logger.debug(f"### {prev_cromwell_run_id=}")
+
                     if prev_cromwell_run_id is not None:
                         # Retieve table row with prev_cromwell_run_id and
                         if prev_cromwell_run_id is not None:
-                            rows = self.select(
+                            rows = self.select_cached_task_info(
                                 cromwell_run_id=prev_cromwell_run_id,
                                 task_name=cached_task_name,
                             )
                         if rows:
-                            self.logger.info(
-                                f"Cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
+                            self.logger.debug(
+                                f"### Cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
                             )
-                            self.logger.info(f"{rows=}")
+                            self.logger.debug(f"### {rows=}")
                 else:
                     self.logger.warning(
                         f"Can't find cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
@@ -388,6 +434,9 @@ class TaskLog:
                     req_minutes=req_minutes,
                     return_code=return_code,
                 )
+                self.logger.debug(
+                    f"### Metadata for cached task: {task_dir=} {info['name']=} {self.cromwell_run_id=} {status=} {info['cached']=} {req_cpu=}, {req_mem_gb=}, {req_minutes=}, {return_code=}"
+                )
 
                 if rows:
                     (
@@ -410,6 +459,7 @@ class TaskLog:
                         output_dir_size,
                     ) = rows[0]
 
+                    log_entry.job_id = job_id
                     log_entry.queue_start = queue_start
                     log_entry.run_start = run_start
                     log_entry.run_end = run_end
@@ -437,6 +487,8 @@ class TaskLog:
         """
         updates = []
         rows = self.select()
+        self.logger.debug(f"### {self.cromwell_run_id=}")
+        self.logger.debug(f"### prepare metadata {rows=}")
         for row in rows:
             (
                 row_id,
@@ -459,7 +511,7 @@ class TaskLog:
             ) = row
             if task_dir not in summary:
                 continue
-
+            self.logger.debug(f"summary: {summary[task_dir]}")
             status = "cancelled"
             self.logger.debug(f"Task status: {summary[task_dir]['execution_status']}")
             if summary[task_dir]["execution_status"] == "Done":
@@ -490,20 +542,24 @@ class TaskLog:
                 self.logger.debug(
                     f"Error getting requested_runtime_minutes for {task_dir}: {error}"
                 )
-            job_id = summary[task_dir].get("job_id", None)
+
+            b_cached = bool(summary[task_dir]["cached"])
+
+            if not b_cached:
+                job_id = summary[task_dir].get("job_id", None)
 
             # metadata's return_code is None mostly as expandSubWorkflows=0
             # return_code_meta = summary[task_dir].get("return_code", None)
             # tasks table's return_code is updated whenever a task is completed
             # from the rc file
 
-            self.logger.debug(f"Task id: {row_id}, status: {status}")
+            self.logger.debug(f"Task id: {job_id}, status: {status}")
 
             update = {
                 "id": row_id,
                 "job_id": job_id,
                 "status": status,
-                "cached": bool(summary[task_dir]["cached"]),
+                "cached": b_cached,
                 "name": summary[task_dir]["name"],
                 "req_cpu": req_cpu,
                 "req_mem_gb": req_mem_gb,
