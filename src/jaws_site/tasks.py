@@ -6,6 +6,7 @@ import pytz
 from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql.expression import false
 from typing import Optional
 
 from jaws_site import models
@@ -135,6 +136,7 @@ class TaskLog:
             query = (
                 self.session.query(models.Tasks)
                 .filter(models.Tasks.cromwell_run_id == self.cromwell_run_id)
+                .filter(models.Tasks.cached == false())
                 .order_by(models.Tasks.id)
             )
         except NoResultFound:
@@ -328,9 +330,7 @@ class TaskLog:
                 # cromwell run id for the cache hit task
                 cache_hit_task_cromwell_run_id = info["cache_hit_task_cromwell_run_id"]
                 cached_task_name = info["name"]
-                self.logger.debug(
-                    f"### {cache_hit_task_cromwell_run_id=} {cached_task_name=}"
-                )
+                rows = None
 
                 if (
                     cache_hit_task_cromwell_run_id is not None
@@ -341,35 +341,18 @@ class TaskLog:
                     prev_cromwell_run_id = self.select_cached_task(
                         cache_hit_task_cromwell_run_id, cached_task_name
                     )
-                    self.logger.debug(f"### {prev_cromwell_run_id=}")
-
                     if prev_cromwell_run_id is not None:
                         # Retieve table row with prev_cromwell_run_id and
-                        rows = None
                         if prev_cromwell_run_id is not None:
                             rows = self.select(
                                 cromwell_run_id=prev_cromwell_run_id,
                                 task_name=cached_task_name,
                             )
                         if rows:
-                            self.logger.debug(
+                            self.logger.info(
                                 f"Cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
                             )
-                            self.logger.debug(f"{rows}")
-                            # Extract cached task info
-                            # task_entry = models.Tasks(
-                            #     queue_start=task.get("queue_start"),
-                            #     run_start=task.get("run_start"),
-                            #     run_end=task.get("run_end"),
-                            #     queue_minutes=task.get("queue_minutes"),
-                            #     run_minutes=task.get("run_minutes"),
-                            #     name=task.get("name"),
-                            #     input_dir_size=task.get("input_dir_size"),
-                            #     output_dir_size=task.get("output_dir_size"),
-                            #     cpu_hours
-                            #     input_dir_size
-                            #     output_dir_size
-                            # )
+                            self.logger.info(f"{rows=}")
                 else:
                     self.logger.warning(
                         f"Can't find cached task's info for cromwell id, {cache_hit_task_cromwell_run_id}"
@@ -405,6 +388,35 @@ class TaskLog:
                     req_minutes=req_minutes,
                     return_code=return_code,
                 )
+
+                if rows:
+                    (
+                        row_id,
+                        task_dir,
+                        job_id,
+                        status,
+                        queue_start,
+                        run_start,
+                        run_end,
+                        queue_minutes,
+                        run_minutes,
+                        cached,
+                        name,
+                        req_cpu,
+                        req_mem_gb,
+                        req_minutes,
+                        return_code,
+                        input_dir_size,
+                        output_dir_size,
+                    ) = rows[0]
+
+                    log_entry.queue_start = queue_start
+                    log_entry.run_start = run_start
+                    log_entry.run_end = run_end
+                    log_entry.queue_minutes = queue_minutes
+                    log_entry.run_minutes = run_minutes
+                    log_entry.input_dir_size = input_dir_size
+                    log_entry.output_dir_size = output_dir_size
 
                 self.session.add(log_entry)
 
@@ -447,7 +459,7 @@ class TaskLog:
             ) = row
             if task_dir not in summary:
                 continue
-            self.logger.debug(f"summary: {summary[task_dir]}")
+
             status = "cancelled"
             self.logger.debug(f"Task status: {summary[task_dir]['execution_status']}")
             if summary[task_dir]["execution_status"] == "Done":
