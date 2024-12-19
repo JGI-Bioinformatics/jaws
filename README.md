@@ -6,89 +6,39 @@
 Full [documentation](https://jaws-docs.readthedocs.io) for running and installing JAWS is located here.
 
 
-### Resources for JAWS Developers
+# JAWS Site Services
+The JAWS Site Services is a Python-based system that facilitates the management 
+of file transfers, monitors and logs Cromwell WDL (Workflow Description Language) workflows, and handles messaging 
+between JAWS Central and compute sites. Designed for scalability and reliability, it ensures seamless communication 
+and processing for distributed bioinformatics workflows.
 
-### Installing JAWS site
-See docs/install_Cli_and_Site.md
-See docs/startingServices.md
+JAWS Site is our name for a collection of services that consist of the following:
+- RPC server (Handles RPC messages from JAWS Centra (Handles RPC messages from JAWS Centra (Handles RPC messages from JAWS Centra (Handles RPC messages from JAWS Central))))
+- Run daemon (monitors Cromwell runs and their status)
+- Transfer daemon (monitors and transfers data either locally or via gLOBUS)
+- Pool manager daemon (monitors condor queue for tasks and submits to Slurm)
+- Task logger message consumer (keeps track of task logs)
 
-#### Local Development
+## Getting Started
+Prerequisites: 
+- Python 3.10 >=, 
+- RabbitMQ
+- MySQL
+- [Cromwell](https://github.com/broadinstitute/cromwell)
+- [PDM](https://pdm-project.org/latest/)
 
-```bash
-cd jaws-site/
-podman machine init -v $HOME:HOME --cpus 2 --memory 8192
-podman machine start
-make up-dev
-```
+### Installation
+1. Clone Repository 
+    `git clone https://code.jgi.doe.gov/advanced-analysis/jaws-site.git`
+2. Install dependencies
+    `pdm install`  
+    This will: 
+      - Install all dependencies specified in the pyproject.toml file.
+      - Create and use a virtual environment automatically (if PDM’s virtualenv support is enabled).
+3. Verify installation
+   `jaws-site -h`
 
-### Requirements
-
-An AMQP service (e.g. RabbitMQ) and relational database (e.g. MySQL) are required.  Central and each Site may have their own.  Services don't cross-talk to other databases.
-
-#### RabbitMQ
-
-Requires one user "jaws" that is used for all deployments (e.g. dev/staging/prod).  Deployments are given separate namespaces by defining distinct vhosts:
-
-  - jaws_(DEPLOYMENT_NAME)
-
-e.g jaws_dev, jaws_staging, jaws_prod
-
-Queues are automatically defined by the deployment scripts and don't need to be created in the RMQ admin pages.  Only the user and vhosts needs to be created outside of the JAWS CI/CD.
-
-
-#### MySQL
-
-Requires one user "jaws" that is used for all deployments (e.g. dev/staging/prod).  There are separate databases for each service/deployment:
-
-  - cromwell_(SITE_NAME)_(DEPLOYMENT_NAME)
-  - jaws_(SITE_NAME)_(DEPLOYMENT_NAME)
-
-e.g. jaws_cori_dev, cromwell_cori_dev, ...
-
-Additional, jaws-central requires:
-
-  - jaws_central_(DEPLOYMENT_NAME)
-
-e.g. jaws_central_dev, jaws_central_staging, jaws_central_prod
-
-
-
-
-### cromwell-utils
-Example installing cromwell-utils using build mode
-
-```
-# do this once
-module load python/3.7
-python -m venv ~/cromvenv
-cd <path_to_repo>/jaws/cromwell_utilities/
-python setup.py [develop|build]
-pip install .  # run this if you used build in last step
-
-# now do this every time
-export TMPDIR=/"global/scratch/$USER"
-export CROMWELL_URL=localhost:50010
-source ~/cromvenv/bin/activate
-cromwell-utils
-```
-
-## Local Development
-
-Please see the detailed instructions in the local_development.md file in this repository.
-
-## Pip-tools and pyproject.toml
-`pyproject.toml` is the latest standard in configuring Python projects. JAWS has moved over to this over
-`setup.py` but installing this project remains the same. There are two requirements files, `dev-requirements.txt` and
-`requirements.txt`, which contain the pinned versions of JAWS dependencies. These two files were generated using [pip-tools](https://github.com/jazzband/pip-tools) as recommended by the [Python Packaging Guide](https://packaging.python.org/en/latest/guides/tool-recommendations/).
-
-To generate these files you will want to first install pip-tools and then run `pip-compile -o requirements.txt pyproject.toml`.
-The `pip-compile` command will then resolve the dependencies declared in `pyproject.toml` into the output file. You can
-install these dependencies either using `pip install -r requirements.txt` or using `pip-sync`
-
-Since setup.py is removed, you can no longer run `python setup.py install`. These calls have been deprecated in favor
-of installing projects with `pip install .` There is an interesting discussion in this [post](https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html).
-
-
+   
 ## Contributing
 Developers
 * Edward Kirton
@@ -118,3 +68,6 @@ System and integration testing
 Functional design consulting, project and resource coordination
 * Kjiersten Fagnan
 * Stephan Chan
+
+## License
+This project is licensed under the [BSD License](LICENSE)
