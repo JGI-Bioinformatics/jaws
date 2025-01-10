@@ -61,9 +61,16 @@ def cli(config_file: str, log_file: str, log_level: str, env_override: str):
 
     from jaws_site import models
     from jaws_site.database import engine
+    from jaws_site.models import create_index_if_not_exists
 
     try:
         models.Base.metadata.create_all(bind=engine)
+
+        # Indexes task_dir in the event the table already exists. We currently do not use schema migrations, so
+        # this is a workaround to ensure the index is created.
+        create_index_if_not_exists("idx_tasks_task_dir",
+                                   "tasks",
+                                   "task_dir", engine)
     except Exception as error:
         logger.exception(f"Failed to create db tables: {error}")
 
