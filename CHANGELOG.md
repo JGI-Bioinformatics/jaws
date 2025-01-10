@@ -4,6 +4,7 @@
 # 2.4.0 Summary [11/13/2024 - staging]
 
 ### External Facing Changes
+- Keep making other supplementary files even if one failure happens (#1864)
 - Retry local transfer on IO errors (#1850)
 - Restrict permissions for perlmutter, nmdc, and kbase sites (#1850)
 - Add better error message when inputs are defined as "String" but start with path-like syntax "./sample.fastq" (#1853)
