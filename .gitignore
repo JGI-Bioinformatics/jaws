@@ -142,3 +142,12 @@ package-lock.json
 # direnv
 .direnv
 .envrc
+
+# pytest-coverage
+*.xml
+
+# MacOS
+.DS_Store
+
+# pdm
+.pdm-python
