@@ -1,7 +1,7 @@
 # Changelog
 # Inbound changes not assigned to version # yet
 
-# 2.4.0 Summary [11/13/2024 - staging]
+# 2.4.0 Summary [12/11/2024 - staging]
 
 ### External Facing Changes
 - Keep making other supplementary files even if one failure happens (#1864)
