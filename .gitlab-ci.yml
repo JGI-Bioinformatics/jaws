@@ -355,6 +355,7 @@ deploy-jaws-defiant-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-defiant-prod:
@@ -388,6 +389,7 @@ deploy-jaws-jgi-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-jgi-prod:
@@ -421,6 +423,7 @@ deploy-jaws-tahoma-staging:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-tahoma-prod:
@@ -454,6 +457,7 @@ deploy-jaws-nmdc-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-nmdc-prod:
@@ -487,6 +491,7 @@ deploy-jaws-kbase-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-kbase-prod:
@@ -516,8 +521,8 @@ deploy-jaws-perlmutter-staging:
     name: "perlmutter/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
     - if: $RUN_END_TO_END_PROD == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
 
 deploy-jaws-perlmutter-prod:
   extends: .perlmutter-deployment
@@ -553,8 +558,8 @@ deploy-jaws-dori-staging:
     - if: "$CI_PIPELINE_SOURCE == 'merge_request_event'"
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
-      when: manual
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-dori-prod:
@@ -590,6 +595,7 @@ deploy-jaws-nmdc-tahoma-staging:
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
     - if: $RUN_END_TO_END_STAGING == 'true'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-nmdc-tahoma-dev:
