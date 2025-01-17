@@ -1,12 +1,17 @@
 # Changelog
 # Inbound changes not assigned to version # yet
 
+# 2.4.0 Summary [12/11/2024 - staging]
+
 ### External Facing Changes
+- Keep making other supplementary files even if one failure happens (#1864)
+- Retry local transfer on IO errors (#1850)
+- Restrict permissions for perlmutter, nmdc, and kbase sites (#1850)
 - Add better error message when inputs are defined as "String" but start with path-like syntax "./sample.fastq" (#1853)
 
 ### Internal Facing Changes
 
-# 2.3.0 Summary [PROD 11/13/2024 ]
+# 2.3.1 Summary [PROD 11/13/2024 ]
 - Increase num of active runs to 200
 
 # 2.3.0 Summary [10/14/2024 - staging // PROD 11/12/2024 ]

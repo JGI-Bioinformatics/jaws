@@ -877,7 +877,6 @@ class Run:
                 f"Run {self.data.id}: Failed to generate errors report: {error}"
             )
             self.update_run_status("complete", "Failed to generate errors report")
-            return
         else:
             errors_file = os.path.join(root, "errors.json")
             logger.debug(f"Run {self.data.id}: Writing {errors_file}")
@@ -891,7 +890,6 @@ class Run:
                 f"Run {self.data.id}: Failed to generate outputs file: {error}"
             )
             self.update_run_status("complete", "Failed to generate outputs file")
-            return
         else:
             outputs_file = os.path.join(root, "outputs.json")
             logger.debug(f"Run {self.data.id}: Writing {outputs_file}")
@@ -905,7 +903,6 @@ class Run:
                 f"Run {self.data.id}: Failed to generate outfiles file: {error}"
             )
             self.update_run_status("complete", "Failed to generate outfiles file")
-            return
         else:
             outfiles_file = os.path.join(root, "outfiles.json")
             logger.debug(f"Run {self.data.id}: Writing {outfiles_file}")
@@ -919,7 +916,6 @@ class Run:
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to update task-log: {error}")
             self.update_run_status("complete", "Failed to update task-log")
-            return
 
         # write task log
         try:
@@ -927,7 +923,6 @@ class Run:
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to generate task-log: {error}")
             self.update_run_status("complete", "Failed to generate task-log")
-            return
         else:
             task_log_file = os.path.join(root, "tasks.json")
             logger.debug(f"Run {self.data.id}: Writing {task_log_file}")
@@ -942,7 +937,6 @@ class Run:
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to generate summary: {error}")
             self.update_run_status("complete", "Failed to generate summary")
-            return
         else:
             summary_file = os.path.join(root, "summary.json")
             logger.debug(f"Run {self.data.id}: Writing {summary_file}")
