@@ -523,6 +523,7 @@ deploy-jaws-perlmutter-staging:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END_PROD == 'true'
     - if: '$CI_COMMIT_BRANCH == "main"'
+  allow_failure: true
 
 deploy-jaws-perlmutter-prod:
   extends: .perlmutter-deployment
