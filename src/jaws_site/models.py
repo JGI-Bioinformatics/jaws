@@ -1,7 +1,6 @@
 """
 SQLAlchemy models for persistent data structures.
 """
-import sqlalchemy
 
 from sqlalchemy import (
     BigInteger,
@@ -15,8 +14,6 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
-from sqlalchemy.schema import Index
-from sqlalchemy import inspect
 from datetime import datetime
 
 from jaws_site.database import Base
@@ -35,26 +32,6 @@ def same_as(column_name: str):
         return context.current_parameters.get(column_name)
 
     return default_function
-
-
-def create_index_if_not_exists(index_name: str, table_name: str, col_name: str, engine: sqlalchemy.engine.base.Engine):
-
-    """Create an index if it does not already exist.
-
-    :param index_name: name of the index
-    :type index_name: str
-    :param table_name: name of the table
-    :type table_name: str
-    :para col_name: name of the column
-    :type col_name: str
-    :param engine: SQLAlchemy engine
-    :type engine: sqlalchemy.engine.base.Engine
-    """
-
-    inspector = inspect(engine)
-    indexes = inspector.get_indexes(table_name)
-    if index_name not in [index["name"] for index in indexes]:
-        Index(index_name, getattr(Base.metadata.tables[table_name].c, col_name)).create(engine)
 
 
 class Run(Base):
