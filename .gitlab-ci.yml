@@ -554,7 +554,6 @@ deploy-jaws-dori-staging:
       variables:
         JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
     - if: $RUN_END_TO_END_STAGING == 'true'
-    - if: '$CI_COMMIT_BRANCH == "main"'
   allow_failure: true
 
 deploy-jaws-dori-prod:
