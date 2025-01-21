@@ -354,7 +354,6 @@ deploy-jaws-defiant-staging:
     name: "defiant/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-defiant-prod:
@@ -387,7 +386,6 @@ deploy-jaws-jgi-staging:
     name: "jgi/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-jgi-prod:
@@ -420,7 +418,6 @@ deploy-jaws-tahoma-staging:
     name: "tahoma/staging"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
-    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-tahoma-prod:
@@ -453,7 +450,6 @@ deploy-jaws-nmdc-staging:
     name: "nmdc/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-nmdc-prod:
@@ -486,7 +482,6 @@ deploy-jaws-kbase-staging:
     name: "kbase/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-kbase-prod:
@@ -588,7 +583,6 @@ deploy-jaws-nmdc-tahoma-staging:
     name: "nmdc-tahoma/staging"
   rules:
     - if: '$CI_COMMIT_BRANCH =~ /^release/'
-    - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
 deploy-jaws-nmdc-tahoma-dev:
