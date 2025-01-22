@@ -912,7 +912,10 @@ class Run:
         try:
             task_log = self.task_log()
             task_summary_dict = metadata.task_summary_dict()
-            task_log.add_metadata(task_summary_dict)
+            logger.debug(f"### {str(task_summary_dict)=}")
+            logger.debug(f"### {metadata.workflow_root()=}")
+            task_log.add_metadata(metadata.workflow_root(), task_summary_dict)
+            # task_log.add_metadata(task_summary_dict)
         except Exception as error:
             logger.error(f"Run {self.data.id}: Failed to update task-log: {error}")
             self.update_run_status("complete", "Failed to update task-log")
