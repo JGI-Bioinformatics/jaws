@@ -490,13 +490,16 @@ deploy-jaws-kbase-staging:
   allow_failure: true
 
 deploy-jaws-kbase-prod:
-    extends: .kbase-perlmutter-deployment
-    stage: release-jaws
-    variables:
-        JAWS_DEPLOYMENT_NAME: "prod"
-    environment:
-        name: "kbase/production"
-    when: manual
+  extends: .kbase-perlmutter-deployment
+  stage: release-jaws
+  variables:
+    JAWS_DEPLOYMENT_NAME: "prod"
+  environment:
+    name: "kbase/production"
+  rules:
+    - if: "$CI_COMMIT_BRANCH =~ /^release/"
+      when: manual
+    - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-perlmutter-dev:
   extends: .perlmutter-deployment
@@ -516,7 +519,6 @@ deploy-jaws-perlmutter-staging:
     name: "perlmutter/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-      when: manual
     - if: $RUN_END_TO_END_PROD == 'true'
 
 deploy-jaws-perlmutter-prod:
@@ -550,10 +552,10 @@ deploy-jaws-dori-staging:
     name: "dori/staging"
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
-    - if: "$CI_PIPELINE_SOURCE == 'merge_request_event'"
-      variables:
-        JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
-      when: manual
+#    - if: "$CI_PIPELINE_SOURCE == 'merge_request_event'"
+#      variables:
+#        JAWS_SITE_VERSION: "mr-$CI_MERGE_REQUEST_IID"
+#      when: manual
     - if: $RUN_END_TO_END_STAGING == 'true'
   allow_failure: true
 
