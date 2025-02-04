@@ -62,15 +62,11 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
     while attempts < max_attempts:
         try:
             if dest_path.exists() and filecmp.cmp(source, destination):
-                dest_path.chmod(file_mode)
-                dest_path.parent.chmod(dir_mode)
                 return True
             if not dest_path.parent.exists():
                 dest_path.parent.mkdir(parents=True, exist_ok=True, mode=dir_mode)
-                dest_path.parent.chmod(dir_mode)
             if dest_path.is_dir():
                 dest_path.mkdir(exist_ok=True, mode=dir_mode)
-                dest_path.chmod(dir_mode)
             else:
                 shutil.copy(source, str_dest)
             return True
