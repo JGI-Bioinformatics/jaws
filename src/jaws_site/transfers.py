@@ -49,7 +49,7 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
         If an error occurs during file copy.
     """
 
-    src_path = pathlib.Path(source)
+    # src_path = pathlib.Path(source)
 
     dest_path = pathlib.Path(destination).resolve()
 
