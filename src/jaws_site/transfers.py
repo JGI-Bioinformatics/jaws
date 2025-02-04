@@ -52,6 +52,7 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
     # src_path = pathlib.Path(source)
 
     dest_path = pathlib.Path(destination).resolve()
+    str_dest = str(dest_path)
 
     attempts = 0
     max_attempts = 3
@@ -62,18 +63,18 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
         try:
             if dest_path.exists() and filecmp.cmp(source, destination):
                 dest_path.chmod(file_mode)
-                dest_path.parent.chmod(dir_mode)
+                os.chmod(str_dest, file_mode)
+                os.chmod(str(dest_path.parent), dir_mode)
                 return True
             if not dest_path.parent.exists():
                 dest_path.parent.mkdir(parents=True, exist_ok=True, mode=dir_mode)
-                dest_path.parent.chmod(dir_mode)
+                os.chmod(str_dest, dir_mode)
             if dest_path.is_dir():
                 dest_path.mkdir(exist_ok=True, mode=dir_mode)
-                dest_path.chmod(dir_mode)
+                os.chmod(str_dest, dir_mode)
             else:
-                str_dest = str(dest_path)
                 shutil.copy2(source, str_dest)
-                dest_path.chmod(file_mode)
+                os.chmod(str_dest, file_mode)
             return True
         except Exception as e:
             attempts += 1
