@@ -1,7 +1,7 @@
 export JAWS_INSTALL_BASEDIR="/global/cfs/cdirs/kbase/jaws"
 export JAWS_GLOBUS_EP="952404ff-b87d-4ed9-be8a-8e044c1d33ac"
 export JAWS_GLOBUS_HOST_PATH="/"
-export JAWS_LOAD_PYTHON="module load cray-python/3.11.5"
+export JAWS_LOAD_PYTHON="module load python/3.11"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="kbjaws"
 export JAWS_USERS_GROUP="kbase"
