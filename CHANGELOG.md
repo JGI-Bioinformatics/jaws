@@ -7,6 +7,7 @@
 # 2.5.0 Summary [02/01/2025 - staging]
 
 ### External Facing Changes
+- Fixed JAWS Tasks folder permissions fir group (#1857).
 
 ### Internal Facing Changes
 - Turn off setfacl in dori site (#1869)
