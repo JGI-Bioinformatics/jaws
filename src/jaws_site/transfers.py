@@ -55,9 +55,9 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
 
     attempts = 0
     max_attempts = 3
-    if src_path.samefile(dest_path):
-        logger.info("source and destination are same file")
-        return True
+    # if src_path.samefile(dest_path):
+    #     logger.info("source and destination are same file")
+    #     return True
     while attempts < max_attempts:
         try:
             if dest_path.exists() and filecmp.cmp(source, destination):
@@ -71,7 +71,8 @@ def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> b
                 dest_path.mkdir(exist_ok=True, mode=dir_mode)
                 dest_path.chmod(dir_mode)
             else:
-                shutil.copy2(source, str(dest_path))
+                str_dest = str(dest_path)
+                shutil.copy2(source, str_dest)
                 dest_path.chmod(file_mode)
             return True
         except Exception as e:
