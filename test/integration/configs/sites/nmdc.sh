@@ -2,7 +2,7 @@
 export JAWS_INSTALL_BASEDIR="/global/cfs/cdirs/m3408/jaws-install"
 export JAWS_GLOBUS_EP="9bfa16b3-1b03-4686-9361-d502a3aa1eda"
 export JAWS_GLOBUS_HOST_PATH="/"
-export JAWS_LOAD_PYTHON="module load cray-python/3.11.5"
+export JAWS_LOAD_PYTHON="module load python/3.11"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="nmjaws"
 export JAWS_USERS_GROUP="m3408"

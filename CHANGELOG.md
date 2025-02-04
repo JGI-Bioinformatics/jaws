@@ -11,6 +11,7 @@
 ### Internal Facing Changes
 - Turn off setfacl in dori site (#1869)
 - Fix: Only create index with message-consumer (#1867).
+- Updated python version for NERSC sites: python/3.11 (#1874).
 
 # 2.4.0 Summary [12/11/2024 - staging // PROD 01/16/2025]
 
