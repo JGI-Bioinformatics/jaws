@@ -190,11 +190,10 @@ variables:
     https_proxy: "http://proxy.alcf.anl.gov:3128"
     ftp_proxy: "http://proxy.alcf.anl.gov:3128"
     JAWS_SITE_NAME: "CRUX"
-    CONTAINER_RUNTIME: "apptainer"
   <<: *supervisor-stop
   script:
     - *check-vm-connections
-    - "./test/integration/deploy.sh supervisor $CONTAINER_RUNTIME-run $JAWS_SITE_VERSION"
+    - "./test/integration/deploy.sh supervisor venv $JAWS_SITE_VERSION"
 
 .kbase-perlmutter-deployment:
   stage: deploy-jaws
