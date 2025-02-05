@@ -1,7 +1,7 @@
 export JAWS_INSTALL_BASEDIR="/eagle/IRIBeta/jgi/software"
 export JAWS_GLOBUS_EP="9eb0a185-d1bb-460f-8700-066cc9cf04ae"
 export JAWS_GLOBUS_HOST_PATH="/eagle/IRIBeta/jgi/scratch"
-export JAWS_LOAD_PYTHON=""
+export JAWS_LOAD_PYTHON="module load cray-python/3.11.7"
 export JAWS_PYTHON="python"
 export JAWS_GROUP="IRIBeta"
 export JAWS_USERS_GROUP=""
