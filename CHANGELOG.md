@@ -3,8 +3,9 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- fix permission for jaws site inputs folder (#1875).
 
-# 2.5.0 Summary [02/01/2025 - staging]
+# 2.5.0 Summary [02/01/2025 - staging // PROD 02/04/2025]
 
 ### External Facing Changes
 - Fixed JAWS Tasks folder permissions fir group (#1857).

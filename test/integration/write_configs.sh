@@ -13,13 +13,11 @@ function write_jaws_configs {
   envsubst < "$DIR/templates/supervisorctl.sh" > "$JAWS_BIN_DIR/supervisorctl"
   chmod 700 $JAWS_BIN_DIR/*
 
-  if [[ "$JAWS_SETFACL" -eq 1 ]]; then
-      echo "Setup file ACL rules"
-      FACL_SCRIPT="$JAWS_SCRATCH_DIR/setup_facl.sh"
-      envsubst < "$DIR/templates/setup_facl.sh" > "$FACL_SCRIPT"
-      chmod 700 "$FACL_SCRIPT"
-      "$FACL_SCRIPT"
-  fi
+  echo "Setup file PERMS and ACL rules"
+  PERMS_FACL_SCRIPT="$JAWS_SCRATCH_DIR/setup_perms_facl.sh"
+  envsubst < "$DIR/templates/setup_perms_facl.sh" > "$PERMS_FACL_SCRIPT"
+  chmod 700 "$PERMS_FACL_SCRIPT"
+  "$PERMS_FACL_SCRIPT"
 }
 
 function write_supervisor_configs {
