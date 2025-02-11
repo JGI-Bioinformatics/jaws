@@ -3,6 +3,10 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+
+## 2.5.1 Summary [02/011/2025 - staging // 02/11/2025 - PROD]
+
+### Internal Facing Changes
 - fix permission for jaws site inputs folder (#1875).
 
 # 2.5.0 Summary [02/01/2025 - staging // PROD 02/04/2025]
