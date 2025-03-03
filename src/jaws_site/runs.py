@@ -104,32 +104,28 @@ class Run:
             "complete": self.publish_report,
             "cancel": self.cancel,
         }
-        self.central_rpc_client = (
-            kwargs["central_rpc_client"] if "central_rpc_client" in kwargs else None
-        )
-        self.reports_rpc_client = (
-            kwargs["reports_rpc_client"] if "reports_rpc_client" in kwargs else None
-        )
+        self.central_rpc_client = kwargs.get("central_rpc_client")
+        self.reports_rpc_client = kwargs.get("reports_rpc_client")
 
         try:
             self.config = {
-                "site_id": config.conf.get("SITE", "id"),
-                "inputs_dir": config.conf.get("SITE", "inputs_dir"),
-                "default_container": config.conf.get(
+                "site_id": kwargs.get("site_id", config.conf.get("SITE", "id")),
+                "inputs_dir": kwargs.get("inputs_dir", config.conf.get("SITE", "inputs_dir")),
+                "default_container": kwargs.get("default_container", config.conf.get(
                     "SITE", "default_container", "ubuntu:latest"
-                ),
-                "max_user_active_runs": int(
+                )),
+                "max_user_active_runs": kwargs.get("max_user_active_runs", int(
                     config.conf.get("SITE", "max_user_active_runs", 0)
-                ),
-                "aws_access_key_id": config.conf.get("AWS", "aws_access_key_id"),
-                "aws_region_name": config.conf.get("AWS", "aws_region_name"),
-                "aws_secret_access_key": config.conf.get(
+                )),
+                "aws_access_key_id": kwargs.get("aws_access_key_id", config.conf.get("AWS", "aws_access_key_id")),
+                "aws_region_name": kwargs.get("aws_region_name", config.conf.get("AWS", "aws_region_name")),
+                "aws_secret_access_key": kwargs.get("aws_secret_access_key", config.conf.get(
                     "AWS", "aws_secret_access_key"
-                ),
-                "cromwell_url": config.conf.get("CROMWELL", "url"),
-                "cromwell_executions_dir": config.conf.get(
+                )),
+                "cromwell_url": kwargs.get("cromwell_url", config.conf.get("CROMWELL", "url")),
+                "cromwell_executions_dir": kwargs.get("cromwell_executions_dir", config.conf.get(
                     "CROMWELL", "executions_dir"
-                ),
+                )),
             }
         except Exception as error:
             logger.error(f"Error loading config: {error}")
@@ -392,7 +388,11 @@ class Run:
         if self.config["inputs_dir"].startswith("s3://"):
             return self._read_file_s3(path, binary)
         else:
-            return self._read_file_nfs(path, binary)
+            try:
+                return self._read_file_nfs(path, binary)
+            except PermissionError as error:
+                logger.error(f"Run {self.data.id}: Unable to read {path}: {error}")
+                raise
 
     def _read_json_file(self, path) -> dict:
         """
@@ -414,10 +414,13 @@ class Run:
 
     @staticmethod
     def _write_file_nfs(path: str, content: str):
-        with open(path, "w") as fh:
-            fh.write(content)
+        try:
+            with open(path, "w") as fh:
+                fh.write(content)
+        except PermissionError as error:
+            logger.error(f"Could not write to {path}: {error}")
+            raise
 
-    # TODO SWITCH FROM KWARGS TO CONF
     def _write_file(self, path: str, contents: str, **kwargs):
         """
         Write contents to NFS or S3 file.
@@ -519,7 +522,9 @@ class Run:
                 self.config["inputs_dir"], f"{self.data.submission_id}.zip"
             )
             sub = self._read_file(path, True)
-        except Exception:
+        except OSError as error:
+            logger.warning(f"Run {self.data.id}: No subworkflows found at {path}")
+            logger.debug(f"Run {self.data.id}: received error {error}", exc_info=True)
             pass  # subworkflows are optional
         else:
             file_handles["subworkflows"] = sub

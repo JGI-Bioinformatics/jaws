@@ -882,3 +882,13 @@ def test_rel_to_abs(mock_sqlalchemy_session, monkeypatch):
     run = Run(mock_sqlalchemy_session, initRunModel())
     actual = run.rel_to_abs(test_inputs, test_site_inputs_dir)
     assert bool(DeepDiff(actual, expected, ignore_order=True)) is False
+
+
+def test_read_inputs_error(mock_sqlalchemy_session, monkeypatch, tmp_path):
+    wrong_permissions = tmp_path / "1234.json"
+    wrong_permissions.write_text("{}")
+    run_model = initRunModel(status="succeeded", submission_id="1234")
+    run = Run(mock_sqlalchemy_session, run_model, inputs_dir=tmp_path.as_posix(), run_id=1234)
+    with patch("builtins.open", side_effect=PermissionError):
+        with pytest.raises(PermissionError):
+            run.read_inputs()
