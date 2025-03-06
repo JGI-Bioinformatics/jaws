@@ -42,7 +42,7 @@ function install_jaws_site {
       ;;
     "apptainer")
       login_gitlab_registry "oras://$CI_REGISTRY"
-      pull_container "oras://$CI_REGISTRY" "advanced-analysis/jaws-site" "$version"
+      pull_container "oras://$CI_REGISTRY" "advanced-analysis/jaws/jaws-site" "$version"
       ;;
     *)
       echo "Unknown install method: $install_method"

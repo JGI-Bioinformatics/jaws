@@ -21,7 +21,7 @@ authors = [
 ]
 
 dependencies = [
-    "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git#egg=main",
+    "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-common.git#egg=main",
     "amqpstorm>=2.10.7",
     "click>=8.1.7",
     "deepdiff>=7.0.1",
@@ -58,8 +58,8 @@ dev = [
 jaws-site = "jaws_site.cli:jaws"
 
 [project.urls]
-repository = "https://library.jgi.doe.gov/advanced-analysis/jaws-site"
-changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws-site/-/blob/main/CHANGELOG.md"
+repository = "https://library.jgi.doe.gov/advanced-analysis/jaws/jaws-site"
+changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site/-/blob/main/CHANGELOG.md"
 documentation = "https://jaws-docs.readthedocs.io/en/latest/"
 
 

@@ -1,6 +1,6 @@
 # Documentation for JGI Analysis Workflow Service (JAWS)
 
-[![pipeline status](https://code.jgi.doe.gov/advanced-analysis/jaws-site/badges/main/pipeline.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws-site/commits/main) [![coverage report](https://code.jgi.doe.gov/advanced-analysis/jaws-site/badges/main/coverage.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws-site/commits/main)
+[![pipeline status](https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site/badges/main/pipeline.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site/commits/main) [![coverage report](https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site/badges/main/coverage.svg)](https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site/commits/main)
 
 ### Resources for JAWS Users
 Full [documentation](https://jaws-docs.readthedocs.io) for running and installing JAWS is located here.
@@ -29,7 +29,7 @@ Prerequisites:
 
 ### Installation
 1. Clone Repository 
-    `git clone https://code.jgi.doe.gov/advanced-analysis/jaws-site.git`
+    `git clone https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site.git`
 2. Install dependencies
     `pdm install`  
     This will: 

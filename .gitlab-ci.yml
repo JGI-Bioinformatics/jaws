@@ -9,7 +9,7 @@ stages:
   - release-jaws
 
 include:
-  - project: "advanced-analysis/ci-templates"
+  - project: "advanced-analysis/jaws/ci-templates"
     ref: "main"
     file: "Code-Quality.gitlab-ci.yml"
 

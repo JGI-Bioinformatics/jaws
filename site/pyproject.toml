@@ -20,7 +20,7 @@ authors = [
 requires-python = ">=3.9,<3.12"
 
 dependencies = [
-    "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git#egg=main",
+    "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-common.git#egg=main",
     "AMQPStorm",
     "boto3",
     "click",
@@ -45,8 +45,8 @@ dependencies = [
 dev = ["pytest", "requests-mock", "pytest-cov", "flake8", "deepdiff"]
 
 [project.urls]
-repository = "https://library.jgi.doe.gov/advanced-analysis/jaws-site"
-changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws-site/-/blob/main/CHANGELOG.md"
+repository = "https://library.jgi.doe.gov/advanced-analysis/jaws/jaws-site"
+changelog = "https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-site/-/blob/main/CHANGELOG.md"
 documentation = "https://jaws-docs.readthedocs.io/en/latest/"
 
 [project.scripts]
