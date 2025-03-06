@@ -138,7 +138,7 @@ def test_env_override(config_file):
         pass
 
     # Check for case of env prefix set, but no variables match based on
-    # https://code.jgi.doe.gov/advanced-analysis/jaws-central/-/issues/7
+    # https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-central/-/issues/7
     cfg = jaws_site.config.Configuration(config_path, "ENV__")
     # Clear any pre-existing env vars
     try:

@@ -28,7 +28,7 @@ graphql-core==3.2.3
 greenlet==3.0.3; (platform_machine == "win32" or platform_machine == "WIN32" or platform_machine == "AMD64" or platform_machine == "amd64" or platform_machine == "x86_64" or platform_machine == "ppc64le" or platform_machine == "aarch64") and python_version < "3.13"
 idna==3.7
 iniconfig==2.0.0
-jaws-common @ git+https://code.jgi.doe.gov/advanced-analysis/jaws-common.git@443ba6eea1cea1c91ae2693e27cdfc78532ff844
+jaws-common @ git+https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-common.git@443ba6eea1cea1c91ae2693e27cdfc78532ff844
 jinja2==3.1.4
 jmespath==1.0.1
 joserfc==0.12.0
