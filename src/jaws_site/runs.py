@@ -522,7 +522,7 @@ class Run:
                 self.config["inputs_dir"], f"{self.data.submission_id}.zip"
             )
             sub = self._read_file(path, True)
-        except OSError as error:
+        except Exception as error:
             logger.warning(f"Run {self.data.id}: No subworkflows found at {path}")
             logger.debug(f"Run {self.data.id}: received error {error}", exc_info=True)
             pass  # subworkflows are optional
