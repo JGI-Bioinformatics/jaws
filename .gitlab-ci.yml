@@ -501,6 +501,8 @@ deploy-jaws-dori-staging:
   rules:
     - if: "$CI_COMMIT_BRANCH =~ /^release/"
     - if: $RUN_END_TO_END_STAGING == 'true'
+      variables:
+        JAWS_SITE_VERSION: "latest"
   allow_failure: true
 
 deploy-jaws-dori-prod:
