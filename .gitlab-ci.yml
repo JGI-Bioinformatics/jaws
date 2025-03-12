@@ -489,8 +489,8 @@ deploy-jaws-dori-dev:
     JAWS_SITE_VERSION: "dev"
   environment:
     name: "dori/dev"
-  rules:
-    - if: '$CI_COMMIT_TAG == "dev"'
+  #rules:
+    #- if: '$CI_COMMIT_TAG == "dev"'
 
 deploy-jaws-dori-staging:
   extends: .dori-deployment
