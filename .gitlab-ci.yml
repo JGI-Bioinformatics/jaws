@@ -541,6 +541,7 @@ deploy-jaws-nmdc-tahoma-dev:
   extends: .nmdc_tahoma-deployment
   variables:
     JAWS_DEPLOYMENT_NAME: "dev"
+    JAWS_SITE_VERSION: "dev"
   environment:
     name: "nmdc-tahoma/dev"
   rules:
