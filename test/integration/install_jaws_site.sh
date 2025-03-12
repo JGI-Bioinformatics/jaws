@@ -12,6 +12,7 @@ function pull_container {
   echo "Pulling container"
   if [ $CONTAINER_RUNTIME == "apptainer" ]; then
     apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "$registry/$image:apptainer-$tag"
+    apptainer remote logout $registry
   else
     echo "Unknown container runtime: $CONTAINER_RUNTIME"
     exit 1
