@@ -2,7 +2,7 @@
 
 function login_gitlab_registry {
   local registry="$1"
-  echo "$CI_REGISTRY_PASSWORD" | apptainer remote login --username "$CI_REGISTRY_USER" --password-stdin "$registry"
+  echo "$CI_REGISTRY_PASSWORD" | apptainer registry login --username "$CI_REGISTRY_USER" --password-stdin "$registry"
 }
 
 function pull_container {
@@ -12,6 +12,7 @@ function pull_container {
   echo "Pulling container"
   if [ $CONTAINER_RUNTIME == "apptainer" ]; then
     apptainer-pull --force "${JAWS_BIN_DIR}/site-${JAWS_SITE_VERSION}.sif" "$registry/$image:apptainer-$tag"
+    apptainer registry logout $registry
   else
     echo "Unknown container runtime: $CONTAINER_RUNTIME"
     exit 1
