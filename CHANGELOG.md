@@ -3,6 +3,9 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+
+## 2.5.2 Summary [03/14/2025 - staging // ? - PROD]
+### Internal Facing Changes
 - Remove `JAWS_MAX_USER_ACTIVE_RUNS` from dori config (#1879)
 
 ## 2.5.1 Summary [02/011/2025 - staging // 02/11/2025 - PROD]
