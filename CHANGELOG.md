@@ -5,6 +5,9 @@
 ### Internal Facing Changes
 
 ## 2.5.2 Summary [03/14/2025 - staging // ? - PROD]
+### External Facing Changes
+- Update MAX CPU variable for exvivo (#1881)
+
 ### Internal Facing Changes
 - Remove `JAWS_MAX_USER_ACTIVE_RUNS` from dori config (#1879)
 
