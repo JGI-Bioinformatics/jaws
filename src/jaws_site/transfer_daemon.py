@@ -27,7 +27,7 @@ class TransferDaemon:
         """
         Run scheduled task(s) periodically.
         """
-        schedule.every(1).minutes.do(write_heartbeat)
+        schedule.every(30).minutes.do(write_heartbeat)
         schedule.every(10).seconds.do(transfers.check_fix_perms_queue)
         schedule.every(10).seconds.do(transfers.check_transfer_queue)
         while True:
