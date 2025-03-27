@@ -8,6 +8,10 @@ from jaws_site import transfers
 logger = logging.getLogger(__package__)
 
 
+def write_heartbeat():
+    logger.info("Transfer daemon heartbeat: it's up and running")
+
+
 class TransferDaemon:
     """
     The Transfer Daemon periodically checks for new queued transfer tasks and submits them to the
@@ -23,6 +27,7 @@ class TransferDaemon:
         """
         Run scheduled task(s) periodically.
         """
+        schedule.every(30).minutes.do(write_heartbeat)
         schedule.every(10).seconds.do(transfers.check_fix_perms_queue)
         schedule.every(10).seconds.do(transfers.check_transfer_queue)
         while True:

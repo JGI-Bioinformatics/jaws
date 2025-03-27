@@ -3,6 +3,7 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+- Added heartbeat log message to log file (#1882)
 
 ## 2.5.2 Summary [03/14/2025 - staging // ? - PROD]
 ### External Facing Changes
