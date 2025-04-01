@@ -3,14 +3,14 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
-- Added heartbeat log message to log file (#1882)
 
-## 2.5.2 Summary [03/14/2025 - staging // ? - PROD]
+## 2.5.2 Summary [03/14/2025 - staging // 04/01/2025 - PROD]
 ### External Facing Changes
 - Update MAX CPU variable for exvivo (#1881)
 
 ### Internal Facing Changes
 - Remove `JAWS_MAX_USER_ACTIVE_RUNS` from dori config (#1879)
+- Added heartbeat log message to log file (#1882)
 
 ## 2.5.1 Summary [02/011/2025 - staging // 02/11/2025 - PROD]
 
