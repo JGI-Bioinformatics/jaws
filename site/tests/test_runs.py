@@ -7,8 +7,11 @@ from unittest.mock import patch
 import jaws_site
 import pytest
 from deepdiff import DeepDiff
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, clear_mappers
 from jaws_rpc.rpc_client_basic import RpcClientBasic
 from jaws_site.cromwell import CromwellRunError, CromwellServiceError
+import jaws_site.models
 from jaws_site.runs import (
     Run,
     RunDbError,
@@ -21,7 +24,17 @@ from jaws_site.runs import (
 
 from tests.conftest import MockRunModel, MockSession, initRunModel
 
-# from unittest.mock import MagicMock
+
+@pytest.fixture(scope="function")
+def db_session():
+    engine = create_engine("sqlite:///:memory:", echo=False)
+    jaws_site.models.Base.metadata.create_all(engine, tables=[jaws_site.models.Run.__table__,
+                                                              jaws_site.models.Tasks.__table__])
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+
+    session.close()
 
 
 def test_constructor():
@@ -219,45 +232,6 @@ def test_inputs_fh(monkeypatch):
     fh = run.inputs_fh()
     inputs = json.load(fh)
     assert inputs["KEY"] == "VALUE"
-
-
-# def test_get_run_inputs(
-#    monkeypatch, inputs_files, inputs_files_missing_json, inputs_files_without_zip
-# ):
-#    def mock__inputs_fh():
-#        return None
-#
-#    def mock__read_file(path):
-#        return None
-#
-#    monkeypatch.setattr(jaws_site.runs.Run, "_inputs_fh", mock__inputs_fh)
-#    monkeypatch.setattr(jaws_site.runs.Run, "_read_file", mock__read_file)
-#
-#    mock_session = MockSession()
-#
-#    # test 1: valid input
-#    data1 = MockRunModel(status="upload complete", submission_id="XXXX")
-#    run1 = Run(mock_session, data1)
-#    infiles = run1.get_run_inputs()
-#    assert infiles[0].read() == "output for XXXX.wdl"
-#    assert infiles[1].read() == "output for XXXX.json"
-#    assert infiles[2].read().decode() == "output for XXXX.zip"
-#    assert infiles[3] is None
-#
-#    # test 2: invalid input
-#    data2 = MockRunModel(status="upload complete", submission_id="YYYY")
-#    run2 = Run(mock_session, data2)
-#    with pytest.raises(jaws_site.runs.DataError):
-#        infiles = run2.get_run_inputs()
-#
-#    # test 3: valid input, no subworkflows zip
-#    data3 = MockRunModel(status="upload complete", submission_id="WWWW")
-#    run3 = Run(mock_session, data3)
-#    infiles = run3.get_run_inputs()
-#    assert infiles[0].read() == "output for WWWW.wdl"
-#    assert infiles[1].read() == "output for WWWW.json"
-#    assert infiles[2] is None
-#    assert infiles[3] is None
 
 
 def test_submit_run(mock_sqlalchemy_session, monkeypatch, inputs_files):
@@ -626,42 +600,30 @@ def test_task_log(mock_metadata, mock_sqlalchemy_session):
 
 
 def test_summary(mock_metadata, mock_sqlalchemy_session, monkeypatch):
-    data = initRunModel(status="succeeded")
+    submitted_string = "2025-04-01 15:30:00"
+    date_format = "%Y-%m-%d %H:%M:%S"
+    updated_string = "2025-04-03 18:53:40"
+    submitted = datetime.strptime(submitted_string, date_format)
+    updated = datetime.strptime(updated_string, date_format)
+    data = initRunModel(status="succeeded", submitted=submitted,
+                        updated=updated)
     run = Run(mock_sqlalchemy_session, data)
     ret = run.summary()
-    ret == {
-        "run_id": "99",
-        "user_id": "test_user",
-        "cromwell_run_id": "ABCD-EFGH",
-        "submitted": "2022-09-15 00:06:13",
-        "updated": "2022-09-15 00:06:13",
-        "status": "succeeded",
-        "result": "succeeded",
-        "workflow_name": "unknown",
-        "site_id": "EAGLE",
-        "tasks": [
-            {
-                "name": "test",
-                "shard_index": "shard_index",
-                "attempt": "attempt",
-                "cached": "cached",
-                "execution_status": "succeeded",
-                "result": "result",
-                "failure_message": "failure_message",
-                "queue_start": "01-01-2022",
-                "run_start": "01-01-2022",
-                "run_end": "01-01-2022",
-                "call_root": "call_root",
-                "requested_time": "01-01-2022",
-                "requested_cpu": 15,
-                "requested_memory": "100",
-                "cromwell_job_id": "123",
-                "queuetime_sec": 0,
-                "runtime_sec": 0,
-                "walltime_sec": 0,
-            }
-        ],
-    }
+    assert ret == {'compute_site_id': 'eagle',
+                   'cpu_hours': None,
+                   'cromwell_run_id': 'ABCD-EFGH',
+                   'json_basename': None,
+                   'result': 'succeeded',
+                   'run_id': '99',
+                   'status': 'succeeded',
+                   'submitted': '2025-04-01 15:30:00',
+                   'tag': None,
+                   'updated': '2025-04-03 18:53:40',
+                   'user_id': 'test_user',
+                   'workflow_name': None,
+                   'workflow_root': None
+                   }
+
 
 
 def test_publish_report(mock_metadata, mock_sqlalchemy_session, monkeypatch):
@@ -892,3 +854,116 @@ def test_read_inputs_error(mock_sqlalchemy_session, monkeypatch, tmp_path):
     with patch("builtins.open", side_effect=PermissionError):
         with pytest.raises(PermissionError):
             run.read_inputs()
+
+
+def test_sync_return_code_does_not_change_status_if_all_match(db_session, monkeypatch):
+    session = db_session
+    run = jaws_site.models.Run(
+        submission_id="1",
+        input_site_id="dori",
+        caching=True,
+        status="done",
+        user_id="johndoe",
+        submitted=datetime.utcnow(),
+        wdl_basename="main.wdl",
+        json_basename="inputs.json",
+        cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08"
+    )
+
+    task_dir_and_rc = [("call-WarningTask", 1),
+                       ("call-CriticalErrorTask", 137),
+                       ("call-AnotherSuccessTask", 0),
+                       ("call-ErrorTask", 2),
+                       ("call-SuccessTask", 0)]
+
+    tasks = []
+    for task_dir, rc in task_dir_and_rc:
+        task = jaws_site.models.Tasks(cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08",
+                                      task_dir=task_dir,
+                                      return_code=rc,
+                                      status="done")
+        tasks.append(task)
+
+    session.add(run)
+    session.add_all(tasks)
+    session.commit
+
+    task = session.query(jaws_site.models.Tasks).filter_by(
+        cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08",
+        task_dir="call-SuccessTask").all()
+
+    assert task[0].return_code == 0
+
+    def mock_get(*args, **kwargs):
+        jsons_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(f"{jsons_dir}/multiple_tasks_return_code.json", "r") as f:
+            return json.load(f)
+
+    run_model = initRunModel(status="done", cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08")
+    run = Run(session, run_model)
+    monkeypatch.setattr(jaws_site.cromwell.Cromwell, "get", mock_get)
+    run.sync_return_codes()
+
+    task = session.query(jaws_site.models.Tasks).filter_by(
+        cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08",
+        task_dir="call-SuccessTask").all()
+
+    assert task[0].return_code == 0
+
+
+def test_sync_return_code_if_cromwell_metadata_differs(db_session, monkeypatch):
+    """
+    Test the sync_return_codes method of the Run class. The created tasks of call-SuccessTask
+    has an return code of 79 which does not match the expected return code of 0.
+    """
+
+    session = db_session
+
+    run = jaws_site.models.Run(
+        submission_id="1",
+        input_site_id="dori",
+        caching=True,
+        status="done",
+        user_id="johndoe",
+        submitted=datetime.utcnow(),
+        wdl_basename="main.wdl",
+        json_basename="inputs.json",
+        cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08"
+    )
+
+    task_dir_and_rc = [("call-WarningTask", 1),
+                       ("call-CriticalErrorTask", 137),
+                       ("call-AnotherSuccessTask", 0),
+                       ("call-ErrorTask", 2),
+                       ("call-SuccessTask", 79)]
+    tasks = []
+    for task_dir, rc in task_dir_and_rc:
+        task = jaws_site.models.Tasks(cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08",
+                                      task_dir=task_dir,
+                                      return_code=rc,
+                                      status="done")
+        tasks.append(task)
+    session.add(run)
+    session.add_all(tasks)
+    session.commit
+
+    task = session.query(jaws_site.models.Tasks).filter_by(
+        cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08",
+        task_dir="call-SuccessTask").all()
+
+    assert task[0].return_code == 79
+    def mock_get(*args, **kwargs):
+        jsons_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(f"{jsons_dir}/multiple_tasks_return_code.json", "r") as f:
+            return json.load(f)
+
+    run_model = initRunModel(status="done", cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08")
+    run = Run(session, run_model)
+    monkeypatch.setattr(jaws_site.cromwell.Cromwell, "get", mock_get)
+    run.sync_return_codes()
+
+    task = session.query(jaws_site.models.Tasks).filter_by(
+        cromwell_run_id="8aa8d1db-dcda-4549-86d2-76e79b7a1c08",
+        task_dir="call-SuccessTask").all()
+
+    assert task[0].return_code == 0
