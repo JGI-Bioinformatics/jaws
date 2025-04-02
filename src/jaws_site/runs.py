@@ -103,6 +103,7 @@ class Run:
             "cancelled": self.write_supplement,
             "complete": self.publish_report,
             "cancel": self.cancel,
+            "sync": self.sync_return_codes
         }
         self.central_rpc_client = kwargs.get("central_rpc_client")
         self.reports_rpc_client = kwargs.get("reports_rpc_client")
@@ -969,6 +970,7 @@ class Run:
         logger.debug(f"Run {self.data.id}: Writing {manifest_file}")
         write_json_file(manifest_file, manifest)
         self.update_run_status("complete")
+        self.sync_return_codes()
 
     def output_manifest(self) -> list:
         """
@@ -985,6 +987,28 @@ class Run:
             return []
         else:
             return manifest
+
+    def sync_return_codes(self):
+        """
+        Sync the return codes for each task at the end of the run to ensure
+        consistency between Cromwell and the JAWS run tasks tables.
+        """
+        metadata = self.check_cromwell_metadata()
+        tasks = self.task_log()
+        database_tasks_metadata = tasks.select()
+        task_dirname_index = 1
+        task_return_code_index = 14
+        db_tasks = {task[task_dirname_index]: task[task_return_code_index] for task in database_tasks_metadata}
+        cromwell_tasks_metadata = metadata.task_summary_dict()
+        for cromwell_task_dirname in cromwell_tasks_metadata:
+            if cromwell_task_dirname in db_tasks:
+                cromwell_return_code = cromwell_tasks_metadata[cromwell_task_dirname]["return_code"]
+                db_return_code = db_tasks[cromwell_task_dirname]
+                if db_return_code != cromwell_return_code:
+                    logger.debug(f"Run {self.data.id}: Updating task {cromwell_task_dirname} return code. Previous "
+                                 f"value: {db_return_code}"
+                                 f", New value: {cromwell_return_code}")
+                    tasks.update(cromwell_task_dirname, {"return_code": cromwell_return_code})
 
     def publish_report(self):
         """

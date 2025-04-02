@@ -42,6 +42,19 @@ class TaskLog:
         self.local_tz = local_tz
         self.local_tz_obj = pytz.timezone(local_tz)
 
+    def update(self, task_dir, fields):
+        try:
+            task = self.session.query(models.Tasks).filter_by(cromwell_run_id=self.cromwell_run_id,
+                                                              task_dir=task_dir).one()
+            for key, value in fields.items():
+                setattr(task, key, value)
+            self.logger.debug(f"Updating task with: {fields}")
+            self.logger.debug(f"Task before commit: {task}")
+            self.session.commit()
+        except SQLAlchemyError as error:
+            self.logger.error(f"Unable to update task: {error}")
+            raise TaskDbError(error)
+
     def select(self):
         """
         Select all rows associated with the parent cromwell_run_id; this shall include subworkflows.

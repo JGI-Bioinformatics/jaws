@@ -1,3 +1,4 @@
+
 """
 Cromwell class provides object-oriented API to Cromwell REST server.
 
@@ -306,6 +307,7 @@ class Call:
             "requested_runtime_minutes": self.requested_runtime_minutes,
             "requested_cpu": self.requested_cpu,
             "requested_memory": self.requested_memory,
+            "return_code": self.return_code,
         }
         return record
 

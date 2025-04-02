@@ -11,7 +11,8 @@
     "call_root": "call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-goodbye",
     "requested_runtime_minutes": "10",
     "requested_cpu": 32,
-    "requested_memory": "10 GB"
+    "requested_memory": "10 GB",
+    "return_code": 0
   },
   {
     "name": "hello_and_goodbye.hello",
@@ -25,7 +26,8 @@
     "call_root": "call-hello_and_goodbye_1/sub.hello_and_goodbye/6870a657-27df-4972-9465-88d769b81e49/call-hello",
     "requested_runtime_minutes": "10",
     "requested_cpu": 32,
-    "requested_memory": "10 GB"
+    "requested_memory": "10 GB",
+    "return_code": 0
   },
   {
     "name": "main_workflow.hello",
@@ -39,7 +41,8 @@
     "call_root": "call-hello",
     "requested_runtime_minutes": "10",
     "requested_cpu": 32,
-    "requested_memory": "10 GB"
+    "requested_memory": "10 GB",
+    "return_code": 0
   },
   {
     "name": "main_workflow.goodbye",
@@ -53,7 +56,8 @@
     "call_root": "call-goodbye",
     "requested_runtime_minutes": "10",
     "requested_cpu": 32,
-    "requested_memory": "10 GB"
+    "requested_memory": "10 GB",
+    "return_code": 0
   },
   {
     "name": "hello_and_goodbye.goodbye",
@@ -67,7 +71,8 @@
     "call_root": "call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-goodbye",
     "requested_runtime_minutes": "10",
     "requested_cpu": 32,
-    "requested_memory": "10 GB"
+    "requested_memory": "10 GB",
+    "return_code": 0
   },
   {
     "name": "hello_and_goodbye.hello",
@@ -81,6 +86,7 @@
     "call_root": "call-hello_and_goodbye_2/sub.hello_and_goodbye/5689d65d-51bf-4d7f-b134-cd086ba6195b/call-hello",
     "requested_runtime_minutes": "10",
     "requested_cpu": 32,
-    "requested_memory": "10 GB"
+    "requested_memory": "10 GB",
+    "return_code": 0
   }
 ]
