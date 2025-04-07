@@ -1,0 +1,377 @@
+{
+    "actualWorkflowLanguage": "WDL",
+    "actualWorkflowLanguageVersion": "1.0",
+    "calls": {
+        "HelloWorldWorkflow.AnotherSuccessTask": [
+            {
+                "attempt": 1,
+                "backend": "Local",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-AnotherSuccessTask",
+                "commandLine": "echo \"Hello World from AnotherSuccessTask\"\nexit 0",
+                "end": "2025-04-01T17:10:06.392Z",
+                "executionEvents": [
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2025-04-01T17:10:06.157Z",
+                        "startTime": "2025-04-01T17:10:01.660Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2025-04-01T17:10:01.634Z",
+                        "startTime": "2025-04-01T17:10:00.104Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2025-04-01T17:10:06.384Z",
+                        "startTime": "2025-04-01T17:10:06.157Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2025-04-01T17:10:01.640Z",
+                        "startTime": "2025-04-01T17:10:01.634Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2025-04-01T17:10:01.660Z",
+                        "startTime": "2025-04-01T17:10:01.640Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2025-04-01T17:10:00.104Z",
+                        "startTime": "2025-04-01T17:10:00.103Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {},
+                "jobId": "513",
+                "outputs": {
+                    "exit_code": 0,
+                    "message": "Hello World from AnotherSuccessTask"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "failOnStderr": "false",
+                    "maxRetries": "0"
+                },
+                "shardIndex": -1,
+                "start": "2025-04-01T17:10:00.103Z",
+                "stderr": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-AnotherSuccessTask/execution/stderr",
+                "stdout": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-AnotherSuccessTask/execution/stdout"
+            }
+        ],
+        "HelloWorldWorkflow.CriticalErrorTask": [
+            {
+                "attempt": 1,
+                "backend": "Local",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-CriticalErrorTask",
+                "commandLine": "echo \"Hello World from CriticalErrorTask with a critical error\"\nexit 137",
+                "end": "2025-04-01T17:10:02.521Z",
+                "executionEvents": [
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2025-04-01T17:10:02.521Z",
+                        "startTime": "2025-04-01T17:10:00.665Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2025-04-01T17:10:00.665Z",
+                        "startTime": "2025-04-01T17:10:00.641Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2025-04-01T17:10:00.637Z",
+                        "startTime": "2025-04-01T17:10:00.101Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2025-04-01T17:10:00.101Z",
+                        "startTime": "2025-04-01T17:10:00.094Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2025-04-01T17:10:00.641Z",
+                        "startTime": "2025-04-01T17:10:00.637Z"
+                    }
+                ],
+                "executionStatus": "Failed",
+                "failures": [
+                    {
+                        "causedBy": [],
+                        "message": "The compute backend terminated the job. If this termination is unexpected, examine likely causes such as preemption, running out of disk or memory on the compute instance, or exceeding the backend's maximum job duration."
+                    }
+                ],
+                "inputs": {},
+                "jobId": "325",
+                "retryableFailure": false,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "failOnStderr": "false",
+                    "maxRetries": "0"
+                },
+                "shardIndex": -1,
+                "start": "2025-04-01T17:10:00.094Z",
+                "stderr": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-CriticalErrorTask/execution/stderr",
+                "stdout": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-CriticalErrorTask/execution/stdout"
+            }
+        ],
+        "HelloWorldWorkflow.ErrorTask": [
+            {
+                "attempt": 1,
+                "backend": "Local",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-ErrorTask",
+                "commandLine": "echo \"Hello World from ErrorTask with an error\"\nexit 2",
+                "end": "2025-04-01T17:10:06.384Z",
+                "executionEvents": [
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2025-04-01T17:10:02.635Z",
+                        "startTime": "2025-04-01T17:10:00.104Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2025-04-01T17:10:02.643Z",
+                        "startTime": "2025-04-01T17:10:02.637Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2025-04-01T17:10:06.384Z",
+                        "startTime": "2025-04-01T17:10:06.139Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2025-04-01T17:10:06.139Z",
+                        "startTime": "2025-04-01T17:10:02.643Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2025-04-01T17:10:02.637Z",
+                        "startTime": "2025-04-01T17:10:02.635Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2025-04-01T17:10:00.104Z",
+                        "startTime": "2025-04-01T17:10:00.104Z"
+                    }
+                ],
+                "executionStatus": "Failed",
+                "failures": [
+                    {
+                        "causedBy": [],
+                        "message": "Job HelloWorldWorkflow.ErrorTask:NA:1 exited with return code 2 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+                    }
+                ],
+                "inputs": {},
+                "jobId": "858",
+                "retryableFailure": false,
+                "returnCode": 2,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "failOnStderr": "false",
+                    "maxRetries": "0"
+                },
+                "shardIndex": -1,
+                "start": "2025-04-01T17:10:00.104Z",
+                "stderr": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-ErrorTask/execution/stderr",
+                "stdout": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-ErrorTask/execution/stdout"
+            }
+        ],
+        "HelloWorldWorkflow.SuccessTask": [
+            {
+                "attempt": 1,
+                "backend": "Local",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-SuccessTask",
+                "commandLine": "echo \"Hello World from SuccessTask\"\nexit 0",
+                "end": "2025-04-01T17:10:06.402Z",
+                "executionEvents": [
+                    {
+                        "description": "Pending",
+                        "endTime": "2025-04-01T17:10:00.103Z",
+                        "startTime": "2025-04-01T17:10:00.102Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2025-04-01T17:10:06.384Z",
+                        "startTime": "2025-04-01T17:10:06.157Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2025-04-01T17:10:01.640Z",
+                        "startTime": "2025-04-01T17:10:01.634Z"
+                    },
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2025-04-01T17:10:01.634Z",
+                        "startTime": "2025-04-01T17:10:00.103Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2025-04-01T17:10:06.157Z",
+                        "startTime": "2025-04-01T17:10:01.660Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2025-04-01T17:10:01.660Z",
+                        "startTime": "2025-04-01T17:10:01.640Z"
+                    }
+                ],
+                "executionStatus": "Done",
+                "inputs": {},
+                "jobId": "527",
+                "outputs": {
+                    "exit_code": 0,
+                    "message": "Hello World from SuccessTask"
+                },
+                "returnCode": 0,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "failOnStderr": "false",
+                    "maxRetries": "0"
+                },
+                "shardIndex": -1,
+                "start": "2025-04-01T17:10:00.102Z",
+                "stderr": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-SuccessTask/execution/stderr",
+                "stdout": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-SuccessTask/execution/stdout"
+            }
+        ],
+        "HelloWorldWorkflow.WarningTask": [
+            {
+                "attempt": 1,
+                "backend": "Local",
+                "backendStatus": "Done",
+                "callCaching": {
+                    "allowResultReuse": false,
+                    "effectiveCallCachingMode": "CallCachingOff"
+                },
+                "callRoot": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-WarningTask",
+                "commandLine": "echo \"Hello World from WarningTask with a warning\"\nexit 1",
+                "end": "2025-04-01T17:10:04.381Z",
+                "executionEvents": [
+                    {
+                        "description": "RequestingExecutionToken",
+                        "endTime": "2025-04-01T17:10:00.638Z",
+                        "startTime": "2025-04-01T17:10:00.101Z"
+                    },
+                    {
+                        "description": "UpdatingJobStore",
+                        "endTime": "2025-04-01T17:10:04.379Z",
+                        "startTime": "2025-04-01T17:10:03.701Z"
+                    },
+                    {
+                        "description": "RunningJob",
+                        "endTime": "2025-04-01T17:10:03.701Z",
+                        "startTime": "2025-04-01T17:10:00.666Z"
+                    },
+                    {
+                        "description": "Pending",
+                        "endTime": "2025-04-01T17:10:00.101Z",
+                        "startTime": "2025-04-01T17:10:00.098Z"
+                    },
+                    {
+                        "description": "WaitingForValueStore",
+                        "endTime": "2025-04-01T17:10:00.641Z",
+                        "startTime": "2025-04-01T17:10:00.638Z"
+                    },
+                    {
+                        "description": "PreparingJob",
+                        "endTime": "2025-04-01T17:10:00.666Z",
+                        "startTime": "2025-04-01T17:10:00.641Z"
+                    }
+                ],
+                "executionStatus": "Failed",
+                "failures": [
+                    {
+                        "causedBy": [],
+                        "message": "Job HelloWorldWorkflow.WarningTask:NA:1 exited with return code 1 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+                    }
+                ],
+                "inputs": {},
+                "jobId": "318",
+                "retryableFailure": false,
+                "returnCode": 1,
+                "runtimeAttributes": {
+                    "continueOnReturnCode": "0",
+                    "failOnStderr": "false",
+                    "maxRetries": "0"
+                },
+                "shardIndex": -1,
+                "start": "2025-04-01T17:10:00.098Z",
+                "stderr": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-WarningTask/execution/stderr",
+                "stdout": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608/call-WarningTask/execution/stdout"
+            }
+        ]
+    },
+    "end": "2025-04-01T17:10:07.263Z",
+    "failures": [
+        {
+            "causedBy": [
+                {
+                    "causedBy": [],
+                    "message": "The compute backend terminated the job. If this termination is unexpected, examine likely causes such as preemption, running out of disk or memory on the compute instance, or exceeding the backend's maximum job duration."
+                },
+                {
+                    "causedBy": [],
+                    "message": "Job HelloWorldWorkflow.WarningTask:NA:1 exited with return code 1 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+                },
+                {
+                    "causedBy": [],
+                    "message": "Job HelloWorldWorkflow.ErrorTask:NA:1 exited with return code 2 which has not been declared as a valid return code. See 'continueOnReturnCode' runtime attribute for more details."
+                }
+            ],
+            "message": "Workflow failed"
+        }
+    ],
+    "id": "a591a03a-e193-4d38-8e50-c4b1f2bcd608",
+    "inputs": {},
+    "labels": {
+        "cromwell-workflow-id": "cromwell-a591a03a-e193-4d38-8e50-c4b1f2bcd608"
+    },
+    "outputs": {},
+    "start": "2025-04-01T17:09:58.899Z",
+    "status": "Failed",
+    "submission": "2025-04-01T17:09:58.462Z",
+    "submittedFiles": {
+        "inputs": "{}",
+        "labels": "{}",
+        "options": "{\n\n}",
+        "root": "",
+        "workflow": "version 1.0\n\nworkflow HelloWorldWorkflow {\n  call SuccessTask\n  call WarningTask\n  call ErrorTask\n  call CriticalErrorTask\n  call AnotherSuccessTask\n}\n\ntask SuccessTask {\n  command {\n    echo \"Hello World from SuccessTask\"\n    exit 0\n  }\n  output {\n    String message = read_string(stdout())\n    Int exit_code = 0\n  }\n  runtime {\n    memory: \"1GiB\"\n    runtime_minutes: 10\n    cpu: 1\n  }\n}\n\ntask WarningTask {\n  command {\n    echo \"Hello World from WarningTask with a warning\"\n    exit 1\n  }\n  output {\n    String message = read_string(stdout())\n    Int exit_code = 1\n  }\n  runtime {\n    memory: \"1GiB\"\n    runtime_minutes: 10\n    cpu: 1\n  }\n}\n\ntask ErrorTask {\n  command {\n    echo \"Hello World from ErrorTask with an error\"\n    exit 2\n  }\n  output {\n    String message = read_string(stdout())\n    Int exit_code = 2\n  }\n  runtime {\n    memory: \"1GiB\"\n    runtime_minutes: 10\n    cpu: 1\n  }\n}\n\ntask CriticalErrorTask {\n  command {\n    echo \"Hello World from CriticalErrorTask with a critical error\"\n    exit 137\n  }\n  output {\n    String message = read_string(stdout())\n    Int exit_code = 137\n  }\n  runtime {\n    memory: \"1GiB\"\n    runtime_minutes: 10\n    cpu: 1\n  }\n}\n\ntask AnotherSuccessTask {\n  command {\n    echo \"Hello World from AnotherSuccessTask\"\n    exit 0\n  }\n  output {\n    String message = read_string(stdout())\n    Int exit_code = 0\n  }\n  runtime {\n    memory: \"1GiB\"\n    runtime_minutes: 10\n    cpu: 1\n  }\n}\n",
+        "workflowUrl": ""
+    },
+    "workflowName": "HelloWorldWorkflow",
+    "workflowProcessingEvents": [
+        {
+            "cromwellId": "cromid-51c02dc",
+            "cromwellVersion": "88-d2c7e8c",
+            "description": "Finished",
+            "timestamp": "2025-04-01T17:10:07.264Z"
+        },
+        {
+            "cromwellId": "cromid-51c02dc",
+            "cromwellVersion": "88-d2c7e8c",
+            "description": "PickedUp",
+            "timestamp": "2025-04-01T17:09:58.890Z"
+        }
+    ],
+    "workflowRoot": "/cromwell-executions/HelloWorldWorkflow/a591a03a-e193-4d38-8e50-c4b1f2bcd608"
+}
