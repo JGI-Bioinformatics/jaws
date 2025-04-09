@@ -22,7 +22,7 @@ authors = [
 
 dependencies = [
     "jaws_common@git+https://code.jgi.doe.gov/advanced-analysis/jaws/jaws-common.git#egg=main",
-    "amqpstorm>=2.10.7",
+    "AMQPstorm>=2.11.1",
     "click>=8.1.7",
     "deepdiff>=7.0.1",
     "mysql-connector-python>=9.0.0",
