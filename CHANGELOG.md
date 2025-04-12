@@ -4,6 +4,10 @@
 
 ### Internal Facing Changes
 
+
+## 2.5.3 Summary [04/12/2025 - staging // 04/?/2025 - PROD]
+- sync return codes with cromwell metadata (jaws-support#281)
+
 ## 2.5.2 Summary [03/14/2025 - staging // 04/01/2025 - PROD]
 ### External Facing Changes
 - Update MAX CPU variable for exvivo (#1881)
