@@ -1,5 +1,9 @@
 #!/bin/bash -l
 
+set -a
+source "$JAWS_CONFIG_DIR/site.env"
+set +a
+
 export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export PYTHONIOENCODING=utf-8
