@@ -37,6 +37,8 @@ import requests
 import requests.adapters
 import urllib3
 
+from jaws_site import config
+
 REQUEST_TIMEOUT = 120
 NUMBER_OF_RETRIES = 5
 BACKOFF_FACTOR = 5
@@ -56,6 +58,8 @@ retries = urllib3.Retry(
 )
 
 session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+params = config.conf.get("CROMWELL")
+session.auth = (params.get("user"), params.get("password"))
 
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
 memory_re = re.compile(r"^\s*(\d+)\s*(\w+)\s*$")
