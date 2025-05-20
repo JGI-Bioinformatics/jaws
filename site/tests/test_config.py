@@ -195,6 +195,21 @@ def test_env_override(config_file):
 
     check_section("DB", expected_db_sections_env_override2, cfg)
 
+    try:
+        jaws_site.config.Configuration._destructor()
+    except Exception:
+        pass
+
+    # Test with get_section() with env_prefix set
+    os.environ["ENV__DB_host"] = "mysql.db.host"
+    os.environ["ENV__DB_password"] = "mysqlpassword"
+    cfg = jaws_site.config.Configuration(config_path, "ENV__")
+
+    db_conf = cfg.get_section("DB")
+    assert db_conf["host"] == os.environ["ENV__DB_host"]
+    assert db_conf["password"] == os.environ["ENV__DB_password"]
+
+
 
 @pytest.mark.parametrize(
     "section, key",

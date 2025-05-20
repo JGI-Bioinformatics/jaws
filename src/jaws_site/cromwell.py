@@ -35,7 +35,10 @@ import boto3
 import botocore
 import requests
 import requests.adapters
+from requests.auth import HTTPBasicAuth
 import urllib3
+
+from jaws_site import config
 
 REQUEST_TIMEOUT = 120
 NUMBER_OF_RETRIES = 5
@@ -56,6 +59,12 @@ retries = urllib3.Retry(
 )
 
 session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
+params = config.conf.get_section("CROMWELL")
+
+# Set up authentication if provided
+if params.get("user") is not None and params.get("password") is not None:
+    session.auth = HTTPBasicAuth(params.get("user"), params.get("password"))
+    session.verify = False
 
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
 memory_re = re.compile(r"^\s*(\d+)\s*(\w+)\s*$")
