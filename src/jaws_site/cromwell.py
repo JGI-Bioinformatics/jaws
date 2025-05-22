@@ -967,7 +967,7 @@ class Cromwell:
             )
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        except requests.exceptions.HTTPError as error:
+        if response.status_code >= 400:
             raise CromwellServiceError(
                 f"Error retrieving Cromwell status: code {error.response.status_code} {error}"
             )
