@@ -11,7 +11,7 @@ import os
 import pathlib
 import shutil
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from multiprocessing import cpu_count
 
@@ -542,8 +542,8 @@ def parallel_copy_files_only(
                 executor.submit(safe_copy, s, d, dir_mode, file_mode): (s, d)
                 for s, d in paths
             }
-            for future in futures:
-                s, d = futures[future]
+            for future in as_completed(futures):
+                s, d = future
                 try:
                     if not future.result():
                         logger.error(f"Local transfer failed: {s} to {d}")
