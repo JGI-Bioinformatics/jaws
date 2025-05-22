@@ -969,7 +969,7 @@ class Cromwell:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
         if response.status_code >= 400:
             raise CromwellServiceError(
-                f"Error retrieving Cromwell status: code {response.status_code}"
+                f"Error retrieving Cromwell status: code {response.status_code} {response.text}"
             )
         run_id = response.json()["id"]
         return run_id
