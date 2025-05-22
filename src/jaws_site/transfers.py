@@ -543,13 +543,14 @@ def parallel_copy_files_only(
                 for s, d in paths
             }
             for future in as_completed(futures):
-                s, d = future
                 try:
                     if not future.result():
-                        logger.error(f"Local transfer failed: {s} to {d}")
+                        logger.error(
+                            f"Local transfer failed: safe_copy failed in copying {src} to {dest}."
+                        )
                         return False
                 except OSError as ose:
-                    logger.error(f"Exception in local transfer from {s} to {d}: {ose}")
+                    logger.error(f"Exception in local transfer: {ose}")
                     return False
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
