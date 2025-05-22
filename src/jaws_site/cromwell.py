@@ -38,6 +38,8 @@ import requests.adapters
 import urllib3
 
 from jaws_site import config
+from requests.auth import HTTPBasicAuth
+
 
 REQUEST_TIMEOUT = 120
 NUMBER_OF_RETRIES = 5
@@ -62,7 +64,8 @@ params = config.conf.get_section("CROMWELL")
 
 # Set up authentication if provided
 if params.get("user") is not None and params.get("password") is not None:
-    session.auth = (params.get("user"), params.get("password"))
+    session.auth = HTTPBasicAuth(params.get("user"), params.get("password"))
+    session.verify = False
 
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
 memory_re = re.compile(r"^\s*(\d+)\s*(\w+)\s*$")
