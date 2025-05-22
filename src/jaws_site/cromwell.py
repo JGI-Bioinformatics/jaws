@@ -967,9 +967,9 @@ class Cromwell:
             )
         except requests.exceptions.ConnectionError as error:
             raise CromwellServiceError(f"Unable to reach Cromwell service: {error}")
-        if response.status_code >= 400:
+        except requests.exceptions.HTTPError as error:
             raise CromwellServiceError(
-                f"Error retrieving Cromwell status: code {response.status_code}"
+                f"Error retrieving Cromwell status: code {error.response.status_code} {error}"
             )
         run_id = response.json()["id"]
         return run_id
