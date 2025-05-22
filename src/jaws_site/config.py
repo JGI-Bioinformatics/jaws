@@ -41,8 +41,7 @@ class Configuration(metaclass=jaws_site.utils.Singleton):
             "endpoint_id",
             "host_path",
         ],
-        "DB": ["user", "password"],
-        "CROMWELL": ["url", "user", "password"],
+        "CROMWELL": ["url"],
         "SITE": ["id", "deployment", "inputs_dir"],
     }
 

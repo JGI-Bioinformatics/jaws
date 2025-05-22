@@ -58,8 +58,11 @@ retries = urllib3.Retry(
 )
 
 session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retries))
-params = config.conf.get("CROMWELL")
-session.auth = (params.get("user"), params.get("password"))
+params = config.conf.get_section("CROMWELL")
+
+# Set up authentication if provided
+if params.get("user") is not None and params.get("password") is not None:
+    session.auth = (params.get("user"), params.get("password"))
 
 time_re = re.compile(r"^\s*(\d+):(\d+):(\d+)\s*$")
 memory_re = re.compile(r"^\s*(\d+)\s*(\w+)\s*$")
