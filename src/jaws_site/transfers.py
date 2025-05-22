@@ -11,7 +11,7 @@ import os
 import pathlib
 import shutil
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from multiprocessing import cpu_count
 
@@ -26,6 +26,10 @@ logger = logging.getLogger(__package__)
 
 FILES_PER_THREAD = 500
 MAX_ERROR_STRING_LEN = 1024
+
+
+class LocalTransferError(Exception):
+    pass
 
 
 def safe_copy(source: str, destination: str, dir_mode: int, file_mode: int) -> bool:
@@ -373,14 +377,17 @@ class Transfer:
         logger.debug(
             f"Transfer {self.data.id}: Copy {num_files} files using {parallelism} threads"
         )
-        parallel_copy_files_only(
+
+        if not parallel_copy_files_only(
             rel_paths,
             src,
             str(dest),
             parallelism=parallelism,
             dir_mode=dir_mode,
             file_mode=file_mode,
-        )
+        ):
+            raise LocalTransferError(f"Error copying {src} to {dest}")
+
         for sub in dest.rglob("*"):
             if sub.is_dir():
                 sub.chmod(dir_mode)
@@ -513,36 +520,43 @@ def parallel_copy_files_only(
     :param dest: destination root directory
     :ptype dest: str
     """
+    paths = []
+    dir_mode = kwargs.get("dir_mode", int("777", base=8))
+    file_mode = kwargs.get("file_mode", int("666", base=8))
+    parallelism = min(kwargs.get("parallelism", cpu_count()), int(cpu_count() / 2))
+
+    for rel_path in manifest:
+        s = os.path.join(src, rel_path)
+        if not os.path.exists(s):
+            logger.error(f"Cannot copy {s}. File does not exist")
+            return False
+        if os.path.isdir(s):
+            logger.error(f"Cannot copy directory {s}. Only files are supported")
+            return False
+        d = os.path.join(dest, rel_path)
+        paths.append((s, d))
+
     try:
-        paths = []
-        dir_mode = kwargs.get("dir_mode", int("777", base=8))
-        file_mode = kwargs.get("file_mode", int("666", base=8))
-        for rel_path in manifest:
-            s = os.path.join(src, rel_path)
-            if not os.path.exists(s):
-                raise FileNotFoundError(f"Cannot copy {s}. File does not exist")
-            if os.path.isdir(s):
-                raise IsADirectoryError(
-                    "parallel_copy_files_only does not support folders"
-                )
-            d = os.path.join(dest, rel_path)
-            paths.append((s, d))
-        with ThreadPoolExecutor(
-            min(kwargs.get("parallelism", cpu_count()), int(cpu_count() / 2))
-        ) as executor:
-            for path in paths:
-                executor.submit(
-                    safe_copy,
-                    path[0],
-                    path[1],
-                    dir_mode,
-                    file_mode,
-                )
+        with ThreadPoolExecutor(parallelism) as executor:
+            futures = {
+                executor.submit(safe_copy, s, d, dir_mode, file_mode): (s, d)
+                for s, d in paths
+            }
+            for future in as_completed(futures):
+                try:
+                    if not future.result():
+                        logger.error(
+                            f"Local transfer failed: safe_copy failed in copying {src} to {dest}."
+                        )
+                        return False
+                except OSError as ose:
+                    logger.error(f"Exception in local transfer: {ose}")
+                    return False
     except Exception as e:
         logger.error(f"Error copying {src} to {dest}: {e}")
-        raise e
-    finally:
-        return True
+        return False
+
+    return True
 
 
 def parallel_chmod(
