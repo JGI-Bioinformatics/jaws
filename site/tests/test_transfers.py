@@ -18,6 +18,8 @@ from jaws_site.transfers import (
     list_all_files_under_dir,
     mkdir,
     parallel_chmod,
+    parallel_copy_files_only,
+    LocalTransferError,
 )
 
 from tests.conftest import (
@@ -176,14 +178,14 @@ def test_parallel_copy_files_only(mock_copy: object, setup_files: list[str]) -> 
         manifest,
         src_base_dir,
         dest_base_dir,
-        dir_mode=int('777', 8),
-        file_mode=int('666', 8),
+        dir_mode=int("777", 8),
+        file_mode=int("666", 8),
     )
     mock_copy.assert_called_with(
         os.path.join(src_base_dir, "file99.txt"),
         os.path.join(dest_base_dir, "file99.txt"),
         0o777,
-        0o666
+        0o666,
     )
 
 
@@ -240,6 +242,66 @@ def test_handles_nonexistent_directory(mock_sqlalchemy_session):
 #         assert (
 #             get_permissions(os.path.join(dst, f"file{i}.txt")) == expected_octal_perms
 #         )
+
+
+@pytest.fixture
+def setup_test_environment(tmp_path):
+    # Create source and destination directories
+    src = tmp_path / "src"
+    dest = tmp_path / "dest"
+    src.mkdir()
+    dest.mkdir()
+
+    # Create test files in the source directory
+    files = ["file1.txt", "file2.txt", "file3.txt"]
+    for file_name in files:
+        file_path = src / file_name
+        file_path.write_text("This is test content")
+
+    return files, str(src), str(dest)
+
+
+def test_parallel_copy_files_only_success(setup_test_environment):
+    files, src, dest = setup_test_environment
+
+    # Mock the safe_copy function to simulate successful copying
+    with patch("jaws_site.transfers.safe_copy", return_value=True) as mock_safe_copy:
+        result = parallel_copy_files_only(files, src, dest)
+        assert result is True
+        assert mock_safe_copy.call_count == len(files)
+
+
+def test_parallel_copy_files_only_file_not_found(setup_test_environment):
+    files, src, dest = setup_test_environment
+
+    # Remove a file to simulate a FileNotFoundError
+    os.remove(os.path.join(src, files[0]))
+
+    with patch("jaws_site.transfers.safe_copy", return_value=True):
+        result = parallel_copy_files_only(files, src, dest)
+        assert result is False
+
+
+def test_parallel_copy_files_only_is_a_directory_error(setup_test_environment):
+    files, src, dest = setup_test_environment
+
+    # Create a directory in the source to simulate an IsADirectoryError
+    os.mkdir(os.path.join(src, "subdir"))
+
+    with patch("jaws_site.transfers.safe_copy", return_value=True):
+        result = parallel_copy_files_only(files + ["subdir"], src, dest)
+        assert result is False
+
+
+def test_parallel_copy_files_only_local_transfer_error(setup_test_environment):
+    files, src, dest = setup_test_environment
+
+    # Mock the safe_copy function to simulate a LocalTransferError
+    with patch(
+        "jaws_site.transfers.safe_copy", side_effect=LocalTransferError("Mocked error")
+    ) as mock_safe_copy:
+        result = parallel_copy_files_only(files, src, dest)
+        assert result is False
 
 
 def test_s3_parse_path():
