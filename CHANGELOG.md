@@ -3,9 +3,13 @@
 ### External Facing Changes
 
 ### Internal Facing Changes
+
+## 2.5.4 Summary [06/11/2025 - staging // 06/?/2025 - PROD]
+
+### Internal Facing Changes
 - Fix local transfer (#1819)
 
-## 2.5.3 Summary [04/12/2025 - staging // 04/?/2025 - PROD]
+## 2.5.3 Summary [04/12/2025 - staging // 04/16/2025 - PROD]
 - sync return codes with cromwell metadata (jaws-support#281)
 
 ## 2.5.2 Summary [03/14/2025 - staging // 04/01/2025 - PROD]
